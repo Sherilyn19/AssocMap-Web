@@ -2,6 +2,13 @@
 
 > **A GIS-Based Program Monitoring System for Community Livelihood Associations**
 
+![Laravel](https://img.shields.io/badge/Laravel-12-red?logo=laravel)
+![PHP](https://img.shields.io/badge/PHP-8.x-777BB4?logo=php)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791?logo=postgresql)
+![PostGIS](https://img.shields.io/badge/PostGIS-Enabled-336791)
+![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-4-38BDF8?logo=tailwindcss)
+![License](https://img.shields.io/badge/License-Academic-blue)
+
 The **AssocMap Web Application** is the administrative platform of the AssocMap system, developed as a Capstone Project for the **Bureau of Fisheries and Aquatic Resources (BFAR) Region VII**. It enables administrators and field officers to efficiently manage community livelihood associations, monitor projects, visualize geospatial data through an interactive GIS map, and generate reports to support data-driven decision-making.
 
 ---
@@ -11,6 +18,16 @@ The **AssocMap Web Application** is the administrative platform of the AssocMap 
 AssocMap is designed to digitize the monitoring and management of BFAR Region VII's **Special Area for Agricultural Development (SAAD) Phase II** program. The web application centralizes beneficiary information, project records, training activities, monitoring reports, and geographic data into a single platform.
 
 This repository contains the **Laravel Web Application** only.
+
+## Repository
+
+**Repository Name:** AssocMap-Web
+
+**GitHub Repository:**
+
+https://github.com/Sherilyn19/AssocMap-Web
+
+This repository contains the Laravel-based web application for the AssocMap Capstone Project.
 
 ---
 
@@ -114,8 +131,8 @@ Public users will access the public GIS map through a separate interface.
 
 ### Backend
 
-* Laravel
-* PHP
+* Laravel 12
+* PHP 8.5.7
 
 ### Frontend
 
@@ -148,7 +165,7 @@ Public users will access the public GIS map through a separate interface.
 ## Project Structure
 
 ```text
-assocmap-web/
+AssocMap-Web/
 │
 ├── app/
 ├── bootstrap/
@@ -187,13 +204,13 @@ Before running the project, ensure the following are installed:
 Clone the repository.
 
 ```bash
-git clone https://github.com/<organization>/assocmap-web.git
+git clone git clone https://github.com/Sherilyn19/AssocMap-Web
 ```
 
 Navigate to the project directory.
 
 ```bash
-cd assocmap-web
+cd AssocMap-Web
 ```
 
 Install PHP dependencies.
