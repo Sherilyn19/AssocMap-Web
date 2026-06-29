@@ -1,66 +1,303 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# AssocMap Web Application
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> **A GIS-Based Program Monitoring System for Community Livelihood Associations**
 
-## About Laravel
+The **AssocMap Web Application** is the administrative platform of the AssocMap system, developed as a Capstone Project for the **Bureau of Fisheries and Aquatic Resources (BFAR) Region VII**. It enables administrators and field officers to efficiently manage community livelihood associations, monitor projects, visualize geospatial data through an interactive GIS map, and generate reports to support data-driven decision-making.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## About the Project
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+AssocMap is designed to digitize the monitoring and management of BFAR Region VII's **Special Area for Agricultural Development (SAAD) Phase II** program. The web application centralizes beneficiary information, project records, training activities, monitoring reports, and geographic data into a single platform.
 
-## Learning Laravel
+This repository contains the **Laravel Web Application** only.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## Current Project Status
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+**Development Phase:** 🚧 Initial Development
 
-## Laravel Sponsors
+Current progress includes:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+* Repository initialization
+* Development environment setup
+* Database schema design
+* System architecture planning
+* Laravel project configuration
 
-### Premium Partners
+Additional modules will be implemented throughout the development lifecycle.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+---
 
-## Contributing
+## Planned Features
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Authentication & Authorization
 
-## Code of Conduct
+* User Authentication
+* Role-Based Access Control (RBAC)
+* User Management
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Dashboard
 
-## Security Vulnerabilities
+* Program Summary
+* Association Statistics
+* GIS Overview
+* Monitoring Analytics
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Association Management
+
+* Manage Associations
+* Assign Field Officers
+* Association Profiles
+* Archive Associations
+
+### Member Management
+
+* Member Registration
+* Membership Approval
+* Member Records
+* Representative Assignment
+
+### Project Management
+
+* Project Information
+* Distributed Materials
+* Project Status Monitoring
+
+### Training Management
+
+* Training Records
+* Attendance Monitoring
+* Participant Management
+
+### Monitoring & Accomplishment
+
+* Production Monitoring
+* Income Monitoring
+* Materials Monitoring
+
+### GIS Module
+
+* Interactive Map
+* Association Locations
+* Project Locations
+* Spatial Data Visualization
+
+### Reports
+
+* PDF Report Generation
+* Monitoring Reports
+* Statistical Reports
+* Data Export
+
+### Audit Logs
+
+* User Activity Logs
+* System Audit Trail
+
+---
+
+## System Users
+
+The web application supports the following authenticated users:
+
+* **System Administrator**
+* **Field Officer**
+* **Association Member (Shared Association Account)**
+
+Public users will access the public GIS map through a separate interface.
+
+---
+
+## Technology Stack
+
+### Backend
+
+* Laravel
+* PHP
+
+### Frontend
+
+* Blade Templates
+* Tailwind CSS
+* Vite
+* JavaScript
+
+### Database
+
+* PostgreSQL
+* PostGIS
+
+### GIS
+
+* Leaflet.js
+* OpenStreetMap
+
+### Cloud Services
+
+* Supabase
+
+### Version Control
+
+* Git
+* GitHub
+
+---
+
+## Project Structure
+
+```text
+assocmap-web/
+│
+├── app/
+├── bootstrap/
+├── config/
+├── database/
+├── public/
+├── resources/
+├── routes/
+├── storage/
+├── tests/
+├── docs/
+├── .env.example
+├── composer.json
+├── package.json
+└── README.md
+```
+
+---
+
+## Prerequisites
+
+Before running the project, ensure the following are installed:
+
+* PHP
+* Composer
+* Node.js
+* npm
+* PostgreSQL
+* PostGIS
+* Git
+
+---
+
+## Installation
+
+Clone the repository.
+
+```bash
+git clone https://github.com/<organization>/assocmap-web.git
+```
+
+Navigate to the project directory.
+
+```bash
+cd assocmap-web
+```
+
+Install PHP dependencies.
+
+```bash
+composer install
+```
+
+Install JavaScript dependencies.
+
+```bash
+npm install
+```
+
+Create the environment file.
+
+```bash
+cp .env.example .env
+```
+
+Generate the Laravel application key.
+
+```bash
+php artisan key:generate
+```
+
+Configure the database credentials in the `.env` file.
+
+Run the database migrations.
+
+```bash
+php artisan migrate
+```
+
+Start the Laravel development server.
+
+```bash
+php artisan serve
+```
+
+Run the Vite development server.
+
+```bash
+npm run dev
+```
+
+---
+
+## Documentation
+
+Project documentation is located in the `docs/` directory.
+
+Planned documentation includes:
+
+* Development Setup
+* Database Design
+* System Architecture
+* API Documentation
+* Deployment Guide
+* Coding Standards
+* Git Workflow
+* Testing Guide
+* Troubleshooting Guide
+
+---
+
+## Development Team
+
+**Bachelor of Science in Information Systems**
+
+**Cebu Technological University – Main Campus**
+
+* Krys Dea S. Llesol - Hustler
+* Sherilyn Q. Sanchez - Hacker
+* Anagel M. Simacas - Hipster
+
+---
+
+## Client
+
+**Bureau of Fisheries and Aquatic Resources (BFAR) Region VII**
+
+---
+
+## Academic Purpose
+
+This project is developed as part of the Capstone Project requirements for the Bachelor of Science in Information Systems program at Cebu Technological University – Main Campus.
+
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This repository is intended for academic purposes.
+
+---
+
+## Future Updates
+
+The repository will continue to evolve as development progresses. Upcoming updates include:
+
+* Complete module implementation
+* API integration
+* GIS enhancements
+* Comprehensive testing
+* Deployment configuration
+* User documentation
+* Production release
