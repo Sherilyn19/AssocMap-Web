@@ -10,6 +10,7 @@ return [
     /*
     |--------------------------------------------------------------------------
     | Default Log Channel
+    | config/logging.php
     |--------------------------------------------------------------------------
     |
     | This option defines the default log channel that is utilized to write

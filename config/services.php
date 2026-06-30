@@ -5,6 +5,7 @@ return [
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
+    | config/services.php
     |--------------------------------------------------------------------------
     |
     | This file is for storing the credentials for third party services such

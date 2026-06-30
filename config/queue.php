@@ -5,6 +5,7 @@ return [
     /*
     |--------------------------------------------------------------------------
     | Default Queue Connection Name
+    | config/queue.php
     |--------------------------------------------------------------------------
     |
     | Laravel's queue supports a variety of backends via a single, unified

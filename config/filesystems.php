@@ -5,6 +5,7 @@ return [
     /*
     |--------------------------------------------------------------------------
     | Default Filesystem Disk
+    | config/filesystems.php
     |--------------------------------------------------------------------------
     |
     | Here you may specify the default filesystem disk that should be used

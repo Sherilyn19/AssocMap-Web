@@ -23,6 +23,7 @@ return [
     /*
     |--------------------------------------------------------------------------
     | Session Lifetime
+    | config/session.php
     |--------------------------------------------------------------------------
     |
     | Here you may specify the number of minutes that you wish the session

@@ -5,6 +5,7 @@ return [
     /*
     |--------------------------------------------------------------------------
     | Default Mailer
+    | config/mail.php
     |--------------------------------------------------------------------------
     |
     | This option controls the default mailer that is used to send all email

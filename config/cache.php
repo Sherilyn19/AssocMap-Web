@@ -7,6 +7,7 @@ return [
     /*
     |--------------------------------------------------------------------------
     | Default Cache Store
+    | config/cache.php
     |--------------------------------------------------------------------------
     |
     | This option controls the default cache store that will be used by the
