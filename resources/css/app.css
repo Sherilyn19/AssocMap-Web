@@ -11,6 +11,8 @@
     html {
         font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
         scroll-behavior: smooth;
+        height: 100%;
+        overflow: hidden;
     }
 
     /* Respect reduced-motion preference — accessibility */
@@ -37,12 +39,17 @@
     /* ---------- Page shell ---------- */
     .am-body {
         @apply bg-assocmap-bg text-assocmap-text;
+        height: 100vh;
+        overflow: hidden;
     }
 
     .am-main {
         @apply flex min-h-screen flex-col;
+        height: 100vh;
+        overflow-y: auto;
         margin-left: 256px; /* matches .am-sidebar default width */
         transition: margin-left 0.2s ease-in-out;
+        overflow-x: hidden;
     }
 
     #sidebar.is-collapsed ~ .am-main {
@@ -61,13 +68,54 @@
 
     /* ---------- Sidebar ---------- */
     .am-sidebar {
-        @apply fixed inset-y-0 left-0 z-40 flex flex-col bg-assocmap-primary text-white;
+        @apply fixed inset-y-0 left-0 z-40 flex flex-col text-white;
+        background-color: #0A3D7A;
         width: 256px;
         transition: width 0.2s ease-in-out, transform 0.2s ease-in-out;
     }
 
     .am-sidebar.is-collapsed {
         width: 76px;
+        overflow: visible;
+    }
+
+    /* Stack logo and arrow vertically when collapsed so they fit and are visible */
+    .am-sidebar.is-collapsed .am-sidebar__brand {
+        pointer-events: none; /* Let clicks pass through container */
+        flex-direction: column;
+        align-items: center;
+        padding: 1rem 0.5rem;
+        gap: 0.75rem;
+        min-height: auto;
+    }
+
+    .am-sidebar.is-collapsed .am-sidebar__brand .am-sidebar__mark,
+    .am-sidebar.is-collapsed .am-sidebar__brand .am-sidebar__collapse-btn {
+        pointer-events: auto; /* Re-enable clicks on interactive elements */
+    }
+
+    /* Mobile: ensure hamburger button works */
+    @media (max-width: 1023px) {
+        .am-sidebar {
+            width: 256px;
+            transform: translateX(-100%);
+        }
+        .am-sidebar.is-open {
+            transform: translateX(0);
+            box-shadow: 0 8px 24px rgba(10, 31, 58, 0.25);
+        }
+        /* Hide collapse button on mobile - use hamburger instead */
+        .am-sidebar__collapse-btn {
+            display: none !important;
+        }
+    }
+
+    .am-sidebar.is-collapsed .am-sidebar__collapse-btn {
+        position: relative;
+        z-index: 50; /* Ensure button is above other elements */
+        pointer-events: auto; /* Ensure clicks work */
+        margin: 0; /* Remove ml-auto so it centers */
+        display: flex; /* Ensure it stays visible on desktop */
     }
 
     @media (max-width: 1024px) {
@@ -121,7 +169,7 @@
     }
 
     .am-nav-link {
-        @apply relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium
+        @apply relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-medium
                text-white/75 transition-colors hover:bg-white/10 hover:text-white;
     }
     .am-nav-link.is-active {
@@ -130,8 +178,10 @@
     .am-nav-link__icon {
         @apply h-5 w-5 flex-shrink-0;
     }
+    /* Center icons and adjust padding when collapsed */
     .am-sidebar.is-collapsed .am-nav-link {
-        @apply justify-center px-0;
+        justify-content: center;
+        padding: 0.75rem 0;
     }
     .am-sidebar.is-collapsed .am-nav-link__label {
         @apply hidden;
@@ -147,7 +197,7 @@
         transform: translateY(-50%);
         margin-left: 12px;
         white-space: nowrap;
-        background: #0a3d7a; 
+        background: #0A3D7A; 
         color: #fff;
         font-size: 12px;
         font-weight: 500;
@@ -157,6 +207,7 @@
         pointer-events: none;
         transition: opacity 0.12s ease-in-out;
         z-index: 50;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); /* adds a nice shadow */
     }
 
     /* Show tooltip on hover when sidebar is collapsed */
@@ -165,7 +216,7 @@
     }
 
     .am-sidebar__footer {
-        @apply truncate border-t border-white/10 px-4 py-4 text-xs text-white/50;
+        @apply truncate border-t border-white/10 px-4 py-4 text-[10px] text-white/50;
     }
     .am-sidebar.is-collapsed .am-sidebar__footer {
         @apply text-center text-[0px];

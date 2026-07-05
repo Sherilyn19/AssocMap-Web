@@ -9,11 +9,13 @@
 
 <header class="am-topbar">
     <div class="am-topbar__left">
-        <button type="button" id="sidebarMenuBtn" aria-label="Toggle sidebar" aria-expanded="false" class="am-icon-btn">
+        {{-- Hamburger button - MOBILE ONLY --}}
+        <button type="button" id="sidebarMenuBtn" aria-label="Toggle sidebar" aria-expanded="false" class="am-icon-btn lg:hidden">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <path d="M3 6h18M3 12h18M3 18h18"/>
             </svg>
         </button>
+        
         <h1 class="am-topbar__title">{{ $title }}</h1>
     </div>
 
