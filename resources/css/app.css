@@ -1,6 +1,5 @@
 /*
  * resources/css/app.css 
- * Tailwind entry point. Global overrides kept minimal —
  * component styles live in Blade as utility classes.
  */
 
@@ -25,6 +24,189 @@
 }
 
 @layer utilities {
-    /* Progressive enhancement: better headline wrapping */
+    /* better headline wrapping */
     .text-balance { text-wrap: balance; }
+}
+/* ============================================================
+   ASSOCMAP-SIDEBAR-BLOCK-START
+   Added by: sidebar integration. Safe to re-run the installer —
+   it will not duplicate this block if it's already present.
+   ============================================================ */
+@layer components {
+
+    /* ---------- Page shell ---------- */
+    .am-body {
+        @apply bg-assocmap-bg text-assocmap-text;
+    }
+
+    .am-main {
+        @apply flex min-h-screen flex-col;
+        margin-left: 256px; /* matches .am-sidebar default width */
+        transition: margin-left 0.2s ease-in-out;
+    }
+
+    #sidebar.is-collapsed ~ .am-main {
+        margin-left: 76px;
+    }
+
+    @media (max-width: 1024px) {
+        .am-main {
+            margin-left: 0;
+        }
+    }
+
+    .am-content {
+        @apply mx-auto w-full max-w-[1400px] flex-1 p-6 sm:p-8;
+    }
+
+    /* ---------- Sidebar ---------- */
+    .am-sidebar {
+        @apply fixed inset-y-0 left-0 z-40 flex flex-col bg-assocmap-primary text-white;
+        width: 256px;
+        transition: width 0.2s ease-in-out, transform 0.2s ease-in-out;
+    }
+
+    .am-sidebar.is-collapsed {
+        width: 76px;
+    }
+
+    @media (max-width: 1024px) {
+        .am-sidebar {
+            width: 256px;
+            transform: translateX(-100%);
+        }
+        .am-sidebar.is-open {
+            transform: translateX(0);
+            box-shadow: 0 8px 24px rgba(10, 31, 58, 0.25);
+        }
+    }
+
+    .am-sidebar-overlay {
+        @apply fixed inset-0 z-30 hidden bg-black/50 lg:!hidden;
+    }
+    .am-sidebar-overlay.is-visible {
+        @apply block;
+    }
+
+    .am-sidebar__brand {
+        @apply flex items-center gap-3 border-b border-white/10 px-4;
+        min-height: 72px;
+    }
+    .am-sidebar__mark {
+        @apply h-9 w-9 flex-shrink-0;
+    }
+    .am-sidebar__brand-text {
+        @apply min-w-0 overflow-hidden;
+    }
+    .am-sidebar__brand-name {
+        @apply truncate text-[15px] font-bold leading-tight text-white;
+    }
+    .am-sidebar__brand-role {
+        @apply truncate text-[11px] leading-tight text-white/60;
+    }
+    .am-sidebar.is-collapsed .am-sidebar__brand-text {
+        @apply hidden;
+    }
+
+    .am-sidebar__collapse-btn {
+        @apply ml-auto hidden h-7 w-7 flex-shrink-0 items-center justify-center rounded-md
+               text-white/70 transition hover:bg-white/10 hover:text-white lg:flex;
+    }
+    .am-sidebar.is-collapsed .am-sidebar__collapse-btn svg {
+        transform: rotate(180deg);
+    }
+
+    .am-sidebar__nav {
+        @apply flex-1 space-y-1 overflow-y-auto px-3 py-3;
+    }
+
+    .am-nav-link {
+        @apply relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium
+               text-white/75 transition-colors hover:bg-white/10 hover:text-white;
+    }
+    .am-nav-link.is-active {
+        @apply bg-white/15 text-white;
+    }
+    .am-nav-link__icon {
+        @apply h-5 w-5 flex-shrink-0;
+    }
+    .am-sidebar.is-collapsed .am-nav-link {
+        @apply justify-center px-0;
+    }
+    .am-sidebar.is-collapsed .am-nav-link__label {
+        @apply hidden;
+    }
+
+    /* Tooltip shown only while the rail is collapsed (desktop) */
+    .am-sidebar.is-collapsed .am-nav-link::after {
+        content: attr(data-tip); /* Pulls the label from the data-tip attribute */
+        position: absolute;      /* Required for left/top/transform to work */
+        
+        left: 100%;
+        top: 50%;
+        transform: translateY(-50%);
+        margin-left: 12px;
+        white-space: nowrap;
+        background: #0a3d7a; 
+        color: #fff;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 6px 10px;
+        border-radius: 8px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.12s ease-in-out;
+        z-index: 50;
+    }
+
+    /* Show tooltip on hover when sidebar is collapsed */
+    .am-sidebar.is-collapsed .am-nav-link:hover::after {
+        opacity: 1;
+    }
+
+    .am-sidebar__footer {
+        @apply truncate border-t border-white/10 px-4 py-4 text-xs text-white/50;
+    }
+    .am-sidebar.is-collapsed .am-sidebar__footer {
+        @apply text-center text-[0px];
+    }
+
+    /* ---------- Topbar ---------- */
+    .am-topbar {
+        @apply sticky top-0 z-20 flex h-[72px] items-center justify-between border-b
+               border-assocmap-border bg-white px-4 sm:px-7;
+    }
+    .am-topbar__left {
+        @apply flex items-center gap-4;
+    }
+    .am-topbar__title {
+        @apply text-lg font-bold text-assocmap-text sm:text-xl;
+    }
+    .am-topbar__right {
+        @apply flex items-center gap-3 sm:gap-4;
+    }
+    .am-icon-btn {
+        @apply flex h-9 w-9 items-center justify-center rounded-lg border
+               border-assocmap-border bg-white text-assocmap-text transition hover:bg-assocmap-bg;
+    }
+    .am-topbar__user {
+        @apply hidden items-center gap-3 sm:flex;
+    }
+    .am-topbar__user-info {
+        @apply flex flex-col items-end leading-tight;
+    }
+    .am-topbar__user-name {
+        @apply text-sm font-semibold text-assocmap-text;
+    }
+    .am-topbar__user-role {
+        @apply text-xs text-assocmap-secondary;
+    }
+    .am-avatar {
+        @apply flex h-9 w-9 items-center justify-center rounded-full bg-assocmap-primary
+               text-xs font-bold text-white;
+    }
+    .am-logout-btn {
+        @apply flex items-center gap-2 rounded-lg border border-assocmap-border bg-white
+               px-4 py-2 text-sm font-semibold text-assocmap-text transition hover:bg-assocmap-bg;
+    }
 }

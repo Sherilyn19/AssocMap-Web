@@ -1,7 +1,7 @@
-{{--
+﻿{{--
     ============================================================
-    View    : dashboard/admin.blade.php
-    Route   : GET /admin/dashboard
+    View    : admin-pages/dashboard.blade.php
+    Route   : GET /admin/dashboard  (name: dashboard.admin)
     Role    : System Administrator only
     ============================================================
 --}}

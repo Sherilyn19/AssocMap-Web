@@ -7,6 +7,7 @@
  */
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Dashboard\AdminDashboardController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,7 +24,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // ── Protected Dashboards ──────────────────────────────────────
 // assocmap.auth:RoleName checks session + enforces role match.
 
-Route::get('/admin/dashboard', [DashboardController::class, 'admin'])
+// FIX: Updated to use AdminDashboardController
+Route::get('/admin/dashboard', [AdminDashboardController::class, 'admin'])
     ->middleware('assocmap.auth:System Administrator')
     ->name('dashboard.admin');
 
