@@ -1,4 +1,5 @@
 {{--
+    resources/views/components/auth-card.blade.php
     Component : auth-card
     Purpose   : Centered white card container for the Login page.
     Props     : $class — optional extra Tailwind classes

@@ -36,3 +36,20 @@ Route::get('/officer/dashboard', [DashboardController::class, 'officer'])
 Route::get('/member/dashboard', [DashboardController::class, 'member'])
     ->middleware('assocmap.auth:Association Member')
     ->name('dashboard.member');
+// ============================================================
+// USER-MANAGEMENT-ROUTES-START
+// User and Access Control Module - System Administrator only.
+// Named "users.*" to match sidebar.blade.php's nav item.
+// ============================================================
+use App\Http\Controllers\Admin\AdminUserManagementController;
+
+Route::middleware('assocmap.auth:System Administrator')
+    ->prefix('admin/users')
+    ->name('users.')
+    ->group(function () {
+        Route::get('/', [AdminUserManagementController::class, 'index'])->name('index');
+        Route::post('/', [AdminUserManagementController::class, 'store'])->name('store');
+        Route::put('/{user}', [AdminUserManagementController::class, 'update'])->name('update');
+        Route::patch('/{user}/toggle-active', [AdminUserManagementController::class, 'toggleActive'])->name('toggle-active');
+    });
+// USER-MANAGEMENT-ROUTES-END

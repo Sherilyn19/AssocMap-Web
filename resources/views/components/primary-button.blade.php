@@ -1,4 +1,5 @@
 {{--
+    resources/views/components/primary-button.blade.php
     Component : primary-button
     Purpose   : Reusable green CTA button (Landing + Login pages).
     Props     : $type  — HTML button type (default: "button")

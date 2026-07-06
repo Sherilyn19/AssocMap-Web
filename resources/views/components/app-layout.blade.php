@@ -1,4 +1,5 @@
 {{--
+    resources/views/components/app-layout.blade.php
     Component : app-layout
     Purpose   : Root HTML shell. Loads Inter font, Vite assets,
                 CSRF meta tag, and renders $slot.

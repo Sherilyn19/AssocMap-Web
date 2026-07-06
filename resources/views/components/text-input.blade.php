@@ -1,4 +1,5 @@
 {{--
+    resources/views/components/text-input.blade.php
     Component : text-input
     Purpose   : Labeled form input with inline error display.
     Props     : $id, $label, $type, $name, $value,

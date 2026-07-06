@@ -1,4 +1,5 @@
 {{--
+    resources/views/components/logo-header.blade.php
     Component : logo-header
     Purpose   : DA + BFAR agency logos with AssocMAP title.
                 Used on Landing (size="lg") and Login (size="sm").
