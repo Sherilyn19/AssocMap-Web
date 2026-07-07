@@ -1,15 +1,14 @@
 /**
  * resources/js/admin-user-management.js
- * Add/Edit modal, confirm-action modal, password eye toggle, and
- * toast auto-dismiss for the User Management page. Feature-detects
- * its root elements, so importing it globally is a safe no-op on
- * every other page.
+ * Add/Edit modal, confirm-action modal, SVG password eye toggle,
+ * row action dropdown, and toast auto-dismiss. Feature-detects its
+ * root elements, so a global import is a safe no-op on other pages.
  */
-
 document.addEventListener("DOMContentLoaded", () => {
     initUserModal();
     initConfirmModal();
     initPasswordToggle();
+    initRowDropdowns();
     initToast();
 });
 
@@ -113,13 +112,49 @@ function initConfirmModal() {
     });
 }
 
+/** Swaps the open/closed eye SVGs instead of a broken emoji glyph. */
 function initPasswordToggle() {
     document.querySelectorAll("[data-toggle-password]").forEach((btn) => {
         btn.addEventListener("click", () => {
             const input = document.getElementById(btn.dataset.togglePassword);
             if (!input) return;
-            input.type = input.type === "password" ? "text" : "password";
+            const isPassword = input.type === "password";
+            input.type = isPassword ? "text" : "password";
+
+            const openIcon = btn.querySelector('[data-eye-icon="open"]');
+            const closedIcon = btn.querySelector('[data-eye-icon="closed"]');
+            openIcon.classList.toggle("hidden", isPassword);
+            closedIcon.classList.toggle("hidden", !isPassword);
         });
+    });
+}
+
+/** Per-row "..." action menu. Closes on outside click or Escape. */
+function initRowDropdowns() {
+    const dropdowns = document.querySelectorAll("[data-am-dropdown]");
+    if (!dropdowns.length) return;
+
+    function closeAll(except) {
+        dropdowns.forEach((d) => {
+            if (d !== except) d.querySelector("[data-am-dropdown-menu]").classList.add("hidden");
+        });
+    }
+
+    dropdowns.forEach((dropdown) => {
+        const toggle = dropdown.querySelector("[data-am-dropdown-toggle]");
+        const menu = dropdown.querySelector("[data-am-dropdown-menu]");
+
+        toggle.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const isHidden = menu.classList.contains("hidden");
+            closeAll(dropdown);
+            menu.classList.toggle("hidden", !isHidden);
+        });
+    });
+
+    document.addEventListener("click", () => closeAll(null));
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeAll(null);
     });
 }
 
