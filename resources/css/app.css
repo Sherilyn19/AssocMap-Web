@@ -37,7 +37,7 @@
     .text-balance { text-wrap: balance; }
 }
 /* ============================================================
-   SIDEBAR-BLOCK-START
+   SIDEBAR-BLOCK
    Added by: sidebar integration. Safe to re-run the installer —
    it will not duplicate this block if it's already present.
    ============================================================ */
@@ -265,5 +265,110 @@
     .am-logout-btn {
         @apply flex items-center gap-2 rounded-lg border border-assocmap-border bg-white
                px-4 py-2 text-sm font-semibold text-assocmap-text transition hover:bg-assocmap-bg;
+    }
+}
+
+/* ============================================================
+   AREA-MANAGEMENT-VIEW-AND-SIDEBAR
+   ============================================================ */
+@layer components {
+    body.am-sidebar-collapsed .am-main {
+        margin-left: 76px;
+    }
+
+    @media (max-width: 1023px) {
+        body.am-sidebar-collapsed .am-main {
+            margin-left: 0;
+        }
+    }
+
+    .am-sidebar__collapse-btn {
+        @apply border border-white/20 bg-white/5 shadow-sm;
+    }
+
+    .am-sidebar__collapse-btn:focus-visible {
+        @apply outline-none ring-2 ring-white/70 ring-offset-2 ring-offset-[#0A3D7A];
+    }
+
+    .am-sidebar.is-collapsed .am-sidebar__brand {
+        @apply justify-center px-2;
+        gap: 0.65rem;
+    }
+
+    .am-sidebar.is-collapsed .am-sidebar__mark {
+        @apply h-10 w-10;
+    }
+
+    .am-sidebar.is-collapsed .am-sidebar__collapse-btn {
+        @apply ml-0 h-8 w-8 rounded-xl;
+    }
+
+    .am-area-card {
+        @apply cursor-pointer rounded-xl border border-assocmap-border bg-white p-4 shadow-card
+               transition hover:-translate-y-0.5 hover:border-assocmap-primary/40 hover:shadow-md
+               focus:outline-none focus:ring-2 focus:ring-assocmap-primary/40;
+    }
+
+    .am-area-card.is-expanded {
+        @apply border-assocmap-primary/50 ring-2 ring-assocmap-primary/10;
+    }
+
+    .am-area-card__details {
+        @apply mt-4 rounded-xl border border-assocmap-border bg-assocmap-bg p-3;
+    }
+}
+/* ============================================================
+   AREA-MANAGEMENT-VIEW-AND-SIDEBAR-END
+   ============================================================ */
+
+
+/* ============================================================
+   SIDEBAR
+   Defensive overrides for reliable desktop collapse and mobile drawer.
+   Safe to keep at the end of app.css because it only targets AssocMap
+   sidebar state classes.
+   ============================================================ */
+@layer components {
+    .am-sidebar__collapse-btn {
+        cursor: pointer;
+        pointer-events: auto;
+    }
+
+    .am-sidebar.is-collapsed .am-sidebar__brand {
+        pointer-events: auto;
+    }
+
+    .am-sidebar.is-collapsed .am-sidebar__collapse-btn {
+        display: flex;
+        width: 2rem;
+        height: 2rem;
+        margin-left: 0;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .am-sidebar.is-collapsed .am-sidebar__collapse-btn:hover {
+        background-color: rgba(255, 255, 255, 0.16);
+    }
+
+    body.am-sidebar-collapsed .am-main {
+        margin-left: 76px;
+    }
+
+    @media (min-width: 1024px) {
+        #sidebar.is-collapsed ~ .am-main {
+            margin-left: 76px;
+        }
+    }
+
+    @media (max-width: 1023px) {
+        body.am-sidebar-collapsed .am-main,
+        #sidebar.is-collapsed ~ .am-main {
+            margin-left: 0;
+        }
+
+        .am-sidebar.is-collapsed {
+            width: 256px;
+        }
     }
 }

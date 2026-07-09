@@ -1,7 +1,8 @@
 /**
- * resources/js/app.js 
- * Vite JS entry point.
- * Password visibility toggle is scoped inline in login.blade.php.
+ * resources/js/app.js
+ * Main Vite JavaScript entry point for AssocMap Web.
  */
 import './bootstrap';
-import "./admin_sidebar";import "./admin-user-management";
+import './admin_sidebar';
+import './admin-user-management';
+import './admin-area-management';

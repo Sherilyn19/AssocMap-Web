@@ -1,79 +1,87 @@
-﻿/**
+/**
  * resources/js/admin_sidebar.js
- * Sidebar collapse (desktop) + off-canvas drawer (mobile) behaviour.
- * Imported once from resources/js/app.js.
+ * Sidebar collapse for desktop and off-canvas drawer for mobile.
  */
+const ASSOCMAP_MOBILE_BREAKPOINT = 1024;
 
-const MOBILE_BREAKPOINT = 1024;
+document.addEventListener("DOMContentLoaded", initAssocMapSidebar);
 
-function initSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    const menuBtn = document.getElementById('sidebarMenuBtn');       // topbar hamburger
-    const collapseBtn = document.getElementById('sidebarCollapseBtn'); // sidebar chevron
+function initAssocMapSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("sidebarOverlay");
+    const menuBtn = document.getElementById("sidebarMenuBtn");
+    const collapseBtn = document.getElementById("sidebarCollapseBtn");
 
-    if (!sidebar || !overlay || !menuBtn || !collapseBtn) {
-        return; // this page doesn't use the dashboard layout — nothing to wire up
-    }
+    if (!sidebar) return;
 
-    const isMobile = () => window.innerWidth < MOBILE_BREAKPOINT;
+    const isMobile = () => window.innerWidth < ASSOCMAP_MOBILE_BREAKPOINT;
 
-    function applyStoredCollapseState() {
-        const collapsed = localStorage.getItem('assocmap.sidebarCollapsed') === '1';
-        if (collapsed && !isMobile()) {
-            sidebar.classList.add('is-collapsed');
+    function setCollapsed(collapsed) {
+        sidebar.classList.toggle("is-collapsed", collapsed);
+        document.body.classList.toggle("am-sidebar-collapsed", collapsed);
+        localStorage.setItem("assocmap.sidebarCollapsed", collapsed ? "1" : "0");
+
+        if (collapseBtn) {
+            collapseBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+            collapseBtn.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
         }
     }
 
-    function toggleCollapse() {
-        sidebar.classList.toggle('is-collapsed');
-        localStorage.setItem(
-            'assocmap.sidebarCollapsed',
-            sidebar.classList.contains('is-collapsed') ? '1' : '0'
-        );
+    function applyStoredCollapseState() {
+        if (isMobile()) {
+            setCollapsed(false);
+            return;
+        }
+
+        setCollapsed(localStorage.getItem("assocmap.sidebarCollapsed") === "1");
+    }
+
+    function toggleCollapse(event) {
+        event?.preventDefault();
+        event?.stopPropagation();
+
+        if (isMobile()) {
+            toggleDrawer();
+            return;
+        }
+
+        setCollapsed(!sidebar.classList.contains("is-collapsed"));
     }
 
     function openDrawer() {
-        sidebar.classList.add('is-open');
-        overlay.classList.add('is-visible');
-        menuBtn.setAttribute('aria-expanded', 'true');
-        document.body.style.overflow = 'hidden';
+        sidebar.classList.add("is-open");
+        overlay?.classList.add("is-visible");
+        menuBtn?.setAttribute("aria-expanded", "true");
+        document.body.style.overflow = "hidden";
     }
 
     function closeDrawer() {
-        sidebar.classList.remove('is-open');
-        overlay.classList.remove('is-visible');
-        menuBtn.setAttribute('aria-expanded', 'false');
-        document.body.style.overflow = '';
+        sidebar.classList.remove("is-open");
+        overlay?.classList.remove("is-visible");
+        menuBtn?.setAttribute("aria-expanded", "false");
+        document.body.style.overflow = "";
     }
 
-    menuBtn.addEventListener('click', () => {
-        if (isMobile()) {
-            sidebar.classList.contains('is-open') ? closeDrawer() : openDrawer();
-        } else {
-            toggleCollapse();
-        }
+    function toggleDrawer() {
+        sidebar.classList.contains("is-open") ? closeDrawer() : openDrawer();
+    }
+
+    menuBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        isMobile() ? toggleDrawer() : toggleCollapse(event);
     });
 
-    collapseBtn.addEventListener('click', toggleCollapse);
-    overlay.addEventListener('click', closeDrawer);
+    collapseBtn?.addEventListener("click", toggleCollapse);
+    overlay?.addEventListener("click", closeDrawer);
 
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeDrawer();
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeDrawer();
     });
 
-    let lastIsMobile = isMobile();
-    window.addEventListener('resize', () => {
-        const nowMobile = isMobile();
-        if (nowMobile !== lastIsMobile) {
-            closeDrawer();
-            sidebar.classList.remove('is-collapsed');
-            applyStoredCollapseState();
-            lastIsMobile = nowMobile;
-        }
+    window.addEventListener("resize", () => {
+        closeDrawer();
+        applyStoredCollapseState();
     });
 
     applyStoredCollapseState();
 }
-
-document.addEventListener('DOMContentLoaded', initSidebar);
