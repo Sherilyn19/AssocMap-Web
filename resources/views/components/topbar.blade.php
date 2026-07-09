@@ -24,7 +24,6 @@
         <div class="am-topbar__user">
             <div class="am-topbar__user-info">
                 <span class="am-topbar__user-name">{{ $authUser['name'] ?? 'Program Administrator' }}</span>
-                <span class="am-topbar__user-role">{{ $authUser['role_name'] ?? 'System Administrator' }}</span>
             </div>
             <div class="am-avatar">{{ strtoupper(substr($authUser['name'] ?? 'PA', 0, 2)) }}</div>
         </div>
