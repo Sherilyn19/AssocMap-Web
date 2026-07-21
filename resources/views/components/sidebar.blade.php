@@ -1,4 +1,4 @@
-﻿{{--
+{{--
     resources/views/components/sidebar.blade.php
 
     Data-driven nav list: one array, one @foreach — not 11 hand-copied

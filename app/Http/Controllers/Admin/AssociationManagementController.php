@@ -20,6 +20,18 @@ use Throwable;
 
 final class AssociationManagementController extends Controller
 {
+    private const LIST_STATE_KEYS = [
+        'search',
+        'area_unit_id',
+        'sub_unit_id',
+        'program_component_id',
+        'field_officer_id',
+        'status_id',
+        'archive_state',
+        'sort',
+        'page',
+    ];
+
     public function __construct(
         private readonly AssociationManagementService $service
     ) {
@@ -42,6 +54,7 @@ final class AssociationManagementController extends Controller
             'associations' => $this->service->paginate($filters),
             'summary' => $this->service->summary(),
             'filters' => $filters,
+            'listState' => $this->listState($request),
             ...$this->service->formOptions(),
         ]);
     }
@@ -55,11 +68,18 @@ final class AssociationManagementController extends Controller
             ->with('success', 'Association created successfully.');
     }
 
-    public function show(Association $association): View
+    public function show(Request $request, Association $association): View
     {
+        $listState = $this->listState($request);
+
         return view('admin-pages.admin-association-management.show', [
             'association' => $this->service->findDetailed($association),
             'eligibleRepresentatives' => $this->service->eligibleRepresentatives($association),
+            'backToListUrl' => route('admin.associations.index', $listState),
+            'representativeActionUrl' => route('admin.associations.representative', [
+                'association' => $association,
+                ...$listState,
+            ]),
         ]);
     }
 
@@ -114,13 +134,68 @@ final class AssociationManagementController extends Controller
         AssignAssociationRepresentativeRequest $request,
         Association $association
     ): RedirectResponse {
-        $this->service->assignRepresentative(
-            $association,
-            $request->validated('representative_member_id'),
-            $this->actorId($request)
-        );
+        $listState = $this->listState($request);
+        $showUrl = $this->associationShowUrl($association, $listState);
 
-        return back()->with('success', 'Association Representative updated successfully.');
+        try {
+            $this->service->assignRepresentative(
+                $association,
+                $request->validated('representative_member_id'),
+                $this->actorId($request)
+            );
+
+            return redirect($showUrl)
+                ->with('success', 'Association Representative updated successfully.');
+        } catch (RuntimeException $exception) {
+            return redirect($showUrl)
+                ->withInput()
+                ->with('error', $exception->getMessage());
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return redirect($showUrl)
+                ->withInput()
+                ->with('error', 'The Association Representative could not be updated. Please try again.');
+        }
+    }
+
+    /**
+     * Keep only scalar, non-empty list filters that are safe to carry between routes.
+     *
+     * @return array<string, string>
+     */
+
+    private function listState(Request $request): array
+    {
+        $state = [];
+
+        foreach (self::LIST_STATE_KEYS as $key) {
+            $value = $request->query($key);
+
+            if (!is_scalar($value) || $value === '') {
+                continue;
+            }
+
+            $state[$key] = (string) $value;
+        }
+
+        if (isset($state['page']) && (!ctype_digit($state['page']) || (int) $state['page'] < 1)) {
+            unset($state['page']);
+        }
+
+        return $state;
+    }
+
+    /**
+     * @param array<string, string> $listState
+     */
+    
+    private function associationShowUrl(Association $association, array $listState): string
+    {
+        return route('admin.associations.show', [
+            'association' => $association,
+            ...$listState,
+        ]);
     }
 
     private function actorId(Request $request): int

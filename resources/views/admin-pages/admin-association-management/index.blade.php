@@ -18,32 +18,34 @@
     data-barangays="{{ json_encode($barangays) }}"
 >
     {{-- Page heading --}}
-    <header class="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                BFAR SAAD Phase II
-            </p>
-            <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                Association Management
-            </h1>
-            <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                Create, organize, assign, and maintain fisherfolk associations under the BFAR SAAD Phase II program.
-            </p>
-        </div>
+    <header class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
+                    BFAR SAAD Phase II
+                </span>
+                <h1 class="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                    Association Management
+                </h1>
+                <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                    Manage association records, personnel assignments, and operational status.
+                </p>
+            </div>
 
-        <button
-            type="button"
-            data-open-modal="create-association-modal"
-            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-2.5
-                   text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700
-                   focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
-        >
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Association
-        </button>
+            <button
+                type="button"
+                data-open-modal="create-association-modal"
+                class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-2.5
+                       text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700
+                       focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            >
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Add Association
+            </button>
+        </div>
     </header>
 
     {{-- Flash and validation feedback --}}
@@ -74,7 +76,7 @@
     @endif
 
     {{-- Summary cards --}}
-    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Association summary">
+    <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Association summary">
         @php
             $cards = [
                 ['label' => 'Total Associations', 'value' => $summary['total'], 'hint' => 'All records'],
@@ -229,16 +231,21 @@
             <table class="min-w-full divide-y divide-slate-200">
                 <thead class="bg-slate-50">
                     <tr>
-                        @foreach (['Association', 'Location', 'Program', 'Field Officer', 'Representative', 'Members', 'Status', 'Record State', 'Actions'] as $heading)
+                        @foreach (['Association', 'Location', 'Program', 'Assigned Personnel', 'Members', 'Status'] as $heading)
                             <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                                 {{ $heading }}
                             </th>
                         @endforeach
+                        <th scope="col"
+                            class="sticky right-0 z-20 border-l border-slate-200 bg-slate-50 px-4 py-3
+                                   text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                            Actions
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
                     @forelse ($associations as $association)
-                        <tr class="align-top hover:bg-slate-50/70">
+                        <tr class="group align-top hover:bg-slate-50/70">
                             <td class="px-4 py-4">
                                 <p class="max-w-xs font-semibold text-slate-900">{{ $association->name }}</p>
                                 <p class="mt-1 max-w-xs truncate text-xs text-slate-500">{{ $association->address }}</p>
@@ -251,36 +258,39 @@
                                 {{ $association->programComponent?->name ?? '—' }}
                             </td>
                             <td class="px-4 py-4 text-sm text-slate-700">
-                                <p>{{ $association->fieldOfficer?->name ?? '—' }}</p>
+                                <p class="font-medium text-slate-800">{{ $association->fieldOfficer?->name ?? '—' }}</p>
                                 <p class="mt-1 text-xs text-slate-500">{{ $association->fieldOfficer?->email }}</p>
-                            </td>
-                            <td class="px-4 py-4 text-sm text-slate-700">
-                                @if ($association->representative)
-                                    {{ $association->representative->first_name }}
-                                    {{ $association->representative->last_name }}
-                                @else
-                                    <span class="text-slate-500">Not assigned</span>
-                                @endif
+                                <p class="mt-2 text-xs text-slate-500">
+                                    Representative:
+                                    <span class="font-medium text-slate-700">
+                                        @if ($association->representative)
+                                            {{ $association->representative->first_name }}
+                                            {{ $association->representative->last_name }}
+                                        @else
+                                            Not assigned
+                                        @endif
+                                    </span>
+                                </p>
                             </td>
                             <td class="px-4 py-4 text-sm font-semibold tabular-nums text-slate-900">
                                 {{ $association->members_count }}
                             </td>
                             <td class="px-4 py-4">
                                 @php $isActive = $association->status?->status_name === 'Active'; @endphp
-                                <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold
-                                    {{ $isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
-                                    {{ $association->status?->status_name ?? 'Unknown' }}
-                                </span>
+                                <div class="flex flex-col items-start gap-2">
+                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold
+                                        {{ $isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
+                                        {{ $association->status?->status_name ?? 'Unknown' }}
+                                    </span>
+                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold
+                                        {{ $association->is_archived ? 'bg-slate-200 text-slate-700' : 'bg-blue-100 text-blue-800' }}">
+                                        {{ $association->is_archived ? 'Archived' : 'Current' }}
+                                    </span>
+                                </div>
                             </td>
-                            <td class="px-4 py-4">
-                                <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold
-                                    {{ $association->is_archived ? 'bg-slate-200 text-slate-700' : 'bg-blue-100 text-blue-800' }}">
-                                    {{ $association->is_archived ? 'Archived' : 'Current' }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-4">
+                            <td class="sticky right-0 z-10 border-l border-slate-200 bg-white px-4 py-4 group-hover:bg-slate-50">
                                 <div class="flex flex-wrap gap-2">
-                                    <a href="{{ route('admin.associations.show', $association) }}"
+                                    <a href="{{ route('admin.associations.show', ['association' => $association, ...$listState]) }}"
                                        class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold
                                               text-slate-700 hover:bg-slate-50">
                                         View
@@ -344,7 +354,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-6 py-16 text-center">
+                            <td colspan="7" class="px-6 py-16 text-center">
                                 <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
                                     <svg class="h-6 w-6 text-slate-500" viewBox="0 0 24 24" fill="none"
                                          stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -363,7 +373,7 @@
     </section>
 
     {{-- Mobile cards --}}
-    <section class="space-y-3 lg:hidden">
+    <section class="grid gap-4 sm:grid-cols-2 lg:hidden">
         @forelse ($associations as $association)
             <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div class="flex items-start justify-between gap-3">
@@ -393,7 +403,7 @@
                     </div>
                 </dl>
                 <div class="mt-4 border-t border-slate-100 pt-3">
-                    <a href="{{ route('admin.associations.show', $association) }}"
+                    <a href="{{ route('admin.associations.show', ['association' => $association, ...$listState]) }}"
                        class="inline-flex min-h-10 items-center rounded-lg border border-slate-300 px-3 py-2
                               text-sm font-semibold text-slate-700">
                         View details

@@ -33,6 +33,7 @@
          * The values are produced through Eloquent loadCount() in the
          * Association Management service.
          */
+
         $summaryCards = [
             [
                 'label' => 'Official members',
@@ -125,15 +126,7 @@
          * when their routes and pages are implemented.
          */
         
-        $relatedModules = [
-            'Members',
-            'Applications',
-            'Projects',
-            'Trainings',
-            'Monitoring',
-            'GIS Locations',
-            'Audit History',
-        ];
+
     @endphp
 
     <div class="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -142,18 +135,24 @@
              PAGE HEADER
              Displays navigation, association name, location, and status.
         ============================================================= --}}
+        
         <header
             class="flex flex-col gap-4 border-b border-slate-200 pb-5
                    sm:flex-row sm:items-end sm:justify-between"
         >
             <div>
-                {{-- Return to the Association Management list --}}
+                {{-- Return to the Association Management list while preserving filters and pagination --}}
                 <a
-                    href="{{ route('admin.associations.index') }}"
-                    class="inline-flex items-center gap-1 text-sm font-semibold
-                           text-slate-600 hover:text-slate-900"
+                    href="{{ $backToListUrl }}"
+                    class="inline-flex items-center gap-1 rounded-md text-sm font-semibold text-slate-600
+                           hover:text-slate-900 focus:outline-none focus-visible:ring-2
+                           focus-visible:ring-slate-400 focus-visible:ring-offset-2"
                 >
-                    <span aria-hidden="true">←</span>
+                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd"
+                              d="M11.78 14.53a.75.75 0 0 1-1.06 0l-4-4a.75.75 0 0 1 0-1.06l4-4a.75.75 0 1 1 1.06 1.06L8.31 10l3.47 3.47a.75.75 0 0 1 0 1.06Z"
+                              clip-rule="evenodd" />
+                    </svg>
                     Back to Association Management
                 </a>
 
@@ -332,7 +331,7 @@
                 @unless ($association->is_archived)
                     <form
                         method="POST"
-                        action="{{ route('admin.associations.representative', $association) }}"
+                        action="{{ $representativeActionUrl }}"
                         class="mt-5 space-y-4"
                     >
                         @csrf
@@ -414,34 +413,6 @@
             </aside>
         </div>
 
-        {{-- ============================================================
-             RELATED MODULES
-             These are informational placeholders until their routes exist.
-        ============================================================= --}}
-        <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 class="text-lg font-bold text-slate-900">
-                Related Modules
-            </h2>
 
-            <p class="mt-2 text-sm leading-6 text-slate-600">
-                Association Management provides summary information. Detailed
-                transactions and operations remain inside their respective modules.
-            </p>
-
-            <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                @foreach ($relatedModules as $module)
-                    <div class="rounded-lg border border-slate-200 px-4 py-3">
-                        <p class="text-sm font-semibold text-slate-800">
-                            {{ $module }}
-                        </p>
-
-                        <p class="mt-1 text-xs leading-5 text-slate-500">
-                            Navigation can be added when this module's route
-                            and management page are implemented.
-                        </p>
-                    </div>
-                @endforeach
-            </div>
-        </section>
     </div>
 </x-dashboard-layout>
