@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Admin\AssociationManagementController;
 /*
  * ============================================================
  * routes/web.php
@@ -81,21 +80,3 @@ Route::middleware('assocmap.auth:System Administrator')
     });
 // AREA-MANAGEMENT-ROUTES-END
 
-// ============================================================
-// ASSOCIATION_ROUTES
-// Association Management Module - System Administrator only.
-// ============================================================
-Route::prefix('admin/associations')
-    ->name('admin.associations.')
-    ->middleware('assocmap.auth:System Administrator')
-    ->controller(AssociationManagementController::class)
-    ->group(function (): void {
-        Route::get('/', 'index')->name('index');
-        Route::post('/', 'store')->name('store');
-        Route::get('/{association}', 'show')->name('show');
-        Route::put('/{association}', 'update')->name('update');
-        Route::patch('/{association}/archive', 'archive')->name('archive');
-        Route::patch('/{association}/restore', 'restore')->name('restore');
-        Route::patch('/{association}/representative', 'representative')->name('representative');
-    });
-// ASSOCMAP_ASSOCIATION_ROUTES_END

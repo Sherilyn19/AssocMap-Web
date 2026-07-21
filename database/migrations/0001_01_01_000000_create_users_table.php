@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * database/migrations/0001_01_01_000000_create_users_table.php
      * Run the migrations.
      */
     public function up(): void

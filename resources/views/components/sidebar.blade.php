@@ -22,7 +22,7 @@
         ['route' => 'dashboard.admin',    'label' => 'Dashboard',              'icon' => 'M3 3h7v7H3V3Zm11 0h7v7h-7V3ZM3 14h7v7H3v-7Zm11 0h7v7h-7v-7Z'],
         ['route' => 'users.index',        'label' => 'User Management',        'icon' => 'M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 20c0-3.3 2.7-6 6-6s6 2.7 6 6M15.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM14 20c.3-2.7 2-4.6 4.5-4.9'],
         ['route' => 'areas.index',        'label' => 'Area Management',        'icon' => 'M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21ZM12 12.3a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z'],
-        ['route' => 'associations.index', 'label' => 'Association Management', 'icon' => 'M4 21V10l8-6 8 6v11M9 21v-6h6v6'],
+        ['route' => 'admin.associations.index', 'label' => 'Association Management', 'icon' => 'M4 21V10l8-6 8 6v11M9 21v-6h6v6'],
         ['route' => 'members.index',      'label' => 'Member Management',      'icon' => 'M12 11.4a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8ZM4.5 20c0-4.1 3.4-7 7.5-7s7.5 2.9 7.5 7'],
         ['route' => 'projects.index',     'label' => 'Project Management',     'icon' => 'M4 7h16v13H4V7Zm4 0V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7'],
         ['route' => 'gis.index',          'label' => 'GIS Mapping',            'icon' => 'M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 6.5 9 4ZM9 4v13M15 6.5v13'],
@@ -60,7 +60,9 @@
         @foreach ($navItems as $item)
             @php
                 $hasRoute = Route::has($item['route']);
-                $isActive = $hasRoute && request()->routeIs(explode('.', $item['route'])[0] . '.*');
+                $routeParts = explode('.', $item['route']);
+                array_pop($routeParts);
+                $isActive = $hasRoute && request()->routeIs(implode('.', $routeParts) . '.*');
                 $href = $hasRoute ? route($item['route']) : '#';
             @endphp
             <a href="{{ $href }}" data-tip="{{ $item['label'] }}" class="am-nav-link {{ $isActive ? 'is-active' : '' }}">
