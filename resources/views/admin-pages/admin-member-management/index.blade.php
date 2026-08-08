@@ -423,7 +423,7 @@
             <div>
                 <h2 id="member-records-title" class="font-semibold text-slate-900">Official Member Records</h2>
                 <p class="mt-1 text-xs text-slate-500">
-                    Showing {{ $members->firstItem() ?? 0 }}â€“{{ $members->lastItem() ?? 0 }} of {{ $members->total() }} members
+                    Showing {{ $members->firstItem() ?? 0 }}-{{ $members->lastItem() ?? 0 }} of {{ $members->total() }} members
                 </p>
             </div>
             <p class="text-xs text-slate-500">Private administrative information</p>

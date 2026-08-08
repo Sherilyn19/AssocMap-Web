@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function text(value, fallback = 'â€”') {
+    function text(value, fallback = '-') {
         const normalized = String(value ?? '').trim();
         return normalized === '' ? fallback : normalized;
     }

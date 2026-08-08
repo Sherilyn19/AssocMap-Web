@@ -24,7 +24,7 @@
 <div class="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
     <header class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <a href="{{ $backToListUrl }}" class="text-sm font-semibold text-slate-600 hover:text-slate-900">
-            â† Back to Member Management
+            &larr; Back to Member Management
         </a>
 
         <div class="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -37,7 +37,7 @@
                 </h1>
                 <p class="mt-2 break-words text-sm text-slate-600">
                     {{ $member->association?->name ?? 'Unknown association' }}
-                    Â· {{ $member->association?->subUnit?->name ?? 'No barangay' }},
+                    &middot; {{ $member->association?->subUnit?->name ?? 'No barangay' }},
                     {{ $member->association?->areaUnit?->name ?? 'No municipality' }}
                 </p>
             </div>
@@ -68,7 +68,7 @@
                 ] as $item)
                     <div class="{{ ($item[2] ?? false) ? 'sm:col-span-2' : '' }}">
                         <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $item[0] }}</dt>
-                        <dd class="mt-1 break-words text-sm text-slate-800">{{ $item[1] ?: 'â€”' }}</dd>
+                        <dd class="mt-1 break-words text-sm text-slate-800">{{ $item[1] ?: '-' }}</dd>
                     </div>
                 @endforeach
             </dl>
@@ -87,7 +87,7 @@
                 ] as $item)
                     <div>
                         <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $item[0] }}</dt>
-                        <dd class="mt-1 break-words text-sm text-slate-800">{{ $item[1] ?: 'â€”' }}</dd>
+                        <dd class="mt-1 break-words text-sm text-slate-800">{{ $item[1] ?: '-' }}</dd>
                     </div>
                 @endforeach
             </dl>
@@ -106,7 +106,7 @@
                     ] as $item)
                         <div>
                             <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $item[0] }}</dt>
-                            <dd class="mt-1 break-words text-sm text-slate-800">{{ $item[1] ?: 'â€”' }}</dd>
+                            <dd class="mt-1 break-words text-sm text-slate-800">{{ $item[1] ?: '-' }}</dd>
                         </div>
                     @endforeach
                 </dl>
@@ -135,7 +135,7 @@
                 ] as $item)
                     <div>
                         <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $item[0] }}</dt>
-                        <dd class="mt-1 break-words text-sm text-slate-800">{{ $item[1] ?: 'â€”' }}</dd>
+                        <dd class="mt-1 break-words text-sm text-slate-800">{{ $item[1] ?: '-' }}</dd>
                     </div>
                 @endforeach
             </dl>
