@@ -12,6 +12,7 @@ use App\Http\Requests\Admin\StoreAssociationRequest;
 use App\Http\Requests\Admin\UpdateAssociationRequest;
 use App\Models\Association;
 use App\Services\AssociationManagementService;
+use App\Services\SessionUserResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -33,7 +34,8 @@ final class AssociationManagementController extends Controller
     ];
 
     public function __construct(
-        private readonly AssociationManagementService $service
+        private readonly AssociationManagementService $service,
+        private readonly SessionUserResolver $sessionUser
     ) {
     }
 
@@ -200,12 +202,6 @@ final class AssociationManagementController extends Controller
 
     private function actorId(Request $request): int
     {
-        $actorId = auth()->id()
-            ?? $request->session()->get('user_id')
-            ?? $request->session()->get('authenticated_user_id');
-
-        abort_if(!$actorId, 401, 'Authenticated user could not be identified.');
-
-        return (int) $actorId;
+        return (int) $this->sessionUser->resolve($request)->id;
     }
 }

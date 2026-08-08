@@ -99,3 +99,34 @@ Route::prefix('admin/associations')
         Route::patch('/{association}/representative', 'representative')->name('representative');
     });
 // ASSOCMAP_ASSOCIATION_ROUTES_END
+
+// ============================================================
+// MEMBER-MANAGEMENT-ROUTES
+// Member Management Module - System Administrator only.
+// Administrator may manage official members and inspect applications.
+// Approval / rejection remain Association Representative responsibilities.
+// ============================================================
+Route::middleware('assocmap.auth:System Administrator')
+    ->prefix('admin/members')
+    ->name('members.')
+    ->group(function (): void {
+        // Static application routes must stay before /{member}.
+        Route::get('/applications', [\App\Http\Controllers\Admin\MemberApplicationManagementController::class, 'index'])
+            ->name('applications.index');
+        Route::get('/applications/{application}', [\App\Http\Controllers\Admin\MemberApplicationManagementController::class, 'show'])
+            ->whereNumber('application')
+            ->name('applications.show');
+
+        Route::get('/', [\App\Http\Controllers\Admin\MemberManagementController::class, 'index'])
+            ->name('index');
+        Route::get('/{member}', [\App\Http\Controllers\Admin\MemberManagementController::class, 'show'])
+            ->whereNumber('member')
+            ->name('show');
+        Route::put('/{member}', [\App\Http\Controllers\Admin\MemberManagementController::class, 'update'])
+            ->whereNumber('member')
+            ->name('update');
+        Route::patch('/{member}/archive', [\App\Http\Controllers\Admin\MemberManagementController::class, 'archive'])
+            ->whereNumber('member')
+            ->name('archive');
+    });
+// MEMBER-MANAGEMENT-ROUTES-END

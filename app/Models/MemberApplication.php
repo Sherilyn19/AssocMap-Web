@@ -9,6 +9,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 final class MemberApplication extends Model
 {
@@ -56,5 +57,10 @@ final class MemberApplication extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(Member::class, 'reviewed_by_member_id');
+    }
+
+    public function member(): HasOne
+    {
+        return $this->hasOne(Member::class, 'application_id');
     }
 }
