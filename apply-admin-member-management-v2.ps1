@@ -4321,17 +4321,15 @@ use Illuminate\Support\Facades\Gate;
     Invoke-CheckedCommand -FilePath 'npm' -Arguments @('run', 'build')
     Invoke-CheckedCommand -FilePath 'git' -Arguments @('diff', '--check')
 
-    $managedAndUpdatedPaths = @(
-        $ManagedFiles.Keys
-        'routes/web.php'
-        'app/Http/Controllers/Admin/AssociationManagementController.php'
-        'app/Models/MemberApplication.php'
-        'app/Providers/AppServiceProvider.php'
-        'resources/js/app.js'
-    )
-    Assert-NoTrailingWhitespace -RelativePaths $managedAndUpdatedPaths
+    # git diff --check validates whitespace introduced in tracked files.
+    # Check only files created by this run here, because a whole-file check on
+    # tracked files can falsely reject trailing whitespace that already existed
+    # in the committed baseline and was not introduced by this patch.
+    if ($script:CreatedThisRun.Count -gt 0) {
+        Assert-NoTrailingWhitespace -RelativePaths @($script:CreatedThisRun)
+    }
 
-    Write-Pass 'Vite build, Git whitespace check, and managed-file whitespace check passed.'
+    Write-Pass 'Vite build, Git whitespace check, and newly created-file whitespace check passed.'
 
     Write-Step -Number 8 -Total 8 -Message 'Applying verified PostgreSQL integrity hardening...'
 
