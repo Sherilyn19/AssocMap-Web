@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AssociationManagementController;
+use App\Http\Controllers\Admin\ProjectManagementController;
 /*
  * ============================================================
  * routes/web.php
@@ -130,3 +131,46 @@ Route::middleware('assocmap.auth:System Administrator')
             ->name('archive');
     });
 // MEMBER-MANAGEMENT-ROUTES-END
+// ============================================================
+// PROJECT-MANAGEMENT-ROUTES
+// Admin Project Management - System Administrator only.
+//
+// ============================================================
+
+Route::middleware('assocmap.auth:System Administrator')
+    ->prefix('admin/projects')
+    ->name('projects.')
+    ->controller(ProjectManagementController::class)
+    ->group(function (): void {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+
+        // Static /create route is declared before the numeric project binding.
+        Route::get('/{project}', 'show')
+            ->whereNumber('project')
+            ->name('show');
+
+        Route::get('/{project}/edit', 'edit')
+            ->whereNumber('project')
+            ->name('edit');
+
+        Route::put('/{project}', 'update')
+            ->whereNumber('project')
+            ->name('update');
+
+        Route::patch('/{project}/archive', 'archive')
+            ->whereNumber('project')
+            ->name('archive');
+
+        Route::post('/{project}/materials', 'storeMaterial')
+            ->whereNumber('project')
+            ->name('materials.store');
+
+        Route::put('/{project}/materials/{material}', 'updateMaterial')
+            ->whereNumber('project')
+            ->whereNumber('material')
+            ->name('materials.update');
+    });
+
+// PROJECT-MANAGEMENT-ROUTES-END
