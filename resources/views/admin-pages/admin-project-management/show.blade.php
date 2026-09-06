@@ -1,3 +1,4 @@
+<!-- resources/views/admin-pages/admin-project-management/show.blade.php -->
 <x-dashboard-layout title="Project Details">
     {{-- Project details is the main hub for project-level material management. --}}
     <div class="space-y-6">
@@ -48,11 +49,11 @@
             <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <dt class="text-xs text-assocmap-secondary">Association</dt>
-                    <dd class="mt-1 text-sm font-semibold text-assocmap-text">{{ $project->association?->name ?? 'â€”' }}</dd>
+                    <dd class="mt-1 text-sm font-semibold text-assocmap-text">{{ $project->association?->name ?? '—' }}</dd>
                 </div>
                 <div>
                     <dt class="text-xs text-assocmap-secondary">Program Component</dt>
-                    <dd class="mt-1 text-sm font-semibold text-assocmap-text">{{ $project->programComponent?->name ?? 'â€”' }}</dd>
+                    <dd class="mt-1 text-sm font-semibold text-assocmap-text">{{ $project->programComponent?->name ?? '—' }}</dd>
                 </div>
                 <div>
                     <dt class="text-xs text-assocmap-secondary">Commodity Type</dt>
@@ -60,15 +61,15 @@
                 </div>
                 <div>
                     <dt class="text-xs text-assocmap-secondary">Implementation Date</dt>
-                    <dd class="mt-1 text-sm font-semibold text-assocmap-text">{{ $project->implementation_date?->format('M d, Y') ?? 'â€”' }}</dd>
+                    <dd class="mt-1 text-sm font-semibold text-assocmap-text">{{ $project->implementation_date?->format('M d, Y') ?? '—' }}</dd>
                 </div>
                 <div>
                     <dt class="text-xs text-assocmap-secondary">Budget</dt>
-                    <dd class="mt-1 text-sm font-semibold text-assocmap-text">â‚±{{ number_format((float) $project->budget, 2) }}</dd>
+                    <dd class="mt-1 text-sm font-semibold text-assocmap-text">₱{{ number_format((float) $project->budget, 2) }}</dd>
                 </div>
                 <div>
                     <dt class="text-xs text-assocmap-secondary">Remarks</dt>
-                    <dd class="mt-1 text-sm font-semibold text-assocmap-text">{{ $project->remarks ?: 'â€”' }}</dd>
+                    <dd class="mt-1 text-sm font-semibold text-assocmap-text">{{ $project->remarks ?: '—' }}</dd>
                 </div>
             </dl>
         </section>
@@ -132,7 +133,7 @@
         <section class="rounded-2xl border border-assocmap-border bg-white p-6 shadow-card">
             <div>
                 <h2 class="text-lg font-bold text-assocmap-text">Project Materials</h2>
-                <p class="text-sm text-assocmap-secondary">Cost is derived as quantity Ã— unit cost; no duplicated total-cost field is stored.</p>
+                <p class="text-sm text-assocmap-secondary">Cost is derived as quantity × unit cost; no duplicated total-cost field is stored.</p>
             </div>
 
             <div class="mt-5 space-y-4">
@@ -144,7 +145,7 @@
                                 <p class="mt-1 text-sm text-assocmap-secondary">
                                     {{ $material->quantity }} {{ $material->unit }}
                                     @if ($material->unit_cost !== null)
-                                        Â· â‚±{{ number_format((float) $material->unit_cost, 2) }} / {{ $material->unit }}
+                                        · ₱{{ number_format((float) $material->unit_cost, 2) }} / {{ $material->unit }}
                                     @endif
                                 </p>
                             </div>
@@ -157,12 +158,12 @@
                         <dl class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                             <div>
                                 <dt class="text-xs text-assocmap-secondary">Delivery Date</dt>
-                                <dd class="mt-1 text-sm font-semibold text-assocmap-text">{{ $material->delivery_date?->format('M d, Y') ?? 'â€”' }}</dd>
+                                <dd class="mt-1 text-sm font-semibold text-assocmap-text">{{ $material->delivery_date?->format('M d, Y') ?? '—' }}</dd>
                             </div>
                             <div>
                                 <dt class="text-xs text-assocmap-secondary">Calculated Cost</dt>
                                 <dd class="mt-1 text-sm font-semibold text-assocmap-text">
-                                    â‚±{{ number_format($material->total_cost, 2) }}
+                                    ₱{{ number_format($material->total_cost, 2) }}
                                 </dd>
                             </div>
                             <div class="sm:text-right">

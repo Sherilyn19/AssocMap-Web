@@ -1,3 +1,4 @@
+<!-- resources/views/admin-pages/admin-project-management/index.blade.php -->
 <x-dashboard-layout title="Project Management">
     {{-- Admin-only Project Management index. --}}
     <div class="space-y-6">
@@ -122,7 +123,7 @@
                 <dl class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
                     <div>
                         <dt class="text-xs text-assocmap-secondary">Program Component</dt>
-                        <dd class="mt-1 text-sm font-semibold text-assocmap-text">{{ $project->programComponent?->name ?? 'â€”' }}</dd>
+                        <dd class="mt-1 text-sm font-semibold text-assocmap-text">{{ $project->programComponent?->name ?? '—' }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs text-assocmap-secondary">Commodity Type</dt>
@@ -130,11 +131,11 @@
                     </div>
                     <div>
                         <dt class="text-xs text-assocmap-secondary">Implementation Date</dt>
-                        <dd class="mt-1 text-sm font-semibold text-assocmap-text">{{ $project->implementation_date?->format('M d, Y') ?? 'â€”' }}</dd>
+                        <dd class="mt-1 text-sm font-semibold text-assocmap-text">{{ $project->implementation_date?->format('M d, Y') ?? '—' }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs text-assocmap-secondary">Budget</dt>
-                        <dd class="mt-1 text-sm font-semibold text-assocmap-text">â‚±{{ number_format((float) $project->budget, 2) }}</dd>
+                        <dd class="mt-1 text-sm font-semibold text-assocmap-text">₱{{ number_format((float) $project->budget, 2) }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs text-assocmap-secondary">Materials</dt>

@@ -1,3 +1,4 @@
+<!-- resources/views/admin-pages/admin-project-management/partials/form.blade.php -->
 @php
     $currentProject = $project;
 @endphp

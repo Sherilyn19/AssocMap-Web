@@ -1,3 +1,4 @@
+<!-- resources/views/admin-pages/admin-project-management/edit.blade.php -->
 <x-dashboard-layout title="Edit Project">
     {{-- Archived projects are intentionally excluded from the edit route. --}}
     <div class="mx-auto max-w-4xl space-y-6">

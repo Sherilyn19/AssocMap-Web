@@ -1,3 +1,4 @@
+<!-- resources/views/admin-pages/admin-project-management/create.blade.php -->
 <x-dashboard-layout title="Create Project">
     {{-- Create form keeps Program Component and Commodity Type visibly distinct. --}}
     <div class="mx-auto max-w-4xl space-y-6">
