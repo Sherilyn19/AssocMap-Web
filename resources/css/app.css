@@ -412,7 +412,7 @@
     .pm-page .pm-input { @apply mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900; }
     .pm-page .pm-input[aria-invalid="true"] { @apply border-red-700; }
     .pm-page .pm-action { @apply inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100; }
-    .pm-page .pm-primary { @apply inline-flex min-h-11 items-center justify-center rounded-lg bg-assocmap-primary px-4 py-2 text-sm font-semibold text-white hover:bg-assocmap-hover; }
+    .pm-page .pm-primary { @apply inline-flex min-h-11 items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700; }
     .pm-page :is(a,button,input,select,textarea,summary):focus-visible { @apply outline outline-2 outline-offset-2 outline-assocmap-primary; }
     .pm-page .pm-input:focus-visible { @apply outline-offset-0; }
     .pm-dialog { @apply max-h-[90dvh] overflow-y-auto; }
@@ -425,4 +425,44 @@
     body:has([data-pm-page]) .am-topbar__title { @apply min-w-0 break-words text-sm sm:text-xl; }
     body:has([data-pm-page]) .am-icon-btn { @apply shrink-0; }
     body:has([data-pm-page]) .am-topbar__right { @apply shrink-0; }
+}
+
+/* Shared management interaction tokens. State colors (archive/error/status) stay semantic. */
+@layer components {
+    body:has([data-management-register]) .am-main { padding-top: 80px; }
+    .pm-page :is(a,button,input,select,textarea,summary):focus-visible { @apply outline-slate-500; }
+    :is([data-member-management-page], [data-pm-page]) :is(a, button) { transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
+    :is([data-member-management-page], [data-pm-page]) :is(a, button):active:not(:disabled) { transform: translateY(1px); }
+    .management-context-title { transition: opacity 220ms ease, transform 220ms ease; }
+    .management-context-title.is-concealed { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+    .am-workspace-heading { @apply flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3; }
+    .am-workspace-label { @apply shrink-0 text-xs font-medium text-slate-500 sm:text-sm; }
+    .am-workspace-trail { @apply flex min-w-0 items-center gap-3; }
+    .am-workspace-divider { @apply hidden text-slate-300 sm:inline; }
+    /* Allow long module names to wrap on phones without crowding the account controls. */
+    body:has(.am-workspace-heading) .am-topbar__left { @apply min-w-0 flex-1; }
+    body:has(.am-workspace-heading) .am-topbar__title { @apply min-w-0 break-words text-sm sm:text-lg; }
+    body:has(.am-workspace-heading) .am-topbar__right { @apply shrink-0; }
+    .management-loading { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: rgb(248 250 252 / 80%); }
+    .management-loading[hidden] { display: none; }
+    .management-loading-card { @apply flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600 shadow-lg; }
+    .management-spinner { width: 2rem; height: 2rem; border: 3px solid #e2e8f0; border-top-color: #334155; border-radius: 50%; animation: management-spin 800ms linear infinite; }
+    body:has([data-member-management-page]) [data-modal]:not(.hidden) [data-modal-panel], .pm-dialog[open] { animation: management-enter 180ms ease-out; }
+}
+@keyframes management-spin { to { transform: rotate(360deg); } }
+/* Filter motion communicates focus and selection without shifting the table.
+   Shared reduced-motion rules below also apply to these scoped controls. */
+@layer components {
+    .pm-scope-switch { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-white/60; }
+    .pm-scope-switch.is-selected { @apply bg-white text-slate-900 shadow-sm ring-1 ring-slate-200; }
+    .pm-filter-chip { @apply inline-flex min-h-9 max-w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 hover:border-slate-400 hover:bg-slate-100; }
+    .pm-filter-panel .pm-input { transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease; }
+    .pm-filter-panel .pm-input:hover { @apply border-slate-400; }
+    .pm-filter-panel .pm-input:focus { @apply border-slate-500 ring-2 ring-slate-200; }
+    .pm-filter-chip { animation: management-enter 180ms ease-out; }
+}
+@keyframes management-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+    .management-spinner { animation: none; }
+    .management-context-title, :is([data-member-management-page], [data-pm-page]) :is(a, button) { transition: none; }
 }

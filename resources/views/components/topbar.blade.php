@@ -5,7 +5,7 @@
     <x-topbar title="Dashboard" />
 --}}
 
-@props(['title' => '', 'contextual' => false])
+@props(['title' => '', 'contextual' => false, 'workspace' => false])
 
 <header class="am-topbar">
     <div class="am-topbar__left">
@@ -17,7 +17,17 @@
         </button>
         
         {{-- Contextual pages own their main heading; other modules retain their existing heading. --}}
-        @if($contextual)
+        @if($workspace)
+            {{-- Keep workspace orientation visible while JS reveals only the module
+                 trail on scroll. Both trail parts share one transition to avoid an orphan slash. --}}
+            <div class="am-workspace-heading">
+                <span class="am-workspace-label">Admin Workspace</span>
+                <div data-management-title-trail class="management-context-title is-concealed am-workspace-trail" aria-hidden="true">
+                    <span aria-hidden="true" class="am-workspace-divider">/</span>
+                    <p class="am-topbar__title">{{ $title }}</p>
+                </div>
+            </div>
+        @elseif($contextual)
             <p class="am-topbar__title">{{ $title }}</p>
         @else
             <h1 class="am-topbar__title">{{ $title }}</h1>

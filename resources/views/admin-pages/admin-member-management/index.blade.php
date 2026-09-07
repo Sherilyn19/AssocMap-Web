@@ -4,9 +4,10 @@
     System Administrator - Member Management
     Official members only. Applications remain a separate read-only Admin workflow view.
 --}}
-<x-dashboard-layout title="Member Management">
+<x-dashboard-layout title="Member Management" topbar-title="Member Management">
 <div
     class="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8"
+    data-management-register
     data-member-management-page
     data-barangays="{{ json_encode($barangays->map(fn ($barangay) => [
         'id' => $barangay->id,
@@ -625,10 +626,8 @@
                 @endforeach
             </div>
 
-            <div class="border-t border-slate-200 px-4 py-4 sm:px-5">
-                {{ $members->links() }}
-            </div>
         @endif
+        <x-management-pagination :records="$members" />
     </section>
 
     {{-- Analytics modals --}}

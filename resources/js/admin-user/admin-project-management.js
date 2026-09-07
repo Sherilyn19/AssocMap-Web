@@ -3,6 +3,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const page = document.querySelector('[data-pm-page]');
     if (!page) return;
     page.classList.add('pm-enhanced');
+    // Compare edits against the loaded query so the hint never suggests that
+    // unsaved selections have already changed the server-rendered records.
+    const filterForm = page.querySelector('[data-pm-filters]');
+    if (filterForm) {
+        const serializeFilters = () => new URLSearchParams(new FormData(filterForm)).toString();
+        const applied = serializeFilters();
+        const hint = filterForm.querySelector('[data-pm-filter-hint]');
+        const updateHint = () => {
+            const changed = serializeFilters() !== applied;
+            hint.textContent = changed ? 'Filters changed — apply to update the records.' : 'Choose filters, then apply to update the records.';
+            hint.classList.toggle('text-amber-700', changed);
+            hint.classList.toggle('text-slate-500', !changed);
+        };
+        filterForm.addEventListener('input', updateHint);
+        filterForm.addEventListener('change', updateHint);
+    }
     // The server renders the requested summary as a normal section. Move that same
     // content into a dialog when supported; its links still work without JavaScript.
     const summary = page.querySelector('[data-pm-summary]');
@@ -38,7 +54,10 @@ document.addEventListener('DOMContentLoaded', () => {
         form.addEventListener('submit', (event) => {
             event.preventDefault();
             if (!archiveDialog?.showModal) {
-                if (window.confirm(`Archive "${form.dataset.projectTitle}"? Historical records will be retained.`)) HTMLFormElement.prototype.submit.call(form);
+                if (window.confirm(`Archive "${form.dataset.projectTitle}"? Historical records will be retained.`)) {
+                    document.dispatchEvent(new Event('management:loading'));
+                    HTMLFormElement.prototype.submit.call(form);
+                }
                 return;
             }
             archiveForm = form; archiveTrigger = event.submitter;
@@ -51,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Native submit bypasses our submit listener, avoiding a second confirmation.
     // The original form still carries its CSRF token and PATCH method override.
     archiveDialog?.querySelector('[data-pm-archive-confirm]').addEventListener('click', (event) => {
-        if (archiveForm) { event.currentTarget.disabled = true; HTMLFormElement.prototype.submit.call(archiveForm); }
+        if (archiveForm) { event.currentTarget.disabled = true; document.dispatchEvent(new Event('management:loading')); HTMLFormElement.prototype.submit.call(archiveForm); }
     });
 
     // Desktop and mobile Edit links share one editor per material. Opening only one
