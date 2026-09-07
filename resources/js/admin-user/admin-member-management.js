@@ -1,5 +1,5 @@
 /**
- * resources/js/admin-member-management.js
+ * resources/js/admin-user/admin-member-management.js
  *
  * Interface behavior only. Laravel remains the source of truth for
  * authorization, validation, duplicate prevention, and archive rules.

@@ -137,6 +137,8 @@ Route::middleware('assocmap.auth:System Administrator')
 //
 // ============================================================
 
+// The projects.* names connect Blade links/forms to controller actions, independent
+// of JavaScript folder paths. Nested material ownership is checked by controller/service.
 Route::middleware('assocmap.auth:System Administrator')
     ->prefix('admin/projects')
     ->name('projects.')

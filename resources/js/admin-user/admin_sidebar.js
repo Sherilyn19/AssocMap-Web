@@ -1,5 +1,5 @@
 /**
- * resources/js/admin_sidebar.js
+ * resources/js/admin-user/admin_sidebar.js
  * Sidebar collapse for desktop and off-canvas drawer for mobile.
  */
 const ASSOCMAP_MOBILE_BREAKPOINT = 1024;

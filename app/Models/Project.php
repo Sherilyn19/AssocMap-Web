@@ -27,6 +27,8 @@ final class Project extends Model
         'is_archived',
     ];
 
+    // Casts support date formatting and boolean archive checks in Blade.
+    // Monetary decimals are returned as fixed-precision strings, not display currency.
     protected function casts(): array
     {
         return [

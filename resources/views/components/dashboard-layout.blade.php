@@ -1,4 +1,4 @@
-﻿{{--
+{{--
     resources/views/components/dashboard-layout.blade.php
 
     Shell used by every authenticated page:
@@ -13,7 +13,7 @@
 --}}
 
 
-@props(['title' => 'AssocMap'])
+@props(['title' => 'AssocMap', 'topbarTitle' => null])
 
 <!DOCTYPE html>
 <html lang="en">
@@ -28,7 +28,7 @@
     <x-sidebar />
 
     <div class="am-main">
-        <x-topbar :title="$title" />
+        <x-topbar :title="$topbarTitle ?? $title" :contextual="$topbarTitle !== null" />
 
         <main class="am-content">
             {{ $slot }}

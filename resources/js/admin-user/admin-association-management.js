@@ -1,7 +1,7 @@
 /**
  * Association Management interactions.
  * 
- * resources/js/admin-association-management.js
+ * resources/js/admin-user/admin-association-management.js
  *
  * Uses native DOM APIs only so the module remains small, testable, and compatible
  * with the existing Vite/Tailwind stack.

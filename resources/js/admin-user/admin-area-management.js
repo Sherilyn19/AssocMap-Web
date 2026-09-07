@@ -1,5 +1,5 @@
 /**
- * resources/js/admin-area-management.js
+ * resources/js/admin-user/admin-area-management.js
  * Area Management Module (Municipalities + Barangays).
  *
  * This file intentionally stays page-scoped. Generic dropdowns,

@@ -1,5 +1,5 @@
 /**
- * resources/js/admin-user-management.js
+ * resources/js/admin-user/admin-user-management.js
  * Add/Edit modal, confirm-action modal, SVG password eye toggle,
  * row action dropdown, and toast auto-dismiss. Feature-detects its
  * root elements, so a global import is a safe no-op on other pages.

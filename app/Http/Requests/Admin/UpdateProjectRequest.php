@@ -14,6 +14,9 @@ final class UpdateProjectRequest extends FormRequest
         return true;
     }
 
+    // Existence alone does not mean a selection is eligible: the service rejects
+    // archived associations and statuses outside the project-status allowlist.
+    // Commodity stays free text; example commodities are not an exhaustive list.
     public function rules(): array
     {
         return [

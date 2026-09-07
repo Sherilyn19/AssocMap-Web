@@ -403,3 +403,26 @@
         }
     }
 }
+
+
+/* ASSOCMAP: Project Management refinement. Scoped to this module and its dialogs. */
+@layer components {
+    .pm-page { @apply min-w-0 pt-4 text-slate-900; }
+    .pm-page .pm-label { @apply block text-sm font-semibold text-slate-700; }
+    .pm-page .pm-input { @apply mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900; }
+    .pm-page .pm-input[aria-invalid="true"] { @apply border-red-700; }
+    .pm-page .pm-action { @apply inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100; }
+    .pm-page .pm-primary { @apply inline-flex min-h-11 items-center justify-center rounded-lg bg-assocmap-primary px-4 py-2 text-sm font-semibold text-white hover:bg-assocmap-hover; }
+    .pm-page :is(a,button,input,select,textarea,summary):focus-visible { @apply outline outline-2 outline-offset-2 outline-assocmap-primary; }
+    .pm-page .pm-input:focus-visible { @apply outline-offset-0; }
+    .pm-dialog { @apply max-h-[90dvh] overflow-y-auto; }
+    .pm-page [data-pm-editor] { scroll-margin-top: 1rem; }
+    /* Hide closed editors only after JS enables their external Edit links.
+       Without JS, native details summaries remain available to open each form. */
+    .pm-enhanced [data-pm-editor]:not([open]) { display: none; }
+    /* The shell uses a fixed topbar. Long page titles must also reflow on phones. */
+    body:has([data-pm-page]) .am-topbar__left { @apply min-w-0 flex-1; }
+    body:has([data-pm-page]) .am-topbar__title { @apply min-w-0 break-words text-sm sm:text-xl; }
+    body:has([data-pm-page]) .am-icon-btn { @apply shrink-0; }
+    body:has([data-pm-page]) .am-topbar__right { @apply shrink-0; }
+}

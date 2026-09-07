@@ -1,11 +1,11 @@
-﻿{{--
+{{--
     resources/views/components/topbar.blade.php
 
     Accepts a $title prop from the parent layout, e.g.
     <x-topbar title="Dashboard" />
 --}}
 
-@props(['title' => ''])
+@props(['title' => '', 'contextual' => false])
 
 <header class="am-topbar">
     <div class="am-topbar__left">
@@ -16,7 +16,12 @@
             </svg>
         </button>
         
-        <h1 class="am-topbar__title">{{ $title }}</h1>
+        {{-- Contextual pages own their main heading; other modules retain their existing heading. --}}
+        @if($contextual)
+            <p class="am-topbar__title">{{ $title }}</p>
+        @else
+            <h1 class="am-topbar__title">{{ $title }}</h1>
+        @endif
     </div>
 
     <div class="am-topbar__right">

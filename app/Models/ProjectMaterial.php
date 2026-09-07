@@ -52,6 +52,8 @@ final class ProjectMaterial extends Model
      *
      * No duplicated total-cost database field is required.
      */
+    // This numeric accessor treats missing cost as zero. Views must check unit_cost
+    // first to display "Not recorded" and identify incomplete aggregates correctly.
     public function getTotalCostAttribute(): float
     {
         return (float) $this->quantity * (float) ($this->unit_cost ?? 0);
