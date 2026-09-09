@@ -176,3 +176,19 @@ Route::middleware('assocmap.auth:System Administrator')
     });
 
 // PROJECT-MANAGEMENT-ROUTES-END
+// MEMBERSHIP-WORKFLOW: scoped viewing; only the association account can submit/review.
+Route::middleware('assocmap.auth')->prefix('membership')->name('membership.')
+    ->controller(\App\Http\Controllers\MembershipController::class)->group(function (): void {
+        Route::get('/', 'index')->name('index');
+        Route::get('/applications/create', 'create')->name('applications.create');
+        Route::post('/applications', 'store')->middleware('throttle:membership-submit')->name('applications.store');
+        Route::get('/applications/{application}', 'show')->whereNumber('application')->name('applications.show');
+        Route::patch('/applications/{application}/review', 'review')->whereNumber('application')
+            ->middleware('throttle:membership-review')->name('applications.review');
+        Route::get('/members/{member}', 'member')->whereNumber('member')->name('members.show');
+    });
+
+// Provisioning a credential does not give administrators an approval endpoint.
+Route::post('/admin/members/{member}/review-passphrase', [\App\Http\Controllers\MembershipController::class, 'credential'])
+    ->whereNumber('member')->middleware(['assocmap.auth:System Administrator', 'throttle:membership-review'])
+    ->name('members.review-passphrase');

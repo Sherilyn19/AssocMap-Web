@@ -187,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!member || !modal || !form) return;
 
+            clearEditErrors(form);
             form.action = member.update_url;
 
             Object.entries(member).forEach(([key, value]) => {
@@ -238,5 +239,47 @@ document.addEventListener('DOMContentLoaded', () => {
         filterMunicipality.addEventListener('change', () => {
             populateBarangays(filterBarangay, filterMunicipality.value);
         });
+    }
+    // Defense: failed POST/PUT requests keep the user's corrections, not stale DB values.
+    function clearEditErrors(form) {
+        form.querySelectorAll('[data-field-error]').forEach((element) => element.remove());
+        form.querySelectorAll('[aria-invalid]').forEach((field) => {
+            field.removeAttribute('aria-invalid');
+            field.removeAttribute('aria-describedby');
+        });
+        const summary = form.querySelector('[data-edit-errors]');
+        summary.textContent = '';
+        summary.classList.add('hidden');
+    }
+
+    const recovery = safelyParseJson(page.dataset.editRecovery, {});
+    if (recovery.id && recovery.url && Object.keys(recovery.values ?? {}).length) {
+        const modal = document.getElementById('edit-member-modal');
+        const form = modal?.querySelector('[data-edit-member-form]');
+        if (form) {
+            clearEditErrors(form);
+            form.action = recovery.url;
+            form.querySelectorAll('[data-member-field]').forEach((field) => {
+                const value = recovery.values[field.dataset.memberField];
+                field.value = typeof value === 'string' || typeof value === 'number' ? value : '';
+                const messages = recovery.errors?.[field.name];
+                if (messages?.length) {
+                    const error = document.createElement('span');
+                    error.id = `member-error-${field.name}`;
+                    error.dataset.fieldError = '';
+                    error.className = 'mt-1 block text-sm text-red-700';
+                    error.textContent = messages.join(' ');
+                    field.after(error);
+                    field.setAttribute('aria-invalid', 'true');
+                    field.setAttribute('aria-describedby', error.id);
+                }
+            });
+            const summary = form.querySelector('[data-edit-errors]');
+            summary.textContent = 'Your changes have not been saved. Correct the errors below and try again.';
+            summary.classList.remove('hidden');
+            modal.querySelector('[data-edit-member-name]').textContent = `Member #${recovery.id}`;
+            openModal(modal);
+            window.setTimeout(() => form.querySelector('[aria-invalid="true"]')?.focus(), 0);
+        }
     }
 });

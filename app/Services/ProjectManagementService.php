@@ -51,12 +51,17 @@ final class ProjectManagementService
         return $this->projectRecords()->where('is_archived', $archived);
     }
 
-    // Load related labels together to avoid extra queries for each displayed row.
-    // withCount supplies the material count without loading every material record.
+    // Fetch display labels in the record query to avoid three remote round trips
+    // per table. Scalar lookups preserve projects whose related record is missing.
     public function projectRecords(): Builder
     {
         return Project::query()
-            ->with(['association', 'programComponent', 'status'])
+            ->select('projects.*')
+            ->addSelect([
+                'association_name' => Association::query()->select('name')->whereColumn('associations.id', 'projects.association_id'),
+                'program_component_name' => ProgramComponent::query()->select('name')->whereColumn('program_components.id', 'projects.program_component_id'),
+                'project_status_name' => Status::query()->select('status_name')->whereColumn('statuses.id', 'projects.status_id'),
+            ])
             ->withCount('materials');
     }
 
@@ -130,13 +135,9 @@ final class ProjectManagementService
         return $query->orderByDesc('updated_at')->orderByDesc('id');
     }
 
-    public function formData(): array
+    public function filterData(): array
     {
         return [
-            'associations' => Association::query()
-                ->where('is_archived', false)
-                ->orderBy('name')
-                ->get(['id', 'name']),
             'programComponents' => ProgramComponent::query()
                 ->orderBy('name')
                 ->get(['id', 'name']),
@@ -144,11 +145,26 @@ final class ProjectManagementService
                 ->whereIn('status_name', self::PROJECT_STATUSES)
                 ->orderBy('status_name')
                 ->get(['id', 'status_name']),
-            'materialStatuses' => Status::query()
-                ->whereIn('status_name', self::MATERIAL_STATUSES)
-                ->orderBy('status_name')
-                ->get(['id', 'status_name']),
         ];
+    }
+
+    public function materialStatuses(): \Illuminate\Database\Eloquent\Collection
+    {
+        return Status::query()
+            ->whereIn('status_name', self::MATERIAL_STATUSES)
+            ->orderBy('status_name')
+            ->get(['id', 'status_name']);
+    }
+
+    public function formData(): array
+    {
+        return array_merge($this->filterData(), [
+            'associations' => Association::query()
+                ->where('is_archived', false)
+                ->orderBy('name')
+                ->get(['id', 'name']),
+            'materialStatuses' => $this->materialStatuses(),
+        ]);
     }
 
     // Each write and its audit entry share a transaction: either both commit or both roll back.

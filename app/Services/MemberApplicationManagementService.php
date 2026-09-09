@@ -87,7 +87,7 @@ final class MemberApplicationManagementService
             $perPage = 15;
         }
 
-        return $query->paginate($perPage)->withQueryString();
+        return $query->orderBy('member_applications.id')->paginate($perPage)->withQueryString();
     }
 
     /**

@@ -15,6 +15,9 @@ final class Member extends Model
 {
     use HasFactory;
 
+    // Credentials are never serialized into Blade/JSON payloads or mass assigned.
+    protected $hidden = ['review_passphrase_hash'];
+
     protected $fillable = [
         'association_id',
         'application_id',

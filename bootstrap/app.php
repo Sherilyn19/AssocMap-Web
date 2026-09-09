@@ -22,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Preserve intentional passphrase spaces, as with an ordinary password.
+        $middleware->trimStrings(except: ['review_passphrase', 'review_passphrase_confirmation']);
         /*
          * Register AssocMapAuth as a named middleware alias.
          * This allows routes to reference it as 'assocmap.auth'
@@ -35,5 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Validation redirects must never copy private review secrets into session old input.
+        $exceptions->dontFlash(['review_passphrase', 'review_passphrase_confirmation']);
     })
     ->create();

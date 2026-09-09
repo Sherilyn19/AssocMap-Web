@@ -33,10 +33,10 @@ final class MemberApplicationManagementController extends Controller
     ) {
     }
 
-    public function index(Request $request): View
+    public function index(\App\Http\Requests\Membership\MemberFiltersRequest $request): View
     {
         $actor = $this->sessionUser->resolve($request);
-        Gate::forUser($actor)->authorize('viewAny', MemberApplication::class);
+        Gate::forUser($actor)->authorize('viewAdminRegister', MemberApplication::class);
 
         $filters = $request->only([
             'search',

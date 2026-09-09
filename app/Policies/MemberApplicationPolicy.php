@@ -11,6 +11,30 @@ use App\Models\User;
 
 final class MemberApplicationPolicy
 {
+    /** The global administrative register is separate from scoped member access. */
+    public function viewAdminRegister(User $user): bool
+    {
+        return $user->is_active && $user->role?->role_name === 'System Administrator';
+    }
+
+    /** Applications are submitted through the association's shared account. */
+    public function create(User $user): bool
+    {
+        return $user->is_active && $user->role?->role_name === 'Association Member'
+            && $user->association_id !== null
+            && \App\Models\Association::whereKey($user->association_id)->where('is_archived', false)->exists();
+    }
+
+    /** This allows reaching the review form; the service MUST also verify the secret. */
+    public function review(User $user, MemberApplication $application): bool
+    {
+        return $user->is_active && $user->role?->role_name === 'Association Member'
+            && $user->association_id !== null
+            && (int) $user->association_id === (int) $application->association_id
+            && $application->association && !$application->association->is_archived
+            && $application->association->representative_member_id !== null;
+    }
+
     public function viewAny(User $user): bool
     {
         if (!$user->is_active) {

@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use App\Models\User;
+use Throwable;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -40,6 +42,27 @@ class AssocMapAuth
             return redirect()->route('login')
                 ->with('error', 'Please log in to access this page.');
         }
+
+        // Defense: sessions prove login, but the DATABASE decides today's permissions.
+        // A demotion/deactivation must take effect without waiting for logout.
+        try {
+            $actor = User::with('role')->find($request->session()->get('auth_user.id'));
+        } catch (Throwable $exception) {
+            report($exception);
+            abort(503, 'Account access could not be verified. Please try again shortly.');
+        }
+
+        if (!$actor || !$actor->is_active || !$actor->role) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('login')->with('error', 'Your account is unavailable. Contact an administrator.');
+        }
+
+        $request->session()->put('auth_user', [
+            'id' => $actor->id, 'name' => $actor->name, 'email' => $actor->email,
+            'role_id' => $actor->role_id, 'role_name' => $actor->role->role_name,
+            'association_id' => $actor->association_id,
+        ]);
 
         // ── Check 2: Does the role match? ─────────────────────
         // Only enforce if a required role was specified on the route.

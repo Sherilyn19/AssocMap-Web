@@ -11,6 +11,12 @@ use App\Models\User;
 
 final class MemberPolicy
 {
+    /** The global administrative register is separate from scoped member access. */
+    public function viewAdminRegister(User $user): bool
+    {
+        return $user->is_active && $user->role?->role_name === 'System Administrator';
+    }
+
     public function viewAny(User $user): bool
     {
         if (!$user->is_active) {
