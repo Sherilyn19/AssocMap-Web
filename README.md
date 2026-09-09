@@ -71,12 +71,16 @@ Additional modules will be implemented throughout the development lifecycle.
 
 ### Member Management
 
+Implementation progress: [Member Management checklist](docs/member-management-checklist.md).
+
 * Member Registration
 * Membership Approval
 * Member Records
 * Representative Assignment
 
 ### Project Management
+
+Implementation progress: [Admin Project Management checklist](docs/project-management-checklist.md).
 
 * Project Information
 * Distributed Materials
