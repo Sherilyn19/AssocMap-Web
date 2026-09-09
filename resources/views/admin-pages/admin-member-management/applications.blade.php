@@ -4,8 +4,10 @@
     Administrator monitoring view only.
     Approval and rejection remain Association Representative responsibilities.
 --}}
-<x-dashboard-layout title="Member Applications">
-<div class="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+<x-dashboard-layout title="Member Applications" topbar-title="Member Applications">
+{{-- Reuse Official Members' modal/focus handling and management-page feedback. --}}
+<div class="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8"
+     data-member-management-page data-management-register>
     <header class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -52,18 +54,33 @@
         Only the designated Association Representative may approve or reject member applications.
     </div>
 
+    @php
+        // All cards and dialogs use the same server-provided, global summary.
+        // Status IDs come from the database lookup, never assumed numeric constants.
+        $applicationCards = [
+            ['key' => 'total', 'label' => 'Total Applications', 'hint' => 'All retained requests', 'status' => null,
+             'explanation' => 'All retained membership applications, including Pending, Approved, and Rejected requests.'],
+            ['key' => 'pending', 'label' => 'Pending', 'hint' => 'Awaiting representative review', 'status' => 'Pending',
+             'explanation' => 'These applications are awaiting a decision from the designated Association Representative. Pending applicants are not official members.'],
+            ['key' => 'approved', 'label' => 'Approved', 'hint' => 'Converted through the approved workflow', 'status' => 'Approved',
+             'explanation' => 'These applications have an Approved status. Open an application record to inspect its reviewer, review date, and linked official member.'],
+            ['key' => 'rejected', 'label' => 'Rejected', 'hint' => 'Retained for audit history', 'status' => 'Rejected',
+             'explanation' => 'These applications were rejected and remain available for history and auditing. Open a record to read its rejection reason and review details.'],
+        ];
+    @endphp
     <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Application summary">
-        @foreach ([
-            ['Total Applications', $summary['total'], 'All retained requests'],
-            ['Pending', $summary['pending'], 'Awaiting representative review'],
-            ['Approved', $summary['approved'], 'Converted through the approved workflow'],
-            ['Rejected', $summary['rejected'], 'Retained for audit history'],
-        ] as [$label, $value, $hint])
-            <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p class="text-sm font-medium text-slate-600">{{ $label }}</p>
-                <p class="mt-2 text-3xl font-bold tabular-nums text-slate-900">{{ $value }}</p>
-                <p class="mt-1 text-xs text-slate-500">{{ $hint }}</p>
-            </article>
+        @foreach ($applicationCards as $card)
+            <button type="button"
+                    data-open-modal="application-{{ $card['key'] }}-analytics-modal" data-analytics-card
+                    aria-haspopup="dialog" aria-controls="application-{{ $card['key'] }}-analytics-modal"
+                    aria-label="View details for {{ $card['label'] }}"
+                    class="rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition
+                           hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md
+                           focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2">
+                <p class="text-sm font-medium text-slate-600">{{ $card['label'] }}</p>
+                <p class="mt-2 text-3xl font-bold tabular-nums text-slate-900">{{ $summary[$card['key']] }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ $card['hint'] }}</p>
+            </button>
         @endforeach
     </section>
 
@@ -302,5 +319,59 @@
             </div>
         @endif
     </section>
+    {{-- Use the existing modal shell: same spacing, close button, focus trap and Escape behavior. --}}
+    @foreach ($applicationCards as $card)
+        @php
+            $count = (int) $summary[$card['key']];
+            $total = (int) $summary['total'];
+            $share = $total > 0 ? round(($count / $total) * 100, 1) : 0;
+            $statusId = $card['status'] ? $applicationStatuses->firstWhere('status_name', $card['status'])?->id : null;
+        @endphp
+        <x-admin-modal id="application-{{ $card['key'] }}-analytics-modal"
+                       :title="$card['label']" size="lg"
+                       description="Across all retained application records. The list filters do not change these totals.">
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $card['label'] }}</p>
+                    <p class="mt-2 text-3xl font-bold tabular-nums text-slate-900">{{ $count }}</p>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $card['key'] === 'total' ? 'Reviewed Applications' : 'Share of All Applications' }}</p>
+                    <p class="mt-2 text-3xl font-bold tabular-nums text-slate-900">{{ $card['key'] === 'total' ? $summary['approved'] + $summary['rejected'] : $share.'%' }}</p>
+                </div>
+            </div>
+            <p class="mt-5 text-sm leading-6 text-slate-600">{{ $card['explanation'] }}</p>
+
+            @if ($card['key'] === 'total')
+                <section class="mt-6">
+                    <h3 class="text-sm font-semibold text-slate-900">Application Status Breakdown</h3>
+                    <div class="mt-3 space-y-2">
+                        @foreach (array_slice($applicationCards, 1) as $statusCard)
+                            <div class="flex items-center justify-between gap-4 rounded-lg border border-slate-200 px-3 py-3 text-sm">
+                                <span class="text-slate-700">{{ $statusCard['label'] }}</span>
+                                <span class="text-slate-500"><strong class="tabular-nums text-slate-900">{{ $summary[$statusCard['key']] }}</strong>
+                                    · {{ $total > 0 ? round(($summary[$statusCard['key']] / $total) * 100, 1) : 0 }}%</span>
+                            </div>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
+
+            @if ($count === 0)
+                <p class="mt-5 rounded-lg bg-slate-50 p-4 text-sm text-slate-500">No {{ $card['key'] === 'total' ? '' : strtolower($card['label']).' ' }}applications are currently recorded.</p>
+            @endif
+            <div class="mt-6 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-5">
+                <button type="button" data-close-modal class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Close</button>
+                @if ($card['key'] === 'total' || $statusId !== null)
+                    {{-- Global cards link to the full matching list, without stale pagination/filter state. --}}
+                    <a href="{{ route('members.applications.index', $statusId !== null ? ['status_id' => $statusId] : []) }}"
+                       class="rounded-lg bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700">
+                        View {{ $card['key'] === 'total' ? 'All' : $card['label'] }} Applications
+                    </a>
+                @endif
+            </div>
+        </x-admin-modal>
+    @endforeach
+
 </div>
 </x-dashboard-layout>

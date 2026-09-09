@@ -16,13 +16,6 @@ use Illuminate\Validation\Validator;
 
 final class UpdateMemberRequest extends FormRequest
 {
-    private const ASSOCIATION_ROLES = [
-        'President',
-        'Secretary',
-        'Treasurer',
-        'Member',
-    ];
-
     public function authorize(): bool
     {
         $member = $this->route('member');
@@ -38,35 +31,17 @@ final class UpdateMemberRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge([
-            'first_name' => $this->normalizeText($this->input('first_name')),
-            'middle_name' => $this->normalizeNullableText($this->input('middle_name')),
-            'last_name' => $this->normalizeText($this->input('last_name')),
-            'role_in_assoc' => $this->normalizeNullableText($this->input('role_in_assoc')),
-            'beneficiary_type' => $this->normalizeNullableText($this->input('beneficiary_type')),
-            'contact_number' => $this->normalizeNullableText($this->input('contact_number')),
-            'address' => $this->normalizeNullableText($this->input('address')),
-        ]);
+        // Normalize strings only; malformed arrays remain arrays so validation rejects them.
+        $this->merge(\App\Support\MemberProfile::normalize($this->all()));
+        // Use the bound record, never a client-selected hidden ID, to recover failed edits.
+        $this->session()->flash('edit_member_id', $this->route('member')?->id);
     }
 
     public function rules(): array
     {
-        return [
-            'first_name' => ['required', 'string', 'max:255'],
-            'middle_name' => ['nullable', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-            'birthday' => ['required', 'date', 'before_or_equal:today'],
-            'sex_id' => ['required', 'integer', Rule::exists('sex', 'id')],
-            'role_in_assoc' => ['nullable', 'string', Rule::in(self::ASSOCIATION_ROLES)],
-            'beneficiary_type' => ['nullable', 'string', 'max:100'],
-            'contact_number' => [
-                'nullable',
-                'string',
-                'max:50',
-                'regex:/^[0-9+\-\s().]{7,50}$/',
-            ],
-            'address' => ['nullable', 'string', 'max:1000'],
-            'date_registered' => ['required', 'date', 'before_or_equal:today'],
+        return \App\Support\MemberProfile::rules() + [
+            'role_in_assoc' => ['nullable', 'string', Rule::in(\App\Support\MemberProfile::ROLES)],
+            'date_registered' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:birthday'],
         ];
     }
 
@@ -98,7 +73,8 @@ final class UpdateMemberRequest extends FormRequest
 
     private function validateNormalizedDuplicate(Validator $validator, Member $member): void
     {
-        if (!$this->filled(['first_name', 'last_name', 'birthday'])) {
+        // Never send an invalid date or array to a PostgreSQL identity query.
+        if ($validator->errors()->isNotEmpty() || !$this->filled(['first_name', 'last_name', 'birthday'])) {
             return;
         }
 

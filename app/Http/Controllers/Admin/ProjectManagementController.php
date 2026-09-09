@@ -49,7 +49,7 @@ final class ProjectManagementController extends Controller
             'program_component_id' => (string) $request->input('program_component_id', ''),
             'sort' => $request->input('sort') ?: 'updated',
         ];
-        $formData = $this->projectManagementService->formData();
+        $formData = $this->projectManagementService->filterData();
         $projects = $this->projectManagementService->filteredProjects($filters)->paginate(10)->appends($filters);
         // Two paginators share this page. summary_page must stay separate from page
         // so browsing a card preserves the underlying list position and filters.
@@ -110,7 +110,7 @@ final class ProjectManagementController extends Controller
 
         return view('admin-pages.admin-project-management.show', [
             'project' => $project,
-            'materialStatuses' => $this->projectManagementService->formData()['materialStatuses'],
+            'materialStatuses' => $this->projectManagementService->materialStatuses(),
         ]);
     }
 

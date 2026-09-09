@@ -12,18 +12,13 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
+use App\Exceptions\MembershipRuleException;
 
 final class MemberManagementService
 {
     private const PER_PAGE_OPTIONS = [10, 15, 25, 50];
 
-    private const ASSOCIATION_ROLES = [
-        'President',
-        'Secretary',
-        'Treasurer',
-        'Member',
-    ];
+    private const ASSOCIATION_ROLES = \App\Support\MemberProfile::ROLES;
 
     /**
      * @param array<string, mixed> $filters
@@ -120,7 +115,7 @@ final class MemberManagementService
             $perPage = 15;
         }
 
-        return $query->paginate($perPage)->withQueryString();
+        return $query->orderBy('members.id')->paginate($perPage)->withQueryString();
     }
 
     /**
@@ -164,30 +159,27 @@ final class MemberManagementService
      */
     public function analytics(): array
     {
-        return [
+        return $this->readCollections([
             'sex_distribution' => DB::table('members')
                 ->join('sex', 'sex.id', '=', 'members.sex_id')
                 ->select('sex.sex_name')
                 ->selectRaw('COUNT(*) AS member_count')
                 ->groupBy('sex.sex_name')
-                ->orderByDesc('member_count')
-                ->get(),
+                ->orderByDesc('member_count'),
 
             'beneficiary_distribution' => DB::table('members')
                 ->selectRaw("COALESCE(NULLIF(BTRIM(beneficiary_type), ''), 'Unspecified') AS beneficiary_type")
                 ->selectRaw('COUNT(*) AS member_count')
                 ->groupByRaw("COALESCE(NULLIF(BTRIM(beneficiary_type), ''), 'Unspecified')")
                 ->orderByDesc('member_count')
-                ->limit(8)
-                ->get(),
+                ->limit(8),
 
             'role_distribution' => DB::table('members')
                 ->where('is_archived', false)
                 ->selectRaw("COALESCE(NULLIF(BTRIM(role_in_assoc), ''), 'Unassigned') AS role_name")
                 ->selectRaw('COUNT(*) AS member_count')
                 ->groupByRaw("COALESCE(NULLIF(BTRIM(role_in_assoc), ''), 'Unassigned')")
-                ->orderByDesc('member_count')
-                ->get(),
+                ->orderByDesc('member_count'),
 
             'members_by_association' => DB::table('associations')
                 ->join('members', 'members.association_id', '=', 'associations.id')
@@ -210,8 +202,7 @@ final class MemberManagementService
                 )
                 ->orderByDesc('total_count')
                 ->orderBy('associations.name')
-                ->limit(10)
-                ->get(),
+                ->limit(10),
 
             'recent_registrations' => DB::table('members')
                 ->join('associations', 'associations.id', '=', 'members.association_id')
@@ -219,7 +210,7 @@ final class MemberManagementService
                 ->orderByDesc('members.date_registered')
                 ->orderByDesc('members.id')
                 ->limit(6)
-                ->get([
+                ->select([
                     'members.id',
                     'members.first_name',
                     'members.middle_name',
@@ -236,7 +227,7 @@ final class MemberManagementService
                 ->where('members.is_archived', false)
                 ->orderBy('associations.name')
                 ->limit(10)
-                ->get([
+                ->select([
                     'members.id as member_id',
                     'members.first_name',
                     'members.middle_name',
@@ -247,7 +238,7 @@ final class MemberManagementService
                     'area_units.name as municipality_name',
                     'sub_units.name as barangay_name',
                 ]),
-        ];
+        ]);
     }
 
     /**
@@ -255,34 +246,52 @@ final class MemberManagementService
      */
     public function filterOptions(): array
     {
-        return [
+        $options = $this->readCollections([
             'associations' => DB::table('associations')
                 ->orderBy('name')
-                ->get(['id', 'name', 'area_unit_id', 'sub_unit_id', 'is_archived']),
+                ->select(['id', 'name', 'area_unit_id', 'sub_unit_id', 'is_archived']),
 
             'municipalities' => DB::table('area_units')
                 ->orderBy('name')
-                ->get(['id', 'name', 'is_archived']),
+                ->select(['id', 'name', 'is_archived']),
 
             'barangays' => DB::table('sub_units')
                 ->orderBy('name')
-                ->get(['id', 'area_unit_id', 'name', 'is_archived']),
+                ->select(['id', 'area_unit_id', 'name', 'is_archived']),
 
             'sexOptions' => DB::table('sex')
                 ->orderBy('sex_name')
-                ->get(['id', 'sex_name']),
+                ->select(['id', 'sex_name']),
 
-            'roleOptions' => self::ASSOCIATION_ROLES,
 
             'beneficiaryTypes' => DB::table('members')
                 ->whereNotNull('beneficiary_type')
                 ->whereRaw("BTRIM(beneficiary_type) <> ''")
                 ->distinct()
                 ->orderBy('beneficiary_type')
-                ->pluck('beneficiary_type'),
+                ->select('beneficiary_type'),
 
-            'perPageOptions' => self::PER_PAGE_OPTIONS,
-        ];
+        ]);
+        $options['beneficiaryTypes'] = $options['beneficiaryTypes']->pluck('beneficiary_type');
+        return array_merge($options, ['roleOptions' => self::ASSOCIATION_ROLES, 'perPageOptions' => self::PER_PAGE_OPTIONS]);
+    }
+
+    /** Run independent PostgreSQL lists in one round trip, retaining their ordering and limits. */
+    private function readCollections(array $queries): array
+    {
+        $batch = DB::query();
+        foreach ($queries as $key => $query) {
+            $batch->selectSub(
+                DB::query()->fromSub($query, 'rows')->selectRaw("COALESCE(json_agg(rows), '[]'::json)"),
+                $key
+            );
+        }
+        $row = $batch->first();
+        $results = [];
+        foreach ($queries as $key => $query) {
+            $results[$key] = collect(json_decode($row->$key, false, 512, JSON_THROW_ON_ERROR));
+        }
+        return $results;
     }
 
     public function findDetailed(Member $member): Member
@@ -305,11 +314,13 @@ final class MemberManagementService
     public function update(Member $member, array $data, int $actorId): Member
     {
         return DB::transaction(function () use ($member, $data, $actorId): Member {
+            // Serialize changes within the association before locking its member.
+            Association::query()->whereKey($member->association_id)->lockForUpdate()->firstOrFail();
             /** @var Member $locked */
             $locked = Member::query()->lockForUpdate()->findOrFail($member->id);
 
             if ($locked->is_archived) {
-                throw new RuntimeException(
+                throw new MembershipRuleException(
                     'Archived members are historical records and cannot be edited.'
                 );
             }
@@ -364,6 +375,8 @@ final class MemberManagementService
     public function archive(Member $member, int $actorId): Member
     {
         return DB::transaction(function () use ($member, $actorId): Member {
+            // Serialize changes within the association before locking its member.
+            Association::query()->whereKey($member->association_id)->lockForUpdate()->firstOrFail();
             /** @var Member $locked */
             $locked = Member::query()->lockForUpdate()->findOrFail($member->id);
 
@@ -377,7 +390,7 @@ final class MemberManagementService
                 ->exists();
 
             if ($isRepresentative) {
-                throw new RuntimeException(
+                throw new MembershipRuleException(
                     'This member is currently the Association Representative. '
                     .'Assign a different representative before archiving this member.'
                 );

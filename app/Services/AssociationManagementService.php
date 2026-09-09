@@ -166,6 +166,19 @@ final class AssociationManagementService
             $beforeStatus = $locked->status_id;
 
             $locked->fill($data);
+            // The request check can become stale while another request archives a member.
+            // Recheck under the association lock, taking the member lock second.
+            if ($locked->isDirty('representative_member_id') && $locked->representative_member_id !== null) {
+                $eligible = \App\Models\Member::query()
+                    ->whereKey($locked->representative_member_id)
+                    ->where('association_id', $locked->id)
+                    ->where('is_archived', false)->lockForUpdate()->first();
+                if (!$eligible) {
+                    throw new RuntimeException('Choose a current member of this association as representative.');
+                }
+                // A new appointment requires a newly provisioned secret; old terms grant no access.
+                $eligible->forceFill(['review_passphrase_hash' => null])->save();
+            }
             $locked->save();
 
             $changes = array_keys($locked->getChanges());
@@ -278,6 +291,19 @@ final class AssociationManagementService
             }
 
             $locked->is_archived = false;
+            // The request check can become stale while another request archives a member.
+            // Recheck under the association lock, taking the member lock second.
+            if ($locked->isDirty('representative_member_id') && $locked->representative_member_id !== null) {
+                $eligible = \App\Models\Member::query()
+                    ->whereKey($locked->representative_member_id)
+                    ->where('association_id', $locked->id)
+                    ->where('is_archived', false)->lockForUpdate()->first();
+                if (!$eligible) {
+                    throw new RuntimeException('Choose a current member of this association as representative.');
+                }
+                // A new appointment requires a newly provisioned secret; old terms grant no access.
+                $eligible->forceFill(['review_passphrase_hash' => null])->save();
+            }
             $locked->save();
 
             $this->writeAudit(
@@ -310,6 +336,19 @@ final class AssociationManagementService
 
             $previous = $locked->representative_member_id;
             $locked->representative_member_id = $representativeMemberId;
+            // The request check can become stale while another request archives a member.
+            // Recheck under the association lock, taking the member lock second.
+            if ($locked->isDirty('representative_member_id') && $locked->representative_member_id !== null) {
+                $eligible = \App\Models\Member::query()
+                    ->whereKey($locked->representative_member_id)
+                    ->where('association_id', $locked->id)
+                    ->where('is_archived', false)->lockForUpdate()->first();
+                if (!$eligible) {
+                    throw new RuntimeException('Choose a current member of this association as representative.');
+                }
+                // A new appointment requires a newly provisioned secret; old terms grant no access.
+                $eligible->forceFill(['review_passphrase_hash' => null])->save();
+            }
             $locked->save();
 
             $this->auditRepresentativeChange(

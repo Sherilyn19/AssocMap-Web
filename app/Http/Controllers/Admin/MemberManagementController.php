@@ -15,7 +15,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
-use RuntimeException;
+use App\Exceptions\MembershipRuleException;
+use Illuminate\Database\QueryException;
 use Throwable;
 
 final class MemberManagementController extends Controller
@@ -42,10 +43,10 @@ final class MemberManagementController extends Controller
     ) {
     }
 
-    public function index(Request $request): View
+    public function index(\App\Http\Requests\Membership\MemberFiltersRequest $request): View
     {
         $actor = $this->sessionUser->resolve($request);
-        Gate::forUser($actor)->authorize('viewAny', Member::class);
+        Gate::forUser($actor)->authorize('viewAdminRegister', Member::class);
 
         $filters = $request->only([
             'search',
@@ -92,12 +93,19 @@ final class MemberManagementController extends Controller
             $this->service->update($member, $request->validated(), $actor->id);
 
             return back()->with('success', 'Member profile updated successfully.');
-        } catch (RuntimeException $exception) {
-            return back()->withInput()->with('error', $exception->getMessage());
+        } catch (QueryException $exception) {
+            // Constraint races are ordinary conflicts; never display SQL or bindings.
+            report($exception);
+            $message = $exception->getCode() === '23505'
+                ? 'A member with the same name and birthday already exists in this association.'
+                : 'The member could not be saved. Please try again.';
+            return back()->withInput()->with('edit_member_id', $member->id)->withErrors(['first_name' => $message]);
+        } catch (MembershipRuleException $exception) {
+            return back()->withInput()->with('edit_member_id', $member->id)->with('error', $exception->getMessage());
         } catch (Throwable $exception) {
             report($exception);
 
-            return back()->withInput()->with(
+            return back()->withInput()->with('edit_member_id', $member->id)->with(
                 'error',
                 'The member profile could not be updated. Please try again.'
             );
@@ -113,7 +121,7 @@ final class MemberManagementController extends Controller
             $this->service->archive($member, $actor->id);
 
             return back()->with('success', 'Member archived successfully.');
-        } catch (RuntimeException $exception) {
+        } catch (MembershipRuleException $exception) {
             return back()->with('error', $exception->getMessage());
         } catch (Throwable $exception) {
             report($exception);

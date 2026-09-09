@@ -141,5 +141,19 @@
             </dl>
         </section>
     </div>
+    @if (!$member->is_archived && !$member->association->is_archived && (int) $member->association->representative_member_id === (int) $member->id)
+        <section class="rounded-xl border border-slate-200 bg-white p-6">
+            <h2 class="text-lg font-bold">Representative Review Passphrase</h2>
+            <p class="mt-2 text-sm text-slate-600">{{ $member->review_passphrase_hash ? 'A private review passphrase is provisioned. Saving replaces it.' : 'Review is unavailable until you provision a private passphrase.' }} Share it privately with this representative only. Use a different password from the shared association login.</p>
+            @include('membership.partials.feedback')
+            <form method="POST" action="{{ route('members.review-passphrase', $member) }}" class="mt-5 grid gap-4 sm:grid-cols-2">
+                @csrf
+                {{-- Secret inputs intentionally have no old() value. The database stores only a hash. --}}
+                <label><span class="block text-sm font-semibold">New review passphrase</span><input type="password" name="review_passphrase" autocomplete="new-password" minlength="12" maxlength="72" required class="mt-1 w-full rounded-lg border border-slate-300 p-3"></label>
+                <label><span class="block text-sm font-semibold">Confirm review passphrase</span><input type="password" name="review_passphrase_confirmation" autocomplete="new-password" minlength="12" maxlength="72" required class="mt-1 w-full rounded-lg border border-slate-300 p-3"></label>
+                <button class="rounded-lg bg-slate-800 px-4 py-3 font-semibold text-white sm:col-span-2">Save Private Review Passphrase</button>
+            </form>
+        </section>
+    @endif
 </div>
 </x-dashboard-layout>

@@ -9,6 +9,7 @@
     class="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8"
     data-management-register
     data-member-management-page
+    data-edit-recovery="{{ json_encode(['id' => session('edit_member_id'), 'values' => old(), 'errors' => $errors->messages(), 'url' => session('edit_member_id') ? route('members.update', session('edit_member_id')) : null]) }}"
     data-barangays="{{ json_encode($barangays->map(fn ($barangay) => [
         'id' => $barangay->id,
         'area_unit_id' => $barangay->area_unit_id,
@@ -849,6 +850,8 @@
         <form method="POST" action="#" data-edit-member-form class="space-y-6">
             @csrf
             @method('PUT')
+            {{-- Failed edits reopen this form with server-validated identity and inline errors. --}}
+            <div data-edit-errors role="alert" class="hidden rounded-lg bg-red-50 p-3 text-sm text-red-800"></div>
 
             <p class="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
                 Editing: <strong data-edit-member-name class="text-slate-900">Member</strong>

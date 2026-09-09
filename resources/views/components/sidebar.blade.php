@@ -31,6 +31,14 @@
         ['route' => 'reports.index',      'label' => 'Reports & Analytics',    'icon' => 'M4 10h4v10H4V10Zm6-4h4v14h-4V6Zm6 7h4v7h-4v-7Z'],
         ['route' => 'audit-logs.index',   'label' => 'Audit Log',              'icon' => 'M7 3h10a1 1 0 0 1 1 1v16l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1ZM9 8h6M9 11.5h6'],
     ];
+    // These roles use scoped membership routes; admin links must not be their navigation.
+    if (session('auth_user.role_name') !== 'System Administrator') {
+        $dashboard = session('auth_user.role_name') === 'Field Officer' ? 'dashboard.officer' : 'dashboard.member';
+        $navItems = [
+            ['route' => $dashboard, 'label' => 'Dashboard', 'icon' => $navItems[0]['icon']],
+            ['route' => 'membership.index', 'label' => 'Member Management', 'icon' => $navItems[4]['icon']],
+        ];
+    }
 @endphp
 
 <aside id="sidebar" aria-label="Primary navigation" class="am-sidebar">

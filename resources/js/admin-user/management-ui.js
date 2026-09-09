@@ -25,15 +25,17 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('resize', syncTitle);
     }
 
-    const overlay = document.createElement('div');
+    const overlay = document.createElement('dialog');
     overlay.className = 'management-loading';
     overlay.hidden = true;
-    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-label', 'Please wait');
     overlay.setAttribute('aria-live', 'polite');
     overlay.innerHTML = '<div class="management-loading-card"><span class="management-spinner" aria-hidden="true"></span><strong data-loading-label>Loading…</strong><span>Please wait while your request is processed.</span></div>';
     document.body.append(overlay);
+    overlay.addEventListener('cancel', (event) => event.preventDefault());
     let recoveryTimer;
     const stop = () => {
+        if (overlay.open) overlay.close();
         overlay.hidden = true;
         content.removeAttribute('aria-busy');
         clearTimeout(recoveryTimer);
@@ -41,6 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const start = (label = 'Loading…') => {
         overlay.querySelector('[data-loading-label]').textContent = label;
         overlay.hidden = false;
+        // Join the browser's top layer above any open analytics or confirmation dialog.
+        if (typeof overlay.showModal === 'function' && !overlay.open) overlay.showModal();
         content.setAttribute('aria-busy', 'true');
         // A canceled navigation must not leave an indefinite screen blocker.
         clearTimeout(recoveryTimer);

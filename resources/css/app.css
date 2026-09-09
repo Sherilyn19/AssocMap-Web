@@ -443,7 +443,8 @@
     body:has(.am-workspace-heading) .am-topbar__left { @apply min-w-0 flex-1; }
     body:has(.am-workspace-heading) .am-topbar__title { @apply min-w-0 break-words text-sm sm:text-lg; }
     body:has(.am-workspace-heading) .am-topbar__right { @apply shrink-0; }
-    .management-loading { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: rgb(248 250 252 / 80%); }
+    .management-loading { position: fixed; inset: 0; z-index: 100; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; display: grid; place-items: center; background: rgb(248 250 252 / 80%); }
+    .management-loading::backdrop { background: transparent; }
     .management-loading[hidden] { display: none; }
     .management-loading-card { @apply flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600 shadow-lg; }
     .management-spinner { width: 2rem; height: 2rem; border: 3px solid #e2e8f0; border-top-color: #334155; border-radius: 50%; animation: management-spin 800ms linear infinite; }
