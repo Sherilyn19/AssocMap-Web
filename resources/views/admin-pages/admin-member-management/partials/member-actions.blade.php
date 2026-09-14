@@ -1,45 +1,28 @@
-{{--
-    Compact member actions reused by desktop, tablet, and mobile layouts.
---}}
-<div class="flex flex-wrap justify-end gap-2">
-    <button
-        type="button"
-        data-member-details="{{ $detailPayloadJson }}"
-        class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700
-               transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400"
-    >
-        View
-    </button>
+{{-- Match project action spacing across desktop and mobile while retaining member
+     modal hooks. Representative protection still controls archive availability. --}}
+@php
+    $actionClass = 'inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500';
+@endphp
+<div class="flex flex-wrap items-center gap-1">
+    <button type="button" data-member-details="{{ $detailPayloadJson }}" class="{{ $actionClass }}" aria-label="View {{ $memberFullName }}">View</button>
 
     @if (!$member->is_archived)
-        <button
-            type="button"
-            data-edit-member="{{ $editPayloadJson }}"
-            class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700
-                   transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400"
-        >
-            Edit
-        </button>
-
-        @if ($isRepresentative)
-            <span
-                class="inline-flex cursor-not-allowed items-center rounded-lg bg-blue-50 px-2.5 py-1.5
-                       text-xs font-semibold text-blue-700"
-                title="Assign a different Association Representative before archiving this member."
-            >
-                Representative
-            </span>
-        @else
-            <button
-                type="button"
-                data-archive-member
-                data-archive-url="{{ route('members.archive', $member) }}"
-                data-member-name="{{ $memberFullName }}"
-                class="rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700
-                       transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400"
-            >
-                Archive
-            </button>
-        @endif
+        <button type="button" data-edit-member="{{ $editPayloadJson }}" class="{{ $actionClass }}" aria-label="Edit {{ $memberFullName }}">Edit</button>
+        <details class="relative" data-member-action-menu>
+            <summary class="{{ $actionClass }} cursor-pointer" aria-label="More actions for {{ $memberFullName }}">More</summary>
+            <div class="absolute right-0 z-20 min-w-40 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
+                @if ($isRepresentative)
+                    <span class="block rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">Representative</span>
+                    <p class="px-3 py-2 text-xs text-slate-600">Assign a different Association Representative before archiving this member.</p>
+                @else
+                    <button type="button" data-archive-member
+                            data-archive-url="{{ route('members.archive', $member) }}"
+                            data-member-name="{{ $memberFullName }}"
+                            class="{{ $actionClass }} w-full !text-red-800">
+                        Archive Member
+                    </button>
+                @endif
+            </div>
+        </details>
     @endif
 </div>

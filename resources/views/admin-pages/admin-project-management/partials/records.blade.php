@@ -8,7 +8,8 @@
     <div class="hidden xl:block">
         <table class="w-full table-fixed text-left text-sm">
             <caption class="sr-only">{{ $caption ?? 'Project records' }}</caption>
-            <thead class="border-y border-slate-200 bg-slate-50 text-xs text-slate-700">
+            {{-- Match member column-label typography; retain numeric alignment with the data cells. --}}
+            <thead class="border-y border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
                     <th scope="col" class="w-[24%] p-3">Project / Association</th>
                     <th scope="col" class="w-[18%] p-3">Classification / Commodity</th>
