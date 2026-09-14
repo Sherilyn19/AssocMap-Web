@@ -137,204 +137,8 @@
         @endforeach
     </section>
 
-    {{-- Filters --}}
-    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <form method="GET" action="{{ route('members.index') }}" class="space-y-4">
-            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <label class="block md:col-span-2">
-                    <span class="text-sm font-medium text-slate-700">Search</span>
-                    <input
-                        type="search"
-                        name="search"
-                        value="{{ $filters['search'] ?? '' }}"
-                        placeholder="Member or association name"
-                        class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                               text-slate-900 placeholder:text-slate-400 focus:border-slate-500 focus:outline-none
-                               focus:ring-2 focus:ring-slate-200"
-                    >
-                </label>
-
-                <label class="block">
-                    <span class="text-sm font-medium text-slate-700">Association</span>
-                    <select
-                        name="association_id"
-                        class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                               focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    >
-                        <option value="">All associations</option>
-                        @foreach ($associations as $association)
-                            <option value="{{ $association->id }}" @selected((string) ($filters['association_id'] ?? '') === (string) $association->id)>
-                                {{ $association->name }}{{ $association->is_archived ? ' (Archived)' : '' }}
-                            </option>
-                        @endforeach
-                    </select>
-                </label>
-
-                <label class="block">
-                    <span class="text-sm font-medium text-slate-700">Record State</span>
-                    <select
-                        name="record_state"
-                        class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                               focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    >
-                        <option value="current" @selected(($filters['record_state'] ?? 'current') === 'current')>Current</option>
-                        <option value="archived" @selected(($filters['record_state'] ?? '') === 'archived')>Archived</option>
-                        <option value="all" @selected(($filters['record_state'] ?? '') === 'all')>All</option>
-                    </select>
-                </label>
-
-                <label class="block">
-                    <span class="text-sm font-medium text-slate-700">Municipality</span>
-                    <select
-                        name="area_unit_id"
-                        data-filter-municipality
-                        class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                               focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    >
-                        <option value="">All municipalities</option>
-                        @foreach ($municipalities as $municipality)
-                            <option value="{{ $municipality->id }}" @selected((string) ($filters['area_unit_id'] ?? '') === (string) $municipality->id)>
-                                {{ $municipality->name }}{{ $municipality->is_archived ? ' (Archived)' : '' }}
-                            </option>
-                        @endforeach
-                    </select>
-                </label>
-
-                <label class="block">
-                    <span class="text-sm font-medium text-slate-700">Barangay</span>
-                    <select
-                        name="sub_unit_id"
-                        data-filter-barangay
-                        data-all-label="All barangays"
-                        class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                               disabled:bg-slate-100 disabled:text-slate-400
-                               focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    >
-                        <option value="">Select municipality first</option>
-                    </select>
-                </label>
-
-                <label class="block">
-                    <span class="text-sm font-medium text-slate-700">Sex</span>
-                    <select
-                        name="sex_id"
-                        class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                               focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    >
-                        <option value="">All</option>
-                        @foreach ($sexOptions as $sex)
-                            <option value="{{ $sex->id }}" @selected((string) ($filters['sex_id'] ?? '') === (string) $sex->id)>
-                                {{ $sex->sex_name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </label>
-
-                <label class="block">
-                    <span class="text-sm font-medium text-slate-700">Association Role</span>
-                    <select
-                        name="role_in_assoc"
-                        class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                               focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    >
-                        <option value="">All roles</option>
-                        @foreach ($roleOptions as $role)
-                            <option value="{{ $role }}" @selected(($filters['role_in_assoc'] ?? '') === $role)>
-                                {{ $role }}
-                            </option>
-                        @endforeach
-                    </select>
-                </label>
-
-                <label class="block">
-                    <span class="text-sm font-medium text-slate-700">Beneficiary Type</span>
-                    <select
-                        name="beneficiary_type"
-                        class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                               focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    >
-                        <option value="">All beneficiary types</option>
-                        @foreach ($beneficiaryTypes as $type)
-                            <option value="{{ $type }}" @selected(($filters['beneficiary_type'] ?? '') === $type)>
-                                {{ $type }}
-                            </option>
-                        @endforeach
-                    </select>
-                </label>
-
-                <label class="block">
-                    <span class="text-sm font-medium text-slate-700">Registered From</span>
-                    <input
-                        type="date"
-                        name="registered_from"
-                        value="{{ $filters['registered_from'] ?? '' }}"
-                        class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                               focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    >
-                </label>
-
-                <label class="block">
-                    <span class="text-sm font-medium text-slate-700">Registered To</span>
-                    <input
-                        type="date"
-                        name="registered_to"
-                        value="{{ $filters['registered_to'] ?? '' }}"
-                        class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                               focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    >
-                </label>
-
-                <label class="block">
-                    <span class="text-sm font-medium text-slate-700">Sort</span>
-                    <select
-                        name="sort"
-                        class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                               focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    >
-                        <option value="name_asc" @selected(($filters['sort'] ?? 'name_asc') === 'name_asc')>Name A-Z</option>
-                        <option value="name_desc" @selected(($filters['sort'] ?? '') === 'name_desc')>Name Z-A</option>
-                        <option value="registered_desc" @selected(($filters['sort'] ?? '') === 'registered_desc')>Newest Registered</option>
-                        <option value="registered_asc" @selected(($filters['sort'] ?? '') === 'registered_asc')>Oldest Registered</option>
-                        <option value="association_asc" @selected(($filters['sort'] ?? '') === 'association_asc')>Association A-Z</option>
-                    </select>
-                </label>
-
-                <label class="block">
-                    <span class="text-sm font-medium text-slate-700">Rows per page</span>
-                    <select
-                        name="per_page"
-                        class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                               focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    >
-                        @foreach ($perPageOptions as $option)
-                            <option value="{{ $option }}" @selected((int) ($filters['per_page'] ?? 15) === $option)>
-                                {{ $option }}
-                            </option>
-                        @endforeach
-                    </select>
-                </label>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
-                <button
-                    type="submit"
-                    class="inline-flex min-h-10 items-center justify-center rounded-lg bg-slate-800 px-4 py-2
-                           text-sm font-semibold text-white transition hover:bg-slate-700
-                           focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
-                >
-                    Apply Filters
-                </button>
-                <a
-                    href="{{ route('members.index') }}"
-                    class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300
-                           bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50
-                           focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
-                >
-                    Reset Filters
-                </a>
-            </div>
-        </form>
-    </section>
+    {{-- Shared visual pattern with Project Management; member filter fields live in their own partial. --}}
+    @include('admin-pages.admin-member-management.partials.filters')
 
     @php
         /*
@@ -459,7 +263,7 @@
                             <th scope="col" class="w-[13%] px-4 py-3">Contact</th>
                             <th scope="col" class="w-[11%] px-4 py-3">Registered</th>
                             <th scope="col" class="w-[9%] px-4 py-3">State</th>
-                            <th scope="col" class="w-[12%] px-4 py-3 text-right">Actions</th>
+                            <th scope="col" class="w-[12%] px-4 py-3">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -628,7 +432,7 @@
             </div>
 
         @endif
-        <x-management-pagination :records="$members" />
+        <x-management-pagination :records="$members" :numbered="true" />
     </section>
 
     {{-- Analytics modals --}}

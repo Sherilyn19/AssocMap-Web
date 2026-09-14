@@ -206,6 +206,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Native details keeps More keyboard-accessible. Close sibling/outside menus
+    // and return Escape focus to the summary; archive modals manage their own focus.
+    const actionMenus = [...page.querySelectorAll('[data-member-action-menu]')];
+    actionMenus.forEach((menu) => menu.addEventListener('toggle', () => {
+        if (menu.open) actionMenus.forEach((other) => { if (other !== menu) other.open = false; });
+    }));
+    document.addEventListener('click', (event) => {
+        actionMenus.forEach((menu) => { if (!menu.contains(event.target)) menu.open = false; });
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || activeModal) return;
+        actionMenus.forEach((menu) => {
+            if (menu.open) {
+                menu.open = false;
+                menu.querySelector('summary').focus();
+            }
+        });
+    });
+
     document.querySelectorAll('[data-archive-member]').forEach((button) => {
         button.addEventListener('click', () => {
             const modal = document.getElementById('archive-member-modal');
@@ -220,7 +239,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 nameTarget.textContent = button.dataset.memberName || 'this member';
             }
 
-            openModal(modal, button);
+            const menu = button.closest('[data-member-action-menu]');
+            if (menu) menu.open = false;
+            openModal(modal, menu?.querySelector('summary') || button);
         });
     });
 
