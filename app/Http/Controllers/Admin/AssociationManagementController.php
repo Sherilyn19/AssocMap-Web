@@ -15,6 +15,7 @@ use App\Services\AssociationManagementService;
 use App\Services\SessionUserResolver;
 use App\Support\AssociationErrors;
 use App\Support\AssociationFormState;
+use App\Support\AssociationRequestContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Throwable;
@@ -93,6 +94,8 @@ final class AssociationManagementController extends Controller
     {
         try {
             $operation();
+            // The service has committed. A later session-save timeout cannot undo this change.
+            app(AssociationRequestContext::class)->mutationCompleted = true;
             $url = AssociationFormState::returnUrl($request);
             $request->session()->flash('success', $message);
 

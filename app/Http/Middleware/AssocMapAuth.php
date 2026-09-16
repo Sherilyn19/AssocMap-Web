@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Services\AssociationDatabase;
+use App\Support\AssociationRequestContext;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -46,7 +48,11 @@ class AssocMapAuth
         // Defense: sessions prove login, but the DATABASE decides today's permissions.
         // A demotion/deactivation must take effect without waiting for logout.
         try {
-            $actor = User::with('role')->find($request->session()->get('auth_user.id'));
+            $loadActor = fn () => User::with('role')->find($request->session()->get('auth_user.id'));
+            // Authentication queries happen before the controller's own database scope.
+            $actor = app(AssociationRequestContext::class)->active
+                ? app(AssociationDatabase::class)->run($loadActor, stage: 'authentication')
+                : $loadActor();
         } catch (Throwable $exception) {
             if ($request->is('admin/associations', 'admin/associations/*')) {
                 throw $exception;

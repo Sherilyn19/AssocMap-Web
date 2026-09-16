@@ -127,7 +127,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.location.assign(result.redirect_url);
                     return;
                 }
-                unknown = Boolean(result.outcome_unknown);
+                // A confirmed save with a failed session must also block duplicate submission.
+                unknown = Boolean(result.outcome_unknown || result.mutation_completed);
                 showError(form, result.message || 'The request failed. Please check the form.', result.errors || {});
             } catch {
                 // A network failure does not prove rollback. Do not automatically repeat a write.
