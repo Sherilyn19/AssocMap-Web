@@ -64,8 +64,6 @@ Additional modules will be implemented throughout the development lifecycle.
 
 ### Association Management
 
-Implementation progress: [Admin Association Management checklist](docs/association-management-checklist.md).
-
 * Manage Associations
 * Assign Field Officers
 * Association Profiles
@@ -73,16 +71,12 @@ Implementation progress: [Admin Association Management checklist](docs/associati
 
 ### Member Management
 
-Implementation progress: [Member Management checklist](docs/member-management-checklist.md).
-
 * Member Registration
 * Membership Approval
 * Member Records
 * Representative Assignment
 
 ### Project Management
-
-Implementation progress: [Admin Project Management checklist](docs/project-management-checklist.md).
 
 * Project Information
 * Distributed Materials
