@@ -4,12 +4,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exceptions\AssociationRuleException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreAdminUserRequest;
 use App\Http\Requests\Admin\UpdateAdminUserRequest;
 use App\Services\AdminUserManagementService;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
@@ -18,17 +19,15 @@ use Illuminate\View\View;
  */
 class AdminUserManagementController extends Controller
 {
-    public function __construct(private readonly AdminUserManagementService $users)
-    {
-    }
+    public function __construct(private readonly AdminUserManagementService $users) {}
 
     public function index(Request $request): View
     {
         $filters = $request->only(['search', 'role_id', 'status', 'sort']);
 
         return view('admin-pages.admin-user-management.admin-user-index', [
-            'users'   => $this->users->listForIndex($filters),
-            'roles'   => $this->users->allRoles(),
+            'users' => $this->users->listForIndex($filters),
+            'roles' => $this->users->allRoles(),
             'summary' => $this->users->summaryCounts(),
             'filters' => $filters,
         ]);
@@ -49,7 +48,11 @@ class AdminUserManagementController extends Controller
             return back()->with('error', 'Cannot change this role - at least one active System Administrator must remain.');
         }
 
-        $this->users->update($user, $data, session('auth_user.id'));
+        try {
+            $this->users->update($user, $data, session('auth_user.id'));
+        } catch (AssociationRuleException $error) {
+            return back()->withInput($request->except(['password', 'password_confirmation']))->with('error', $error->getMessage());
+        }
 
         return back()->with('success', 'User account updated successfully.');
     }
@@ -65,7 +68,11 @@ class AdminUserManagementController extends Controller
             return back()->with('error', 'Cannot deactivate - at least one active System Administrator must remain.');
         }
 
-        $isActive = $this->users->toggleActive($user, session('auth_user.id'));
+        try {
+            $isActive = $this->users->toggleActive($user, session('auth_user.id'));
+        } catch (AssociationRuleException $error) {
+            return back()->with('error', $error->getMessage());
+        }
         $status = $isActive ? 'reactivated' : 'deactivated';
 
         return back()->with('success', "User account {$status} successfully.");

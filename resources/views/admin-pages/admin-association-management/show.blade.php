@@ -24,6 +24,7 @@
 --}}
 
 <x-dashboard-layout :title="$association->name">
+<div data-association-page data-records-url="{{ route('admin.associations.index') }}">
 
     @php
         $isActiveStatus = $association->status?->status_name === 'Active';
@@ -327,6 +328,9 @@
                     be assigned as its representative.
                 </p>
 
+                @if ($association->representative_member_id)
+                    <p class="mt-3 text-sm"><a class="font-semibold underline" href="{{ route('members.show', $association->representative_member_id) }}">Open representative member record to provision their private review passphrase</a></p>
+                @endif
                 {{-- Representative changes are disabled while archived --}}
                 @unless ($association->is_archived)
                     <form
@@ -335,6 +339,7 @@
                         class="mt-5 space-y-4"
                     >
                         @csrf
+                        <div data-form-error role="alert" class="hidden rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"></div>
                         @method('PATCH')
 
                         <label class="block">
@@ -344,6 +349,7 @@
 
                             <select
                                 name="representative_member_id"
+                                aria-describedby="representative-error"
                                 class="mt-1.5 min-h-11 w-full rounded-lg border
                                        border-slate-300 bg-white px-3 py-2 text-sm
                                        text-slate-900 focus:border-slate-500
@@ -379,6 +385,7 @@
                         </label>
 
                         {{-- Field-specific validation message --}}
+                        <span id="representative-error" data-field-error="representative_member_id" class="text-xs text-red-700"></span>
                         @error('representative_member_id')
                             <p class="text-xs font-medium text-red-600">
                                 {{ $message }}
@@ -415,4 +422,5 @@
 
 
     </div>
+</div>
 </x-dashboard-layout>

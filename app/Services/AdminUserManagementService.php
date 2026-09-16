@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\AssociationRuleException;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -35,15 +36,15 @@ class AdminUserManagementService
             ->select('users.*', 'roles.role_name')
             ->join('roles', 'roles.id', '=', 'users.role_id');
 
-        if (!empty($filters['search'])) {
-            $term = '%' . $filters['search'] . '%';
+        if (! empty($filters['search'])) {
+            $term = '%'.$filters['search'].'%';
             $query->where(function ($q) use ($term) {
                 $q->where('users.name', 'ilike', $term)
-                  ->orWhere('users.email', 'ilike', $term);
+                    ->orWhere('users.email', 'ilike', $term);
             });
         }
 
-        if (!empty($filters['role_id'])) {
+        if (! empty($filters['role_id'])) {
             $query->where('users.role_id', $filters['role_id']);
         }
 
@@ -80,11 +81,11 @@ class AdminUserManagementService
     public function summaryCounts(): array
     {
         return [
-            'total'          => User::count(),
-            'admins'         => $this->countByRole(self::ROLE_SYSTEM_ADMIN),
+            'total' => User::count(),
+            'admins' => $this->countByRole(self::ROLE_SYSTEM_ADMIN),
             'field_officers' => $this->countByRole('Field Officer'),
-            'members'        => $this->countByRole('Association Member'),
-            'inactive'       => User::where('is_active', false)->count(),
+            'members' => $this->countByRole('Association Member'),
+            'inactive' => User::where('is_active', false)->count(),
         ];
     }
 
@@ -97,10 +98,10 @@ class AdminUserManagementService
     public function create(array $data, ?int $actorId): User
     {
         $user = User::create([
-            'name'      => $data['name'],
-            'email'     => $data['email'],
-            'password'  => Hash::make($data['password']),
-            'role_id'   => $data['role_id'],
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'role_id' => $data['role_id'],
             'is_active' => true,
         ]);
 
@@ -111,35 +112,47 @@ class AdminUserManagementService
 
     public function update(int $userId, array $data, ?int $actorId): User
     {
-        $user = User::findOrFail($userId);
+        return app(AssociationDatabase::class)->run(function () use ($userId, $data, $actorId) {
+            $user = User::query()->lockForUpdate()->findOrFail($userId);
+            $newRole = DB::table('roles')->where('id', $data['role_id'])->value('role_name');
+            if ($newRole !== 'Field Officer') {
+                $this->requireReassignment($userId);
+            }
+            $payload = ['name' => $data['name'], 'email' => $data['email'], 'role_id' => $data['role_id']];
+            if (! empty($data['password'])) {
+                $payload['password'] = Hash::make($data['password']);
+            }
+            $user->update($payload);
+            $this->logAction($actorId, 'UPDATE', (string) $user->id, "Updated user {$user->email}");
 
-        $payload = [
-            'name'    => $data['name'],
-            'email'   => $data['email'],
-            'role_id' => $data['role_id'],
-        ];
-
-        if (!empty($data['password'])) {
-            $payload['password'] = Hash::make($data['password']);
-        }
-
-        $user->update($payload);
-
-        $this->logAction($actorId, 'UPDATE', (string) $user->id, "Updated user {$user->email}");
-
-        return $user;
+            return $user;
+        });
     }
 
     public function toggleActive(int $userId, ?int $actorId): bool
     {
-        $user = User::findOrFail($userId);
-        $user->is_active = !$user->is_active;
-        $user->save();
+        return app(AssociationDatabase::class)->run(function () use ($userId, $actorId) {
+            $user = User::query()->lockForUpdate()->findOrFail($userId);
+            if ($user->is_active) {
+                $this->requireReassignment($userId);
+            }
+            $user->is_active = ! $user->is_active;
+            $user->save();
+            $action = $user->is_active ? 'ACTIVATE' : 'DEACTIVATE';
+            $this->logAction($actorId, $action, (string) $user->id, "{$action} user {$user->email}");
 
-        $action = $user->is_active ? 'ACTIVATE' : 'DEACTIVATE';
-        $this->logAction($actorId, $action, (string) $user->id, "{$action} user {$user->email}");
+            return $user->is_active;
+        });
+    }
 
-        return $user->is_active;
+    private function requireReassignment(int $userId): void
+    {
+        // No association lock is taken here: user-first then association would invert
+        // the assignment lock order. The user lock serializes eligibility changes.
+        $count = DB::table('associations')->where('field_officer_id', $userId)->where('is_archived', false)->count();
+        if ($count > 0) {
+            throw new AssociationRuleException("Reassign this officer's {$count} current association(s) in Association Management before changing their role or deactivating the account.");
+        }
     }
 
     /**
@@ -149,7 +162,7 @@ class AdminUserManagementService
     public function wouldRemoveLastAdmin(int $userId, int $newRoleId): bool
     {
         $user = User::find($userId);
-        if (!$user || $user->role_id !== $this->adminRoleId()) {
+        if (! $user || $user->role_id !== $this->adminRoleId()) {
             return false;
         }
 
@@ -163,7 +176,7 @@ class AdminUserManagementService
     public function wouldDeactivateLastAdmin(int $userId): bool
     {
         $user = User::find($userId);
-        if (!$user || $user->role_id !== $this->adminRoleId() || !$user->is_active) {
+        if (! $user || $user->role_id !== $this->adminRoleId() || ! $user->is_active) {
             return false;
         }
 
@@ -204,16 +217,16 @@ class AdminUserManagementService
 
     private function logAction(?int $actorId, string $actionType, string $recordId, string $details): void
     {
-        if (!$actorId) {
+        if (! $actorId) {
             return;
         }
 
         DB::table('audit_logs')->insert([
-            'user_id'      => $actorId,
-            'action_type'  => $actionType,
-            'module'       => 'User',
-            'record_id'    => $recordId,
-            'details'      => $details,
+            'user_id' => $actorId,
+            'action_type' => $actionType,
+            'module' => 'User',
+            'record_id' => $recordId,
+            'details' => $details,
             'performed_at' => now(),
         ]);
     }

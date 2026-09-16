@@ -14,7 +14,9 @@
 <x-dashboard-layout title="Association Management">
 <div
     class="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8"
-    data-association-page
+    data-association-page data-records-url="{{ route('admin.associations.index') }}"
+    data-recovery="{{ json_encode(session('association_form')) }}"
+    data-filter-barangays="{{ json_encode($filterBarangays) }}"
     data-barangays="{{ json_encode($barangays) }}"
 >
     {{-- Page heading --}}
@@ -126,7 +128,7 @@
                             class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2
                                    text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200">
                         <option value="">All municipalities</option>
-                        @foreach ($municipalities as $municipality)
+                        @foreach ($filterMunicipalities as $municipality)
                             <option value="{{ $municipality->id }}"
                                 @selected((string) ($filters['area_unit_id'] ?? '') === (string) $municipality->id)>
                                 {{ $municipality->name }}
@@ -163,7 +165,7 @@
                     <select name="field_officer_id"
                             class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
                         <option value="">All Field Officers</option>
-                        @foreach ($fieldOfficers as $officer)
+                        @foreach ($filterOfficers as $officer)
                             <option value="{{ $officer->id }}"
                                 @selected((string) ($filters['field_officer_id'] ?? '') === (string) $officer->id)>
                                 {{ $officer->name }}
@@ -314,7 +316,7 @@
                                                 'address' => $association->address,
                                                 'date_joined' => $association->date_joined?->format('Y-m-d'),
                                                 'representative_member_id' => $association->representative_member_id,
-                                                'update_url' => route('admin.associations.update', $association),
+                                                'update_url' => route('admin.associations.update', ['association' => $association, ...$listState]),
                                             ];
                                         @endphp
 
@@ -325,10 +327,11 @@
                                             Edit
                                         </button>
 
-                                        <form method="POST" action="{{ route('admin.associations.archive', $association) }}"
+                                        <form method="POST" action="{{ route('admin.associations.archive', ['association' => $association, ...$listState]) }}"
                                               data-confirm-form
                                               data-confirm-message="Archive this association? Existing records will remain and published GIS locations will be unpublished.">
                                             @csrf
+                    <div data-form-error role="alert" class="hidden rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"></div>
                                             @method('PATCH')
                                             <button type="submit"
                                                     class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold
@@ -337,10 +340,11 @@
                                             </button>
                                         </form>
                                     @else
-                                        <form method="POST" action="{{ route('admin.associations.restore', $association) }}"
+                                        <form method="POST" action="{{ route('admin.associations.restore', ['association' => $association, ...$listState]) }}"
                                               data-confirm-form
                                               data-confirm-message="Restore this association? GIS locations will remain unpublished.">
                                             @csrf
+                    <div data-form-error role="alert" class="hidden rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"></div>
                                             @method('PATCH')
                                             <button type="submit"
                                                     class="rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-semibold
@@ -439,8 +443,9 @@
                     </button>
                 </div>
 
-                <form method="POST" action="{{ route('admin.associations.store') }}" class="space-y-6 p-6">
+                <form method="POST" action="{{ route('admin.associations.store', $listState) }}" class="space-y-6 p-6">
                     @csrf
+                    <div data-form-error role="alert" class="hidden rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"></div>
                     @include('admin-pages.admin-association-management.partials.form-fields', [
                         'prefix' => 'create',
                         'association' => null,
@@ -477,8 +482,9 @@
                     </button>
                 </div>
 
-                <form method="POST" action="" data-edit-form class="space-y-6 p-6">
+                <form method="POST" action="{{ session('association_form.mode') === 'edit' && session('association_form.id') ? route('admin.associations.update', ['association' => session('association_form.id'), ...$listState]) : '' }}" data-edit-form class="space-y-6 p-6">
                     @csrf
+                    <div data-form-error role="alert" class="hidden rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"></div>
                     @method('PUT')
                     @include('admin-pages.admin-association-management.partials.form-fields', [
                         'prefix' => 'edit',

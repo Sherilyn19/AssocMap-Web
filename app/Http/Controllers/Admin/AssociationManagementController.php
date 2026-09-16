@@ -1,203 +1,116 @@
 <?php
 
-// app/Http/Controllers/Admin/AssociationManagementController.php
-
 declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AssignAssociationRepresentativeRequest;
+use App\Http\Requests\Admin\AssociationIndexRequest;
 use App\Http\Requests\Admin\StoreAssociationRequest;
 use App\Http\Requests\Admin\UpdateAssociationRequest;
 use App\Models\Association;
+use App\Services\AssociationDatabase;
 use App\Services\AssociationManagementService;
 use App\Services\SessionUserResolver;
-use Illuminate\Http\RedirectResponse;
+use App\Support\AssociationErrors;
+use App\Support\AssociationFormState;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
-use RuntimeException;
+use Illuminate\Support\Facades\Gate;
 use Throwable;
 
 final class AssociationManagementController extends Controller
 {
-    private const LIST_STATE_KEYS = [
-        'search',
-        'area_unit_id',
-        'sub_unit_id',
-        'program_component_id',
-        'field_officer_id',
-        'status_id',
-        'archive_state',
-        'sort',
-        'page',
-    ];
+    public function __construct(private readonly AssociationManagementService $service, private readonly SessionUserResolver $sessionUser) {}
 
-    public function __construct(
-        private readonly AssociationManagementService $service,
-        private readonly SessionUserResolver $sessionUser
-    ) {
-    }
-
-    public function index(Request $request): View
+    public function index(AssociationIndexRequest $request): mixed
     {
-        $filters = $request->only([
-            'search',
-            'area_unit_id',
-            'sub_unit_id',
-            'program_component_id',
-            'field_officer_id',
-            'status_id',
-            'archive_state',
-            'sort',
+        $this->authorizeAction($request, 'administer', Association::class);
+        $filters = $request->validated();
+        // Load the whole screen within one short read scope, not one transaction per dropdown.
+        $data = app(AssociationDatabase::class)->run(fn () => [
+            'associations' => $this->service->paginate($filters), 'summary' => $this->service->summary(),
+            ...$this->service->formOptions(),
         ]);
 
         return view('admin-pages.admin-association-management.index', [
-            'associations' => $this->service->paginate($filters),
-            'summary' => $this->service->summary(),
-            'filters' => $filters,
-            'listState' => $this->listState($request),
-            ...$this->service->formOptions(),
+            ...$data, 'filters' => $filters, 'listState' => AssociationFormState::filters($request),
         ]);
     }
 
-    public function store(StoreAssociationRequest $request): RedirectResponse
+    public function show(Request $request, Association $association): mixed
     {
-        $this->service->create($request->validated(), $this->actorId($request));
-
-        return redirect()
-            ->route('admin.associations.index')
-            ->with('success', 'Association created successfully.');
-    }
-
-    public function show(Request $request, Association $association): View
-    {
-        $listState = $this->listState($request);
-
-        return view('admin-pages.admin-association-management.show', [
+        $this->authorizeAction($request, 'view', $association);
+        $state = AssociationFormState::filters($request);
+        $data = app(AssociationDatabase::class)->run(fn () => [
             'association' => $this->service->findDetailed($association),
             'eligibleRepresentatives' => $this->service->eligibleRepresentatives($association),
-            'backToListUrl' => route('admin.associations.index', $listState),
-            'representativeActionUrl' => route('admin.associations.representative', [
-                'association' => $association,
-                ...$listState,
-            ]),
+        ]);
+
+        return view('admin-pages.admin-association-management.show', [
+            ...$data, 'backToListUrl' => route('admin.associations.index', $state),
+            'representativeActionUrl' => route('admin.associations.representative', ['association' => $association, ...$state]),
         ]);
     }
 
-    public function update(
-        UpdateAssociationRequest $request,
-        Association $association
-    ): RedirectResponse {
-        try {
-            $updated = $this->service->update(
-                $association,
-                $request->validated(),
-                $this->actorId($request)
-            );
+    public function store(StoreAssociationRequest $request): mixed
+    {
+        $this->authorizeAction($request, 'create', Association::class);
 
-            $message = $association->field_officer_id !== $updated->field_officer_id
-                ? 'Association updated and Field Officer reassigned successfully.'
-                : 'Association updated successfully.';
-
-            return redirect()
-                ->route('admin.associations.index')
-                ->with('success', $message);
-        } catch (RuntimeException $exception) {
-            return back()->withInput()->with('error', $exception->getMessage());
-        }
+        return $this->mutate($request, fn () => $this->service->create($request->validated(), $this->actorId($request)), 'Association created successfully.');
     }
 
-    public function archive(Request $request, Association $association): RedirectResponse
+    public function update(UpdateAssociationRequest $request, Association $association): mixed
+    {
+        $this->authorizeAction($request, 'update', $association);
+
+        return $this->mutate($request, fn () => $this->service->update($association, $request->validated(), $this->actorId($request)), 'Association updated successfully.');
+    }
+
+    public function archive(Request $request, Association $association): mixed
+    {
+        $this->authorizeAction($request, 'archive', $association);
+
+        return $this->mutate($request, fn () => $this->service->archive($association, $this->actorId($request)), $association->is_archived ? 'Association is already archived.' : 'Association archived and GIS locations unpublished.');
+    }
+
+    public function restore(Request $request, Association $association): mixed
+    {
+        $this->authorizeAction($request, 'restore', $association);
+
+        return $this->mutate($request, fn () => $this->service->restore($association, $this->actorId($request)), $association->is_archived ? 'Association restored. GIS locations remain unpublished.' : 'Association is already current.');
+    }
+
+    public function representative(AssignAssociationRepresentativeRequest $request, Association $association): mixed
+    {
+        $this->authorizeAction($request, 'update', $association);
+        $value = $request->validated('representative_member_id');
+
+        return $this->mutate($request, fn () => $this->service->assignRepresentative($association, $value === null ? null : (int) $value, $this->actorId($request)), 'Representative selection saved. A newly appointed representative needs a private review passphrase provisioned from their member record.');
+    }
+
+    private function mutate(Request $request, \Closure $operation, string $message): mixed
     {
         try {
-            $this->service->archive($association, $this->actorId($request));
+            $operation();
+            $url = AssociationFormState::returnUrl($request);
+            $request->session()->flash('success', $message);
 
-            return back()->with('success', 'Association archived successfully.');
-        } catch (Throwable $exception) {
-            report($exception);
-
-            return back()->with('error', 'The association could not be archived. Please try again.');
-        }
-    }
-
-    public function restore(Request $request, Association $association): RedirectResponse
-    {
-        try {
-            $this->service->restore($association, $this->actorId($request));
-
-            return back()->with('success', 'Association restored successfully.');
-        } catch (RuntimeException $exception) {
-            return back()->with('error', $exception->getMessage());
-        }
-    }
-
-    public function representative(
-        AssignAssociationRepresentativeRequest $request,
-        Association $association
-    ): RedirectResponse {
-        $listState = $this->listState($request);
-        $showUrl = $this->associationShowUrl($association, $listState);
-
-        try {
-            $this->service->assignRepresentative(
-                $association,
-                $request->validated('representative_member_id'),
-                $this->actorId($request)
-            );
-
-            return redirect($showUrl)
-                ->with('success', 'Association Representative updated successfully.');
-        } catch (RuntimeException $exception) {
-            return redirect($showUrl)
-                ->withInput()
-                ->with('error', $exception->getMessage());
-        } catch (Throwable $exception) {
-            report($exception);
-
-            return redirect($showUrl)
-                ->withInput()
-                ->with('error', 'The Association Representative could not be updated. Please try again.');
-        }
-    }
-
-    /**
-     * Keep only scalar, non-empty list filters that are safe to carry between routes.
-     *
-     * @return array<string, string>
-     */
-
-    private function listState(Request $request): array
-    {
-        $state = [];
-
-        foreach (self::LIST_STATE_KEYS as $key) {
-            $value = $request->query($key);
-
-            if (!is_scalar($value) || $value === '') {
-                continue;
+            // Fetch submissions retain the existing form when an error occurs; successful ones navigate.
+            return $request->expectsJson() ? response()->json(['redirect_url' => $url, 'message' => $message]) : redirect()->to($url);
+        } catch (Throwable $error) {
+            AssociationFormState::remember($request);
+            $response = AssociationErrors::render($error, $request);
+            if ($response !== null) {
+                return $response;
             }
-
-            $state[$key] = (string) $value;
+            throw $error; // Preserve framework validation/authorization and transaction rollback.
         }
-
-        if (isset($state['page']) && (!ctype_digit($state['page']) || (int) $state['page'] < 1)) {
-            unset($state['page']);
-        }
-
-        return $state;
     }
 
-    /**
-     * @param array<string, string> $listState
-     */
-    
-    private function associationShowUrl(Association $association, array $listState): string
+    private function authorizeAction(Request $request, string $ability, mixed $record): void
     {
-        return route('admin.associations.show', [
-            'association' => $association,
-            ...$listState,
-        ]);
+        Gate::forUser($this->sessionUser->resolve($request))->authorize($ability, $record);
     }
 
     private function actorId(Request $request): int

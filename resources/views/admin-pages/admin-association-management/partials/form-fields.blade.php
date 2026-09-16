@@ -22,6 +22,12 @@
 --}}
 
 @php
+    $recovering = session('association_form.mode') === $prefix;
+    $formOld = function ($key, $default = null) use ($recovering) {
+        $value = $recovering ? old($key, $default) : $default;
+        return is_scalar($value) || $value === null ? $value : $default;
+    };
+    $fieldError = fn ($key) => $recovering ? $errors->first($key) : '';
     /*
      * Shared Tailwind classes for inputs, selects, and textareas.
      *
@@ -67,12 +73,16 @@
             <input
                 type="text"
                 name="name"
+                id="{{ $prefix }}-name"
+                aria-invalid="{{ $fieldError('name') ? 'true' : 'false' }}"
+                aria-describedby="{{ $prefix }}-name-error"
                 data-field="name"
                 maxlength="255"
                 required
-                value="{{ old('name', $association?->name) }}"
+                value="{{ $formOld('name', $association?->name) }}"
                 class="{{ $inputClass }}"
             >
+            <span id="{{ $prefix }}-name-error" data-field-error="name" class="mt-1 block text-xs text-red-700">{{ $fieldError('name') }}</span>
         </label>
 
         {{-- Municipality --}}
@@ -88,6 +98,9 @@
             --}}
             <select
                 name="area_unit_id"
+                id="{{ $prefix }}-area_unit_id"
+                aria-invalid="{{ $fieldError('area_unit_id') ? 'true' : 'false' }}"
+                aria-describedby="{{ $prefix }}-area_unit_id-error"
                 data-field="area_unit_id"
                 data-municipality
                 required
@@ -99,7 +112,7 @@
                     <option
                         value="{{ $municipality->id }}"
                         @selected(
-                            (string) old(
+                            (string) $formOld(
                                 'area_unit_id',
                                 $association?->area_unit_id
                             ) === (string) $municipality->id
@@ -109,6 +122,7 @@
                     </option>
                 @endforeach
             </select>
+            <span id="{{ $prefix }}-area_unit_id-error" data-field-error="area_unit_id" class="mt-1 block text-xs text-red-700">{{ $fieldError('area_unit_id') }}</span>
         </label>
 
         {{-- Barangay --}}
@@ -127,13 +141,18 @@
             --}}
             <select
                 name="sub_unit_id"
+                id="{{ $prefix }}-sub_unit_id"
+                aria-invalid="{{ $fieldError('sub_unit_id') ? 'true' : 'false' }}"
+                aria-describedby="{{ $prefix }}-sub_unit_id-error"
                 data-field="sub_unit_id"
                 data-barangay
+                data-selected-value="{{ $formOld('sub_unit_id', $association?->sub_unit_id) }}"
                 required
                 class="{{ $inputClass }}"
             >
                 <option value="">Select municipality first</option>
             </select>
+            <span id="{{ $prefix }}-sub_unit_id-error" data-field-error="sub_unit_id" class="mt-1 block text-xs text-red-700">{{ $fieldError('sub_unit_id') }}</span>
         </label>
 
         {{-- BFAR program component --}}
@@ -145,6 +164,9 @@
 
             <select
                 name="program_component_id"
+                id="{{ $prefix }}-program_component_id"
+                aria-invalid="{{ $fieldError('program_component_id') ? 'true' : 'false' }}"
+                aria-describedby="{{ $prefix }}-program_component_id-error"
                 data-field="program_component_id"
                 required
                 class="{{ $inputClass }}"
@@ -155,7 +177,7 @@
                     <option
                         value="{{ $component->id }}"
                         @selected(
-                            (string) old(
+                            (string) $formOld(
                                 'program_component_id',
                                 $association?->program_component_id
                             ) === (string) $component->id
@@ -165,6 +187,7 @@
                     </option>
                 @endforeach
             </select>
+            <span id="{{ $prefix }}-program_component_id-error" data-field-error="program_component_id" class="mt-1 block text-xs text-red-700">{{ $fieldError('program_component_id') }}</span>
         </label>
 
         {{-- Date the association joined the program --}}
@@ -181,15 +204,19 @@
             <input
                 type="date"
                 name="date_joined"
+                id="{{ $prefix }}-date_joined"
+                aria-invalid="{{ $fieldError('date_joined') ? 'true' : 'false' }}"
+                aria-describedby="{{ $prefix }}-date_joined-error"
                 data-field="date_joined"
                 required
                 max="{{ now()->format('Y-m-d') }}"
-                value="{{ old(
+                value="{{ $formOld(
                     'date_joined',
                     $association?->date_joined?->format('Y-m-d')
                 ) }}"
                 class="{{ $inputClass }}"
             >
+            <span id="{{ $prefix }}-date_joined-error" data-field-error="date_joined" class="mt-1 block text-xs text-red-700">{{ $fieldError('date_joined') }}</span>
         </label>
 
         {{-- Complete address --}}
@@ -201,12 +228,16 @@
 
             <textarea
                 name="address"
+                id="{{ $prefix }}-address"
+                aria-invalid="{{ $fieldError('address') ? 'true' : 'false' }}"
+                aria-describedby="{{ $prefix }}-address-error"
                 data-field="address"
                 rows="3"
                 maxlength="500"
                 required
                 class="{{ $inputClass }}"
-            >{{ old('address', $association?->address) }}</textarea>
+            >{{ $formOld('address', $association?->address) }}</textarea>
+            <span id="{{ $prefix }}-address-error" data-field-error="address" class="mt-1 block text-xs text-red-700">{{ $fieldError('address') }}</span>
         </label>
     </div>
 </section>
@@ -241,6 +272,9 @@
             --}}
             <select
                 name="field_officer_id"
+                id="{{ $prefix }}-field_officer_id"
+                aria-invalid="{{ $fieldError('field_officer_id') ? 'true' : 'false' }}"
+                aria-describedby="{{ $prefix }}-field_officer_id-error"
                 data-field="field_officer_id"
                 required
                 class="{{ $inputClass }}"
@@ -251,7 +285,7 @@
                     <option
                         value="{{ $officer->id }}"
                         @selected(
-                            (string) old(
+                            (string) $formOld(
                                 'field_officer_id',
                                 $association?->field_officer_id
                             ) === (string) $officer->id
@@ -261,6 +295,7 @@
                     </option>
                 @endforeach
             </select>
+            <span id="{{ $prefix }}-field_officer_id-error" data-field-error="field_officer_id" class="mt-1 block text-xs text-red-700">{{ $fieldError('field_officer_id') }}</span>
         </label>
 
         {{-- Operational status --}}
@@ -279,6 +314,9 @@
             --}}
             <select
                 name="status_id"
+                id="{{ $prefix }}-status_id"
+                aria-invalid="{{ $fieldError('status_id') ? 'true' : 'false' }}"
+                aria-describedby="{{ $prefix }}-status_id-error"
                 data-field="status_id"
                 required
                 class="{{ $inputClass }}"
@@ -287,7 +325,7 @@
                     <option
                         value="{{ $status->id }}"
                         @selected(
-                            (string) old(
+                            (string) $formOld(
                                 'status_id',
                                 $association?->status_id
                                     ?? $associationStatuses
@@ -300,6 +338,7 @@
                     </option>
                 @endforeach
             </select>
+            <span id="{{ $prefix }}-status_id-error" data-field-error="status_id" class="mt-1 block text-xs text-red-700">{{ $fieldError('status_id') }}</span>
         </label>
     </div>
 

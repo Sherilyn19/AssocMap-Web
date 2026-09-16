@@ -6,33 +6,30 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Exceptions\AssociationRuleException;
+use App\Models\AreaUnit;
 use App\Models\Association;
 use App\Models\Member;
+use App\Models\ProgramComponent;
+use App\Models\Status;
+use App\Models\SubUnit;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
-use RuntimeException;
+use Illuminate\Validation\ValidationException;
 
 final class AssociationManagementService
 {
     /**
      * Return the administrator list with constrained eager loading and calculated counts.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      */
     public function paginate(array $filters): LengthAwarePaginator
     {
-        $query = Association::query()
-            ->with([
-                'areaUnit:id,name',
-                'subUnit:id,area_unit_id,name',
-                'programComponent:id,name',
-                'fieldOfficer:id,name,email',
-                'representative:id,association_id,first_name,middle_name,last_name,role_in_assoc',
-                'status:id,status_name',
-            ])
+        $query = $this->recordQuery()
             ->withCount([
                 'members as members_count' => fn (Builder $query) => $query->where('is_archived', false),
             ]);
@@ -41,8 +38,8 @@ final class AssociationManagementService
         if ($search !== '') {
             $query->where(function (Builder $builder) use ($search): void {
                 $builder
-                    ->where('name', 'ilike', "%{$search}%")
-                    ->orWhere('address', 'ilike', "%{$search}%");
+                    ->where('associations.name', 'ilike', "%{$search}%")
+                    ->orWhere('associations.address', 'ilike', "%{$search}%");
             });
         }
 
@@ -53,21 +50,21 @@ final class AssociationManagementService
         $this->applyIntegerFilter($query, 'status_id', $filters['status_id'] ?? null);
 
         match ((string) ($filters['archive_state'] ?? 'current')) {
-            'archived' => $query->where('is_archived', true),
+            'archived' => $query->where('associations.is_archived', true),
             'all' => null,
-            default => $query->where('is_archived', false),
+            default => $query->where('associations.is_archived', false),
         };
 
         match ((string) ($filters['sort'] ?? 'name_asc')) {
-            'name_desc' => $query->orderByDesc('name'),
-            'date_joined_desc' => $query->orderByDesc('date_joined')->orderBy('name'),
-            'date_joined_asc' => $query->orderBy('date_joined')->orderBy('name'),
-            'created_desc' => $query->orderByDesc('created_at'),
-            'updated_desc' => $query->orderByDesc('updated_at'),
-            default => $query->orderBy('name'),
+            'name_desc' => $query->orderByDesc('associations.name'),
+            'date_joined_desc' => $query->orderByDesc('associations.date_joined')->orderBy('associations.name'),
+            'date_joined_asc' => $query->orderBy('associations.date_joined')->orderBy('associations.name'),
+            'created_desc' => $query->orderByDesc('associations.created_at'),
+            'updated_desc' => $query->orderByDesc('associations.updated_at'),
+            default => $query->orderBy('associations.name'),
         };
 
-        return $query->paginate(10)->withQueryString();
+        return $query->orderBy('associations.id')->paginate(10)->withQueryString()->through(fn (Association $row) => $this->hydrateRelations($row));
     }
 
     /**
@@ -96,41 +93,41 @@ final class AssociationManagementService
      */
     public function formOptions(): array
     {
-        return [
-            'municipalities' => DB::table('area_units')
-                ->where('is_archived', false)
-                ->orderBy('name')
-                ->get(['id', 'name']),
-
-            'barangays' => DB::table('sub_units')
-                ->where('is_archived', false)
-                ->orderBy('name')
-                ->get(['id', 'area_unit_id', 'name']),
-
-            'programComponents' => DB::table('program_components')
-                ->orderBy('name')
-                ->get(['id', 'name']),
-
-            'fieldOfficers' => DB::table('users')
-                ->join('roles', 'roles.id', '=', 'users.role_id')
-                ->where('roles.role_name', 'Field Officer')
-                ->where('users.is_active', true)
-                ->orderBy('users.name')
-                ->get(['users.id', 'users.name', 'users.email']),
-
-            'associationStatuses' => DB::table('statuses')
-                ->whereIn('status_name', ['Active', 'Inactive'])
-                ->orderByRaw("CASE WHEN status_name = 'Active' THEN 1 ELSE 2 END")
-                ->get(['id', 'status_name']),
+        $queries = [
+            'municipalities' => DB::table('area_units')->orderBy('name')->select(['id', 'name', 'is_archived']),
+            'barangays' => DB::table('sub_units')->orderBy('name')->select(['id', 'area_unit_id', 'name', 'is_archived']),
+            'programComponents' => DB::table('program_components')->orderBy('name')->select(['id', 'name']),
+            'fieldOfficers' => DB::table('users')->join('roles', 'roles.id', '=', 'users.role_id')
+                ->where(fn ($q) => $q->where('roles.role_name', 'Field Officer')->orWhereExists(fn ($a) => $a->selectRaw('1')->from('associations')->whereColumn('associations.field_officer_id', 'users.id')))
+                ->orderBy('users.name')->select(['users.id', 'users.name', 'users.email', 'users.is_active', 'roles.role_name']),
+            'associationStatuses' => DB::table('statuses')->whereIn('status_name', ['Active', 'Inactive'])->orderBy('status_name')->select(['id', 'status_name']),
         ];
+        $batch = DB::query();
+        foreach ($queries as $key => $query) {
+            $batch->selectSub(DB::query()->fromSub($query, 'options')->selectRaw("COALESCE(json_agg(row_to_json(options)), '[]'::json)"), $key);
+        }
+        $row = $batch->first();
+        $options = [];
+        foreach ($queries as $key => $_) {
+            $options[$key] = collect(json_decode($row->$key, false, 512, JSON_THROW_ON_ERROR));
+        }
+        $options['filterMunicipalities'] = $options['municipalities'];
+        $options['filterBarangays'] = $options['barangays'];
+        $options['filterOfficers'] = $options['fieldOfficers'];
+        $options['municipalities'] = $options['municipalities']->where('is_archived', false)->values();
+        $options['barangays'] = $options['barangays']->where('is_archived', false)->values();
+        $options['fieldOfficers'] = $options['fieldOfficers']->where('is_active', true)->where('role_name', 'Field Officer')->values();
+
+        return $options;
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data, int $actorId): Association
     {
-        return DB::transaction(function () use ($data, $actorId): Association {
+        return app(AssociationDatabase::class)->run(function () use ($data, $actorId): Association {
+            $this->validateAssignment($data);
             $association = Association::query()->create([
                 ...$data,
                 'representative_member_id' => null,
@@ -145,36 +142,37 @@ final class AssociationManagementService
             );
 
             return $association->fresh();
-        }, 3);
+        });
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(Association $association, array $data, int $actorId): Association
     {
-        return DB::transaction(function () use ($association, $data, $actorId): Association {
+        return app(AssociationDatabase::class)->run(function () use ($association, $data, $actorId): Association {
             /** @var Association $locked */
             $locked = Association::query()->lockForUpdate()->findOrFail($association->id);
 
             if ($locked->is_archived) {
-                throw new RuntimeException('Archived associations must be restored before editing.');
+                throw new AssociationRuleException('Archived associations must be restored before editing.');
             }
 
             $beforeOfficer = $locked->field_officer_id;
             $beforeRepresentative = $locked->representative_member_id;
             $beforeStatus = $locked->status_id;
 
+            $this->validateAssignment($data, $locked->id);
             $locked->fill($data);
             // The request check can become stale while another request archives a member.
             // Recheck under the association lock, taking the member lock second.
             if ($locked->isDirty('representative_member_id') && $locked->representative_member_id !== null) {
-                $eligible = \App\Models\Member::query()
+                $eligible = Member::query()
                     ->whereKey($locked->representative_member_id)
                     ->where('association_id', $locked->id)
                     ->where('is_archived', false)->lockForUpdate()->first();
-                if (!$eligible) {
-                    throw new RuntimeException('Choose a current member of this association as representative.');
+                if (! $eligible) {
+                    throw new AssociationRuleException('Choose a current member of this association as representative.');
                 }
                 // A new appointment requires a newly provisioned secret; old terms grant no access.
                 $eligible->forceFill(['review_passphrase_hash' => null])->save();
@@ -217,12 +215,12 @@ final class AssociationManagementService
             }
 
             return $locked->fresh();
-        }, 3);
+        });
     }
 
     public function archive(Association $association, int $actorId): Association
     {
-        return DB::transaction(function () use ($association, $actorId): Association {
+        return app(AssociationDatabase::class)->run(function () use ($association, $actorId): Association {
             /** @var Association $locked */
             $locked = Association::query()->lockForUpdate()->findOrFail($association->id);
 
@@ -232,15 +230,15 @@ final class AssociationManagementService
 
             $locked->forceFill(['is_archived' => true])->save();
 
-            if (Schema::hasTable('gis_locations')) {
-                DB::table('gis_locations')
-                    ->where('association_id', $locked->id)
-                    ->where('is_published', true)
-                    ->update([
-                        'is_published' => false,
-                        'updated_at' => now(),
-                    ]);
-            }
+            // GIS and audit infrastructure are required: failures must roll back archival.
+
+            DB::table('gis_locations')
+                ->where('association_id', $locked->id)
+                ->where('is_published', true)
+                ->update([
+                    'is_published' => false,
+                    'updated_at' => now(),
+                ]);
 
             $this->writeAudit(
                 $actorId,
@@ -250,30 +248,32 @@ final class AssociationManagementService
             );
 
             return $locked->fresh();
-        }, 3);
+        });
     }
 
     public function restore(Association $association, int $actorId): Association
     {
-        return DB::transaction(function () use ($association, $actorId): Association {
+        return app(AssociationDatabase::class)->run(function () use ($association, $actorId): Association {
             /** @var Association $locked */
             $locked = Association::query()
                 ->with(['areaUnit:id,is_archived', 'subUnit:id,area_unit_id,is_archived'])
                 ->lockForUpdate()
                 ->findOrFail($association->id);
 
-            if (!$locked->is_archived) {
+            if (! $locked->is_archived) {
                 return $locked;
             }
 
-            if ($locked->areaUnit?->is_archived || $locked->subUnit?->is_archived) {
-                throw new RuntimeException(
+            $this->requireOfficer((int) $locked->field_officer_id);
+
+            if (! $locked->areaUnit || ! $locked->subUnit || $locked->areaUnit?->is_archived || $locked->subUnit?->is_archived) {
+                throw new AssociationRuleException(
                     'The association cannot be restored while its municipality or barangay is archived.'
                 );
             }
 
             if ((int) $locked->subUnit?->area_unit_id !== (int) $locked->area_unit_id) {
-                throw new RuntimeException(
+                throw new AssociationRuleException(
                     'The association cannot be restored because its barangay no longer belongs to its municipality.'
                 );
             }
@@ -285,25 +285,12 @@ final class AssociationManagementService
                     ->where('is_archived', false)
                     ->exists();
 
-                if (!$validRepresentative) {
+                if (! $validRepresentative) {
                     $locked->representative_member_id = null;
                 }
             }
 
             $locked->is_archived = false;
-            // The request check can become stale while another request archives a member.
-            // Recheck under the association lock, taking the member lock second.
-            if ($locked->isDirty('representative_member_id') && $locked->representative_member_id !== null) {
-                $eligible = \App\Models\Member::query()
-                    ->whereKey($locked->representative_member_id)
-                    ->where('association_id', $locked->id)
-                    ->where('is_archived', false)->lockForUpdate()->first();
-                if (!$eligible) {
-                    throw new RuntimeException('Choose a current member of this association as representative.');
-                }
-                // A new appointment requires a newly provisioned secret; old terms grant no access.
-                $eligible->forceFill(['review_passphrase_hash' => null])->save();
-            }
             $locked->save();
 
             $this->writeAudit(
@@ -314,7 +301,7 @@ final class AssociationManagementService
             );
 
             return $locked->fresh();
-        }, 3);
+        });
     }
 
     public function assignRepresentative(
@@ -322,7 +309,7 @@ final class AssociationManagementService
         ?int $representativeMemberId,
         int $actorId
     ): Association {
-        return DB::transaction(function () use (
+        return app(AssociationDatabase::class)->run(function () use (
             $association,
             $representativeMemberId,
             $actorId
@@ -331,20 +318,23 @@ final class AssociationManagementService
             $locked = Association::query()->lockForUpdate()->findOrFail($association->id);
 
             if ($locked->is_archived) {
-                throw new RuntimeException('Restore the association before changing its representative.');
+                throw new AssociationRuleException('Restore the association before changing its representative.');
             }
 
             $previous = $locked->representative_member_id;
+            if ($previous === $representativeMemberId) {
+                return $locked;
+            }
             $locked->representative_member_id = $representativeMemberId;
             // The request check can become stale while another request archives a member.
             // Recheck under the association lock, taking the member lock second.
             if ($locked->isDirty('representative_member_id') && $locked->representative_member_id !== null) {
-                $eligible = \App\Models\Member::query()
+                $eligible = Member::query()
                     ->whereKey($locked->representative_member_id)
                     ->where('association_id', $locked->id)
                     ->where('is_archived', false)->lockForUpdate()->first();
-                if (!$eligible) {
-                    throw new RuntimeException('Choose a current member of this association as representative.');
+                if (! $eligible) {
+                    throw new AssociationRuleException('Choose a current member of this association as representative.');
                 }
                 // A new appointment requires a newly provisioned secret; old terms grant no access.
                 $eligible->forceFill(['review_passphrase_hash' => null])->save();
@@ -359,19 +349,12 @@ final class AssociationManagementService
             );
 
             return $locked->fresh();
-        }, 3);
+        });
     }
 
     public function findDetailed(Association $association): Association
     {
-        return $association->load([
-            'areaUnit:id,name',
-            'subUnit:id,name,area_unit_id',
-            'programComponent:id,name',
-            'fieldOfficer:id,name,email',
-            'representative:id,association_id,first_name,middle_name,last_name,role_in_assoc',
-            'status:id,status_name',
-        ])->loadCount([
+        $record = $this->recordQuery()->where('associations.id', $association->id)->withCount([
             'members as members_count' => fn (Builder $query) => $query->where('is_archived', false),
             'memberApplications as pending_applications_count' => function (Builder $query): void {
                 $query->whereHas('status', fn (Builder $status) => $status->where('status_name', 'Pending'));
@@ -380,7 +363,9 @@ final class AssociationManagementService
             'trainings as trainings_count' => fn (Builder $query) => $query->where('is_archived', false),
             'gisLocations as gis_locations_count',
             'gisLocations as published_gis_locations_count' => fn (Builder $query) => $query->where('is_published', true),
-        ]);
+        ])->firstOrFail();
+
+        return $this->hydrateRelations($record);
     }
 
     /**
@@ -403,10 +388,75 @@ final class AssociationManagementService
             ]);
     }
 
+    /** Lock the user before checking eligibility; account changes use this same row lock. */
+    private function requireOfficer(int $id): void
+    {
+        $officer = DB::table('users')->where('id', $id)->lockForUpdate()->first(['id', 'role_id', 'is_active']);
+        $validRole = $officer && DB::table('roles')->where('id', $officer->role_id)->where('role_name', 'Field Officer')->exists();
+        if (! $officer || ! $officer->is_active || ! $validRole) {
+            throw ValidationException::withMessages(['field_officer_id' => 'Select an active Field Officer. Reassign the association if its former officer is unavailable.']);
+        }
+    }
+
+    private function validateAssignment(array $data, ?int $ignoreId = null): void
+    {
+        $this->requireOfficer((int) $data['field_officer_id']);
+        // The composite FK protects geography; these checks add understandable validation messages.
+        $checks = DB::query()
+            ->selectSub(DB::table('area_units')->where('id', $data['area_unit_id'])->where('is_archived', false)->selectRaw('COUNT(*)'), 'area')
+            ->selectSub(DB::table('sub_units')->where('id', $data['sub_unit_id'])->where('area_unit_id', $data['area_unit_id'])->where('is_archived', false)->selectRaw('COUNT(*)'), 'barangay')
+            ->selectSub(DB::table('program_components')->where('id', $data['program_component_id'])->selectRaw('COUNT(*)'), 'program')
+            ->selectSub(DB::table('statuses')->where('id', $data['status_id'])->whereIn('status_name', ['Active', 'Inactive'])->selectRaw('COUNT(*)'), 'status')
+            ->selectSub(DB::table('associations')->where('area_unit_id', $data['area_unit_id'])->when($ignoreId, fn ($q) => $q->where('id', '<>', $ignoreId))
+                ->whereRaw("LOWER(REGEXP_REPLACE(BTRIM(name), '\s+', ' ', 'g')) = LOWER(REGEXP_REPLACE(BTRIM(?), '\s+', ' ', 'g'))", [$data['name']])->selectRaw('COUNT(*)'), 'duplicate')->first();
+        $errors = [];
+        foreach (['area' => ['area_unit_id', 'Select a current municipality.'], 'barangay' => ['sub_unit_id', 'Select a current barangay belonging to this municipality.'], 'program' => ['program_component_id', 'Select a valid program component.'], 'status' => ['status_id', 'Association status must be Active or Inactive.']] as $check => [$field, $message]) {
+            if (! $checks->$check) {
+                $errors[$field] = $message;
+            }
+        }
+        if ($checks->duplicate) {
+            $errors['name'] = 'An association with this name already exists in the selected municipality.';
+        }
+        if ($errors) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    private function recordQuery(): Builder
+    {
+        // One joined round trip replaces six eager-loading requests to the remote database.
+        // Explicit JSON fields prevent user passwords and member private data entering the page.
+        return Association::query()->select('associations.*')
+            ->leftJoin('area_units as au', 'au.id', '=', 'associations.area_unit_id')
+            ->leftJoin('sub_units as su', 'su.id', '=', 'associations.sub_unit_id')
+            ->leftJoin('program_components as pc', 'pc.id', '=', 'associations.program_component_id')
+            ->leftJoin('users as fo', 'fo.id', '=', 'associations.field_officer_id')
+            ->leftJoin('members as rep', 'rep.id', '=', 'associations.representative_member_id')
+            ->leftJoin('statuses as st', 'st.id', '=', 'associations.status_id')
+            ->selectRaw("json_build_object('id', au.id, 'name', au.name) AS area_json,
+                json_build_object('id', su.id, 'name', su.name) AS sub_json,
+                json_build_object('id', pc.id, 'name', pc.name) AS program_json,
+                json_build_object('id', fo.id, 'name', fo.name, 'email', fo.email) AS officer_json,
+                json_build_object('id', rep.id, 'first_name', rep.first_name, 'middle_name', rep.middle_name, 'last_name', rep.last_name, 'role_in_assoc', rep.role_in_assoc) AS representative_json,
+                json_build_object('id', st.id, 'status_name', st.status_name) AS status_json");
+    }
+
+    private function hydrateRelations(Association $row): Association
+    {
+        foreach (['area_json' => ['areaUnit', AreaUnit::class], 'sub_json' => ['subUnit', SubUnit::class], 'program_json' => ['programComponent', ProgramComponent::class], 'officer_json' => ['fieldOfficer', User::class], 'representative_json' => ['representative', Member::class], 'status_json' => ['status', Status::class]] as $column => [$relation, $model]) {
+            $attributes = json_decode($row->getAttribute($column), true, 512, JSON_THROW_ON_ERROR);
+            $row->setRelation($relation, $attributes['id'] === null ? null : (new $model)->newFromBuilder($attributes));
+            $row->offsetUnset($column);
+        }
+
+        return $row;
+    }
+
     private function applyIntegerFilter(Builder $query, string $column, mixed $value): void
     {
         if (filter_var($value, FILTER_VALIDATE_INT) !== false) {
-            $query->where($column, (int) $value);
+            $query->where('associations.'.$column, (int) $value);
         }
     }
 
@@ -426,7 +476,7 @@ final class AssociationManagementService
             $actorId,
             $action,
             $associationId,
-            "Representative changed from ".($previous ?? 'none')." to ".($current ?? 'none')."."
+            'Representative changed from '.($previous ?? 'none').' to '.($current ?? 'none').'.'
         );
     }
 

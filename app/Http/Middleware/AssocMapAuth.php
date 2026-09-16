@@ -2,11 +2,11 @@
 
 namespace App\Http\Middleware;
 
-use Closure;
 use App\Models\User;
-use Throwable;
+use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 /**
  * ============================================================
@@ -31,9 +31,9 @@ class AssocMapAuth
     /**
      * Handle an incoming request.
      *
-     * @param  string|null $requiredRole  Role name that may access this route.
-     *                                   Passed as a middleware parameter:
-     *                                   e.g. assocmap.auth:System Administrator
+     * @param  string|null  $requiredRole  Role name that may access this route.
+     *                                     Passed as a middleware parameter:
+     *                                     e.g. assocmap.auth:System Administrator
      */
     public function handle(Request $request, Closure $next, ?string $requiredRole = null): Response
     {
@@ -48,16 +48,21 @@ class AssocMapAuth
         try {
             $actor = User::with('role')->find($request->session()->get('auth_user.id'));
         } catch (Throwable $exception) {
+            if ($request->is('admin/associations', 'admin/associations/*')) {
+                throw $exception;
+            }
             report($exception);
             abort(503, 'Account access could not be verified. Please try again shortly.');
         }
 
-        if (!$actor || !$actor->is_active || !$actor->role) {
+        if (! $actor || ! $actor->is_active || ! $actor->role) {
             $request->session()->invalidate();
             $request->session()->regenerateToken();
+
             return redirect()->route('login')->with('error', 'Your account is unavailable. Contact an administrator.');
         }
 
+        $request->attributes->set('assocmap.actor', $actor);
         $request->session()->put('auth_user', [
             'id' => $actor->id, 'name' => $actor->name, 'email' => $actor->email,
             'role_id' => $actor->role_id, 'role_name' => $actor->role->role_name,
@@ -91,9 +96,9 @@ class AssocMapAuth
     {
         $route = match ($roleName) {
             'System Administrator' => 'dashboard.admin',
-            'Field Officer'        => 'dashboard.officer',
-            'Association Member'   => 'dashboard.member',
-            default                => 'login',
+            'Field Officer' => 'dashboard.officer',
+            'Association Member' => 'dashboard.member',
+            default => 'login',
         };
 
         return redirect()->route($route)
