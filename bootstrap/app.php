@@ -11,6 +11,7 @@
  */
 
 use App\Http\Middleware\AssocMapAuth;
+use App\Http\Middleware\TrackAssociationRequest;
 use App\Support\AssociationErrors;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -24,6 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Start the Association clock before database-backed session loading.
+        $middleware->prepend(TrackAssociationRequest::class);
         // Preserve intentional passphrase spaces, as with an ordinary password.
         $middleware->trimStrings(except: ['review_passphrase', 'review_passphrase_confirmation']);
         /*

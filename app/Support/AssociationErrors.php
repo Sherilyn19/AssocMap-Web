@@ -34,8 +34,11 @@ final class AssociationErrors
         $duplicate = $state === '23505' && str_contains($error->getMessage(), 'associations_');
         $expected = $error instanceof AssociationRuleException;
         $timeout = in_array($state, ['57014', '55P03'], true) || $error instanceof AssociationDeadlineException;
-        $reference = (string) Str::uuid();
+        $context = app(AssociationRequestContext::class);
+        $completed = $context->active && $context->mutationCompleted;
+        $reference = $context->active ? $context->reference : (string) Str::uuid();
         $message = match (true) {
+            $completed => 'Your association change was saved, but the request could not finish. Reload the association records before making another change.',
             $expected => $error->getMessage(),
             $duplicate => 'An association with this name already exists in the selected municipality.',
             $timeout => 'The database took too long to respond. Your changes were not completed. Please try again shortly.',
@@ -48,9 +51,10 @@ final class AssociationErrors
         }
         $status = ($expected || $duplicate) ? 422 : 503;
         if ($request->expectsJson()) {
-            return response()->json(['message' => $message, 'errors' => $duplicate ? ['name' => [$message]] : (object) [], 'outcome_unknown' => ! $expected && ! $duplicate && ! $timeout], $status);
+            return response()->json(['message' => $message, 'errors' => $duplicate ? ['name' => [$message]] : (object) [], 'outcome_unknown' => ! $completed && ! $expected && ! $duplicate && ! $timeout, 'mutation_completed' => $completed], $status);
         }
-        if (! $request->isMethod('GET') && $request->hasSession()) {
+        // Do not redirect/flash through a failed session backend, or offer a repeat save after commit.
+        if (! $completed && ! $context->sessionFailed && ! $request->isMethod('GET') && $request->hasSession() && $request->session()->isStarted()) {
             AssociationFormState::remember($request);
 
             return redirect()->to(AssociationFormState::returnUrl($request))->withInput(AssociationFormState::input($request))->with('error', $message);
