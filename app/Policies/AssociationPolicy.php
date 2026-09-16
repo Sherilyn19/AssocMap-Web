@@ -11,6 +11,12 @@ use App\Models\User;
 
 final class AssociationPolicy
 {
+    public function administer(User $user): bool
+    {
+        // The global administrator register must never inherit a scoped viewer's permissions.
+        return $user->is_active && $user->role?->role_name === 'System Administrator';
+    }
+
     public function viewAny(User $user): bool
     {
         return in_array($user->role?->role_name, [
@@ -21,6 +27,10 @@ final class AssociationPolicy
 
     public function view(User $user, Association $association): bool
     {
+        if (! $user->is_active) {
+            return false;
+        }
+
         return match ($user->role?->role_name) {
             'System Administrator' => true,
             'Field Officer' => (int) $association->field_officer_id === (int) $user->id,
@@ -31,21 +41,21 @@ final class AssociationPolicy
 
     public function create(User $user): bool
     {
-        return $user->role?->role_name === 'System Administrator';
+        return $this->administer($user);
     }
 
     public function update(User $user, Association $association): bool
     {
-        return $user->role?->role_name === 'System Administrator';
+        return $this->administer($user);
     }
 
     public function archive(User $user, Association $association): bool
     {
-        return $user->role?->role_name === 'System Administrator';
+        return $this->administer($user);
     }
 
     public function restore(User $user, Association $association): bool
     {
-        return $user->role?->role_name === 'System Administrator';
+        return $this->administer($user);
     }
 }

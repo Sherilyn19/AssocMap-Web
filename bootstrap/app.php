@@ -11,9 +11,11 @@
  */
 
 use App\Http\Middleware\AssocMapAuth;
+use App\Support\AssociationErrors;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -37,6 +39,19 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Covers failures before controller entry, including route binding and Form Requests.
+        $exceptions->report(function (Throwable $error) {
+            if (AssociationErrors::handles(request(), $error)) {
+                return false;
+            }
+        });
+        $exceptions->render(function (Throwable $error, Request $request) {
+            if (AssociationErrors::handles($request, $error)) {
+                return AssociationErrors::render($error, $request);
+            }
+
+            return null;
+        });
         // Validation redirects must never copy private review secrets into session old input.
         $exceptions->dontFlash(['review_passphrase', 'review_passphrase_confirmation']);
     })

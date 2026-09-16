@@ -20,6 +20,11 @@ final class SessionUserResolver
      */
     public function resolve(Request $request): User
     {
+        $resolved = $request->attributes->get('assocmap.actor');
+        if ($resolved instanceof User) {
+            return $resolved;
+        }
+
         $sessionUser = $request->session()->get('auth_user');
         $actorId = is_array($sessionUser) ? ($sessionUser['id'] ?? null) : null;
 
@@ -27,14 +32,16 @@ final class SessionUserResolver
         $actorId ??= $request->session()->get('user_id');
         $actorId ??= $request->session()->get('authenticated_user_id');
 
-        abort_if(!$actorId, 401, 'Authenticated user could not be identified.');
+        abort_if(! $actorId, 401, 'Authenticated user could not be identified.');
 
         $user = User::query()
             ->with('role:id,role_name')
             ->find((int) $actorId);
 
-        abort_if(!$user, 401, 'Authenticated user account could not be found.');
-        abort_if(!$user->is_active, 403, 'This account is inactive.');
+        abort_if(! $user, 401, 'Authenticated user account could not be found.');
+        abort_if(! $user->is_active, 403, 'This account is inactive.');
+
+        $request->attributes->set('assocmap.actor', $user);
 
         return $user;
     }

@@ -1,6 +1,6 @@
 /** Shared feedback for server-rendered management screens. No artificial loading delay. */
 document.addEventListener('DOMContentLoaded', () => {
-    const page = document.querySelector('[data-member-management-page], [data-pm-page]');
+    const page = document.querySelector('[data-member-management-page], [data-pm-page], [data-association-page]');
     if (!page) return;
     const content = document.querySelector('.am-content');
     const heading = page.querySelector('h1');
@@ -48,9 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
         content.setAttribute('aria-busy', 'true');
         // A canceled navigation must not leave an indefinite screen blocker.
         clearTimeout(recoveryTimer);
-        recoveryTimer = setTimeout(stop, 30000);
+        recoveryTimer = setTimeout(() => { stop(); if (page.hasAttribute('data-association-page')) document.dispatchEvent(new Event('management:slow')); }, 30000);
     };
-    document.addEventListener('management:loading', () => start('Saving changes…'));
+    document.addEventListener('management:loading', event => start(event.detail?.label || 'Saving changes…'));
+    document.addEventListener('management:loaded', stop);
     window.addEventListener('pageshow', stop);
     window.addEventListener('load', stop, { once: true });
     if (document.readyState !== 'complete') start();
