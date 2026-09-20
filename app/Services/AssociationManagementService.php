@@ -9,10 +9,14 @@ namespace App\Services;
 use App\Exceptions\AssociationRuleException;
 use App\Models\AreaUnit;
 use App\Models\Association;
+use App\Models\GisLocation;
 use App\Models\Member;
+use App\Models\MemberApplication;
 use App\Models\ProgramComponent;
+use App\Models\Project;
 use App\Models\Status;
 use App\Models\SubUnit;
+use App\Models\Training;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,6 +26,17 @@ use Illuminate\Validation\ValidationException;
 
 final class AssociationManagementService
 {
+    public const REGISTER_CARDS = [
+        'total' => 'Total Associations', 'active' => 'Active Associations',
+        'inactive' => 'Inactive Associations', 'archived' => 'Archived Associations',
+    ];
+
+    public const DETAIL_CARDS = [
+        'members' => 'Official members', 'applications' => 'Pending applications',
+        'projects' => 'Projects', 'trainings' => 'Trainings',
+        'gis' => 'GIS locations', 'published_gis' => 'Published GIS',
+    ];
+
     /**
      * Return the administrator list with constrained eager loading and calculated counts.
      *
@@ -64,7 +79,57 @@ final class AssociationManagementService
             default => $query->orderBy('associations.name'),
         };
 
-        return $query->orderBy('associations.id')->paginate(10)->withQueryString()->through(fn (Association $row) => $this->hydrateRelations($row));
+        return $query->orderBy('associations.id')->paginate((int) ($filters['per_page'] ?? 10))
+            ->appends(array_diff_key($filters, array_flip(['summary', 'summary_page'])))
+            ->through(fn (Association $row) => $this->hydrateRelations($row));
+    }
+
+    public function summaryRecords(string $key): LengthAwarePaginator
+    {
+        // Summary cards describe the entire register, independently of its filters.
+        // Their predicates mirror summary(): archived Active records belong only to
+        // Total/Archived, not to the current Active/Inactive cards.
+        abort_unless(array_key_exists($key, self::REGISTER_CARDS), 404);
+        $query = $this->recordQuery();
+        if ($key === 'archived') {
+            $query->where('associations.is_archived', true);
+        } elseif ($key !== 'total') {
+            $query->where('associations.is_archived', false)->where('st.status_name', ucfirst($key));
+        }
+
+        return $query->orderBy('associations.name')->orderBy('associations.id')
+            ->paginate(10, ['*'], 'summary_page')->through(fn (Association $row) => $this->hydrateRelations($row));
+    }
+
+    public function relatedRecords(Association $association, string $key): LengthAwarePaginator
+    {
+        // Select display fields explicitly: private member data and review hashes
+        // must never enter a card response. Paginate at the database, not in JS.
+        [$model, $columns] = match ($key) {
+            'members' => [Member::class, ['id', 'first_name', 'middle_name', 'last_name', 'role_in_assoc', 'date_registered']],
+            'applications' => [MemberApplication::class, ['id', 'first_name', 'middle_name', 'last_name', 'created_at']],
+            'projects' => [Project::class, ['id', 'title', 'implementation_date']],
+            'trainings' => [Training::class, ['id', 'title', 'venue', 'date_conducted']],
+            'gis', 'published_gis' => [GisLocation::class, ['id', 'location_name', 'latitude', 'longitude', 'is_published']],
+            default => abort(404),
+        };
+        $query = $model::query()->select($columns)->where('association_id', $association->id);
+        $this->applyRelatedScope($query, $key);
+
+        return $query->orderBy('id')->paginate(10, ['*'], 'related_page');
+    }
+
+    private function applyRelatedScope(Builder $query, string $key): void
+    {
+        // Counts and drill-down records use this same rule, preventing mismatched
+        // totals when records are archived, applications reviewed, or GIS published.
+        if (in_array($key, ['members', 'projects', 'trainings'], true)) {
+            $query->where('is_archived', false);
+        } elseif ($key === 'applications') {
+            $query->whereHas('status', fn (Builder $status) => $status->where('status_name', 'Pending'));
+        } elseif ($key === 'published_gis') {
+            $query->where('is_published', true);
+        }
     }
 
     /**
@@ -355,14 +420,12 @@ final class AssociationManagementService
     public function findDetailed(Association $association): Association
     {
         $record = $this->recordQuery()->where('associations.id', $association->id)->withCount([
-            'members as members_count' => fn (Builder $query) => $query->where('is_archived', false),
-            'memberApplications as pending_applications_count' => function (Builder $query): void {
-                $query->whereHas('status', fn (Builder $status) => $status->where('status_name', 'Pending'));
-            },
-            'projects as projects_count' => fn (Builder $query) => $query->where('is_archived', false),
-            'trainings as trainings_count' => fn (Builder $query) => $query->where('is_archived', false),
-            'gisLocations as gis_locations_count',
-            'gisLocations as published_gis_locations_count' => fn (Builder $query) => $query->where('is_published', true),
+            'members as members_count' => fn (Builder $query) => $this->applyRelatedScope($query, 'members'),
+            'memberApplications as pending_applications_count' => fn (Builder $query) => $this->applyRelatedScope($query, 'applications'),
+            'projects as projects_count' => fn (Builder $query) => $this->applyRelatedScope($query, 'projects'),
+            'trainings as trainings_count' => fn (Builder $query) => $this->applyRelatedScope($query, 'trainings'),
+            'gisLocations as gis_locations_count' => fn (Builder $query) => $this->applyRelatedScope($query, 'gis'),
+            'gisLocations as published_gis_locations_count' => fn (Builder $query) => $this->applyRelatedScope($query, 'published_gis'),
         ])->firstOrFail();
 
         return $this->hydrateRelations($record);

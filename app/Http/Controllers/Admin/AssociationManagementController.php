@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AssignAssociationRepresentativeRequest;
 use App\Http\Requests\Admin\AssociationIndexRequest;
+use App\Http\Requests\Admin\AssociationShowRequest;
 use App\Http\Requests\Admin\StoreAssociationRequest;
 use App\Http\Requests\Admin\UpdateAssociationRequest;
 use App\Models\Association;
@@ -28,30 +29,48 @@ final class AssociationManagementController extends Controller
     {
         $this->authorizeAction($request, 'administer', Association::class);
         $filters = $request->validated();
-        // Load the whole screen within one short read scope, not one transaction per dropdown.
-        $data = app(AssociationDatabase::class)->run(fn () => [
-            'associations' => $this->service->paginate($filters), 'summary' => $this->service->summary(),
-            ...$this->service->formOptions(),
-        ]);
+        $state = AssociationFormState::filters($request);
+        $summaryKey = $filters['summary'] ?? null;
 
-        return view('admin-pages.admin-association-management.index', [
-            ...$data, 'filters' => $filters, 'listState' => AssociationFormState::filters($request),
-        ]);
+        // Load the whole screen within one short read scope, not one transaction per dropdown.
+        return $this->read($request, function () use ($filters, $state, $summaryKey) {
+            $data = app(AssociationDatabase::class)->run(fn () => [
+                'associations' => $this->service->paginate($filters), 'summary' => $this->service->summary(),
+                'summaryRecords' => $summaryKey ? $this->service->summaryRecords($summaryKey)
+                    ->appends([...$state, 'summary' => $summaryKey])->fragment('association-card-details') : null,
+                ...$this->service->formOptions(),
+            ]);
+
+            return view('admin-pages.admin-association-management.index', [
+                ...$data, 'filters' => $filters, 'listState' => $state, 'summaryKey' => $summaryKey,
+                'cardLabels' => AssociationManagementService::REGISTER_CARDS,
+                'cardCloseUrl' => route('admin.associations.index', $state),
+            ])->render();
+        });
     }
 
-    public function show(Request $request, Association $association): mixed
+    public function show(AssociationShowRequest $request, Association $association): mixed
     {
         $this->authorizeAction($request, 'view', $association);
         $state = AssociationFormState::filters($request);
-        $data = app(AssociationDatabase::class)->run(fn () => [
-            'association' => $this->service->findDetailed($association),
-            'eligibleRepresentatives' => $this->service->eligibleRepresentatives($association),
-        ]);
+        $relatedKey = $request->validated('related');
 
-        return view('admin-pages.admin-association-management.show', [
-            ...$data, 'backToListUrl' => route('admin.associations.index', $state),
-            'representativeActionUrl' => route('admin.associations.representative', ['association' => $association, ...$state]),
-        ]);
+        return $this->read($request, function () use ($association, $state, $relatedKey) {
+            $data = app(AssociationDatabase::class)->run(fn () => [
+                'association' => $this->service->findDetailed($association),
+                'eligibleRepresentatives' => $this->service->eligibleRepresentatives($association),
+                'relatedRecords' => $relatedKey ? $this->service->relatedRecords($association, $relatedKey)
+                    ->appends([...$state, 'related' => $relatedKey])->fragment('association-card-details') : null,
+            ]);
+
+            return view('admin-pages.admin-association-management.show', [
+                ...$data, 'listState' => $state, 'relatedKey' => $relatedKey,
+                'cardLabels' => AssociationManagementService::DETAIL_CARDS,
+                'cardCloseUrl' => route('admin.associations.show', ['association' => $association, ...$state]),
+                'backToListUrl' => route('admin.associations.index', $state),
+                'representativeActionUrl' => route('admin.associations.representative', ['association' => $association, ...$state]),
+            ])->render();
+        });
     }
 
     public function store(StoreAssociationRequest $request): mixed
@@ -88,6 +107,21 @@ final class AssociationManagementController extends Controller
         $value = $request->validated('representative_member_id');
 
         return $this->mutate($request, fn () => $this->service->assignRepresentative($association, $value === null ? null : (int) $value, $this->actorId($request)), 'Representative selection saved. A newly appointed representative needs a private review passphrase provisioned from their member record.');
+    }
+
+    private function read(Request $request, \Closure $operation): mixed
+    {
+        try {
+            return $operation();
+        } catch (Throwable $error) {
+            // Card/database/render failures use the same safe response as writes.
+            // Never replace a failed query with an empty card that looks successful.
+            $response = AssociationErrors::render($error, $request);
+            if ($response !== null) {
+                return $response;
+            }
+            throw $error; // Keep validation, authorization and 404 semantics intact.
+        }
     }
 
     private function mutate(Request $request, \Closure $operation, string $message): mixed

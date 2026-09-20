@@ -23,7 +23,7 @@
     - Operational status and archive state are displayed separately.
 --}}
 
-<x-dashboard-layout :title="$association->name">
+<x-dashboard-layout :title="$association->name" topbar-title="Association Management">
 <div data-association-page data-records-url="{{ route('admin.associations.index') }}">
 
     @php
@@ -31,32 +31,38 @@
 
         /*
          * These cards display calculated counts from related tables.
-         * The values are produced through Eloquent loadCount() in the
+         * The values are produced through Eloquent withCount() in the
          * Association Management service.
          */
 
         $summaryCards = [
             [
+                'key' => 'members',
                 'label' => 'Official members',
                 'value' => $association->members_count ?? 0,
             ],
             [
+                'key' => 'applications',
                 'label' => 'Pending applications',
                 'value' => $association->pending_applications_count ?? 0,
             ],
             [
+                'key' => 'projects',
                 'label' => 'Projects',
                 'value' => $association->projects_count ?? 0,
             ],
             [
+                'key' => 'trainings',
                 'label' => 'Trainings',
                 'value' => $association->trainings_count ?? 0,
             ],
             [
+                'key' => 'gis',
                 'label' => 'GIS locations',
                 'value' => $association->gis_locations_count ?? 0,
             ],
             [
+                'key' => 'published_gis',
                 'label' => 'Published GIS',
                 'value' => $association->published_gis_locations_count ?? 0,
             ],
@@ -121,16 +127,12 @@
             ],
         ];
 
-        /*
-         * These are informational placeholders for modules connected to
-         * an association. They can later be replaced with actual links
-         * when their routes and pages are implemented.
-         */
+        // Related cards open scoped records even when a standalone module is not yet available.
         
 
     @endphp
 
-    <div class="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div class="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
 
         {{-- ============================================================
              PAGE HEADER
@@ -252,7 +254,8 @@
             aria-label="Related record counts"
         >
             @foreach ($summaryCards as $card)
-                <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <a id="association-card-{{ $card['key'] }}" href="{{ route('admin.associations.show', ['association' => $association, ...$listState, 'related' => $card['key']]) }}#association-card-details"
+                   class="am-association-card rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md" aria-haspopup="dialog" aria-label="{{ $card['label'] }}: {{ $card['value'] }}. View matching records.">
                     <p class="text-xs font-medium text-slate-500">
                         {{ $card['label'] }}
                     </p>
@@ -260,9 +263,14 @@
                     <p class="mt-2 text-2xl font-bold tabular-nums text-slate-900">
                         {{ $card['value'] }}
                     </p>
-                </article>
+                <span class="mt-2 block text-xs text-slate-500">View records</span>
+                </a>
             @endforeach
         </section>
+
+        @if($relatedRecords)
+            @include('admin-pages.admin-association-management.partials.card-details')
+        @endif
 
         {{-- ============================================================
              MAIN CONTENT

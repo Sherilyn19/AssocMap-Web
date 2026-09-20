@@ -467,3 +467,16 @@
     .management-spinner { animation: none; }
     .management-context-title, :is([data-member-management-page], [data-pm-page]) :is(a, button) { transition: none; }
 }
+
+/* Association controls follow the Member/Project register sizing and focus rules. */
+@layer components {
+    .am-association-action { @apply inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100; }
+    .am-association-primary { @apply inline-flex min-h-11 items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50; }
+    :is([data-association-page], .am-association-dialog) :is(a, button, input, select, textarea, summary):focus-visible { @apply outline outline-2 outline-offset-2 outline-slate-500; }
+    .am-association-dialog { max-height: 90dvh; overflow-y: auto; }
+    .am-association-dialog[open] { animation: management-enter 180ms ease-out; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .am-association-dialog[open] { animation: none; }
+    [data-association-page] :is(a, button) { transition: none; transform: none; }
+}
