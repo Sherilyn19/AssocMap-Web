@@ -73,12 +73,14 @@ Route::middleware('assocmap.auth:System Administrator')
         Route::get('/municipalities/{areaUnit}', [AreaManagementController::class, 'showMunicipality'])->name('municipalities.show');
         Route::post('/municipalities', [AreaManagementController::class, 'storeMunicipality'])->name('municipalities.store');
         Route::put('/municipalities/{areaUnit}', [AreaManagementController::class, 'updateMunicipality'])->name('municipalities.update');
-        Route::patch('/municipalities/{areaUnit}/toggle-archive', [AreaManagementController::class, 'toggleArchiveMunicipality'])->name('municipalities.toggle-archive');
+        Route::patch('/municipalities/{areaUnit}/archive', [AreaManagementController::class, 'archiveMunicipality'])->name('municipalities.archive');
+        Route::patch('/municipalities/{areaUnit}/restore', [AreaManagementController::class, 'restoreMunicipality'])->name('municipalities.restore');
 
         Route::get('/barangays/{subUnit}', [AreaManagementController::class, 'showBarangay'])->name('barangays.show');
         Route::post('/barangays', [AreaManagementController::class, 'storeBarangay'])->name('barangays.store');
         Route::put('/barangays/{subUnit}', [AreaManagementController::class, 'updateBarangay'])->name('barangays.update');
-        Route::patch('/barangays/{subUnit}/toggle-archive', [AreaManagementController::class, 'toggleArchiveBarangay'])->name('barangays.toggle-archive');
+        Route::patch('/barangays/{subUnit}/archive', [AreaManagementController::class, 'archiveBarangay'])->name('barangays.archive');
+        Route::patch('/barangays/{subUnit}/restore', [AreaManagementController::class, 'restoreBarangay'])->name('barangays.restore');
     });
 // AREA-MANAGEMENT-ROUTES-END
 

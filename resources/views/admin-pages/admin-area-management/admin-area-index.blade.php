@@ -4,19 +4,34 @@
 --}}
 
 <x-dashboard-layout title="Area Management">
+<div data-area-management-page data-management-register>
+    {{-- Defense: each failed form owns its own error bag and draft; the other form remains clean. --}}
+    @php
+        $recovery = in_array(old("_area_form"), ["municipality", "barangay"], true) ? [
+            "entity" => old("_area_form"), "id" => old("_area_id"),
+            "name" => is_string(old("name")) ? old("name") : "",
+            "address" => is_string(old("address")) ? old("address") : "",
+            "area_unit_id" => is_scalar(old("area_unit_id")) ? old("area_unit_id") : "",
+        ] : null;
+    @endphp
+    <div id="am-form-recovery" data-recovery='@json($recovery)'></div>
 
     @if (session('success'))
         <div id="am-toast" class="fixed top-5 right-5 z-[60] rounded-lg bg-green-600 px-4 py-3 text-sm font-medium text-white shadow-lg">
             {{ session('success') }}
         </div>
     @elseif (session('error'))
-        <div id="am-toast" class="fixed top-5 right-5 z-[60] rounded-lg bg-red-600 px-4 py-3 text-sm font-medium text-white shadow-lg">
+        <div role="alert" class="mb-4 rounded-lg bg-red-600 px-4 py-3 text-sm font-medium text-white shadow-lg">
             {{ session('error') }}
         </div>
     @endif
 
+    @if ($errors->getBag('default')->any())
+        <div role="alert" class="mb-4 rounded-lg bg-red-50 p-4 text-red-700">{{ $errors->getBag('default')->first() }}</div>
+    @endif
+
     <section class="mb-6 flex flex-col gap-2">
-        <h2 class="text-2xl font-bold text-assocmap-text sm:text-3xl">Area Management</h2>
+        <h1 class="text-2xl font-bold text-assocmap-text sm:text-3xl">Area Management</h1>
         <p class="max-w-3xl text-sm leading-6 text-assocmap-secondary">
             Manage municipalities and barangays used as the geographic reference layer for association registration,
             GIS filtering, monitoring reports, and coverage validation.
@@ -27,33 +42,37 @@
         $summaryCards = [
             [
                 'key' => 'municipalities',
+                'url' => route('areas.index', ['tab' => 'municipalities']),
                 'label' => 'Total Municipalities',
                 'value' => $summary['total_municipalities'],
-                'note' => $summary['active_municipalities'] . ' active ' . $summary['archived_municipalities'] . ' archived',
+                'note' => $summary['active_municipalities'] . ' current · ' . $summary['archived_municipalities'] . ' archived',
                 'icon' => 'M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21ZM12 12.3a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z',
                 'tone' => 'bg-green-50 text-green-700',
             ],
             [
                 'key' => 'associations',
-                'label' => 'Total Associations',
+                'url' => route('admin.associations.index', ['archive_state' => 'current']),
+                'label' => 'Current Associations',
                 'value' => $summary['total_associations'],
-                'note' => 'Active association references',
+                'note' => 'Includes operationally Active and Inactive records',
                 'icon' => 'M4 21V10l8-6 8 6v11M9 21v-6h6v6',
                 'tone' => 'bg-blue-50 text-blue-700',
             ],
             [
                 'key' => 'barangays',
-                'label' => 'Covered Barangays',
-                'value' => $summary['active_barangays'] . '+',
+                'url' => route('areas.index', ['tab' => 'barangays', 'brgy_status' => 'active']),
+                'label' => 'Current Barangays',
+                'value' => $summary['active_barangays'],
                 'note' => $summary['total_barangays'] . ' total records',
                 'icon' => 'M12 11.4a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8ZM4.5 20c0-4.1 3.4-7 7.5-7s7.5 2.9 7.5 7',
                 'tone' => 'bg-teal-50 text-teal-700',
             ],
             [
                 'key' => 'coverage',
-                'label' => 'Total Coastline',
-                'value' => $summary['coverage_label'],
-                'note' => 'SAAD Phase II coverage grouping',
+                'url' => route('areas.index', ['tab' => 'barangays', 'brgy_status' => 'archived']),
+                'label' => 'Archived Barangays',
+                'value' => $summary['archived_barangays'],
+                'note' => 'Historical reference records',
                 'icon' => 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20ZM2 12h20M12 2c3 3 4.5 6.3 4.5 10S15 19 12 22M12 2C9 5 7.5 8.3 7.5 12S9 19 12 22',
                 'tone' => 'bg-orange-50 text-orange-700',
             ],
@@ -62,7 +81,7 @@
 
     <section class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         @foreach ($summaryCards as $card)
-            <button type="button" data-am-summary-card="{{ $card['key'] }}"
+            <a href="{{ $card['url'] }}" data-am-summary-card="{{ $card['key'] }}"
                     class="rounded-xl border border-assocmap-border bg-white p-5 text-left shadow-card transition hover:-translate-y-0.5 hover:border-assocmap-primary/40 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-assocmap-primary/30">
                 <div class="flex items-center gap-4">
                     <div class="flex h-12 w-12 items-center justify-center rounded-xl {{ $card['tone'] }}">
@@ -76,59 +95,52 @@
                     </div>
                 </div>
                 <p class="mt-3 text-xs text-assocmap-secondary">{{ $card['note'] }}</p>
-            </button>
+            </a>
         @endforeach
     </section>
 
-    <section class="mb-6 space-y-2">
-        <div data-am-summary-panel="municipalities" class="hidden rounded-xl border border-assocmap-border bg-white p-4 text-sm text-assocmap-secondary shadow-card">
-            Municipality records are the parent geographic units. Barangays cannot be created without a selected municipality.
-        </div>
-        <div data-am-summary-panel="associations" class="hidden rounded-xl border border-assocmap-border bg-white p-4 text-sm text-assocmap-secondary shadow-card">
-            Association counts are read from the associations table when available. This keeps the Area module ready for the Association Management module.
-        </div>
-        <div data-am-summary-panel="barangays" class="hidden rounded-xl border border-assocmap-border bg-white p-4 text-sm text-assocmap-secondary shadow-card">
-            Barangay coverage supports more precise association registration, filtering, and future GIS reports.
-        </div>
-        <div data-am-summary-panel="coverage" class="hidden rounded-xl border border-assocmap-border bg-white p-4 text-sm text-assocmap-secondary shadow-card">
-            The coverage label communicates the BFAR-SAAD Cebu coastline grouping shown in the area prototype.
-        </div>
-    </section>
+    <p class="mb-6 text-xs text-assocmap-secondary">Summary totals include all records, independent of the list filters. Select a card to open its matching records.</p>
 
-    <div class="mb-6 inline-flex gap-1 rounded-xl border border-assocmap-border bg-white p-1 shadow-card" role="tablist">
-        <button type="button" data-am-tab="municipalities" aria-selected="true"
+    <div class="mb-6 inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-assocmap-border bg-white p-1 shadow-card" role="tablist" aria-label="Area registers">
+        <button type="button" id="am-tab-municipalities" role="tab" aria-controls="am-panel-municipalities" data-am-tab="municipalities" aria-selected="true"
                 class="rounded-lg bg-assocmap-primary px-4 py-2 text-sm font-semibold text-white">
             Municipalities
         </button>
-        <button type="button" data-am-tab="barangays" aria-selected="false"
+        <button type="button" id="am-tab-barangays" role="tab" aria-controls="am-panel-barangays" data-am-tab="barangays" aria-selected="false"
                 class="rounded-lg px-4 py-2 text-sm font-semibold text-assocmap-text hover:bg-assocmap-bg">
             Barangays
         </button>
     </div>
 
     {{-- ================= MUNICIPALITIES PANEL ================= --}}
-    <section data-am-tab-panel="municipalities">
+    <section id="am-panel-municipalities" role="tabpanel" aria-labelledby="am-tab-municipalities" data-am-tab-panel="municipalities">
 
-        <form method="GET" action="{{ route('areas.index') }}" class="mb-6 rounded-xl border border-assocmap-border bg-white p-4 shadow-card">
+        <form data-area-filters="municipalities" method="GET" action="{{ route('areas.index') }}" class="mb-6 rounded-xl border border-assocmap-border bg-white p-4 shadow-card">
+            {{-- Defense: GET forms omit page numbers, so applying filters or a new
+                 shared page size starts on page one. Pagination links retain validated filters. --}}
+            <input type="hidden" name="tab" value="municipalities">
+            @foreach (['brgy_search', 'brgy_status', 'brgy_sort', 'area_unit_id'] as $key)
+                <input type="hidden" name="{{ $key }}" value="{{ $filters[$key] ?? '' }}">
+            @endforeach
             <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div>
-                    <label class="text-xs font-medium text-assocmap-secondary">Search</label>
-                    <input type="text" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="Search municipality or address..."
+                    <label for="area-filter-search" class="text-xs font-medium text-assocmap-secondary">Search</label>
+                    <input type="text" id="area-filter-search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="Search municipality or address..."
                            class="mt-1 w-full rounded-lg border border-assocmap-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-assocmap-primary">
                 </div>
                 <div>
-                    <label class="text-xs font-medium text-assocmap-secondary">Status</label>
-                    <select name="status" class="mt-1 w-full rounded-lg border border-assocmap-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-assocmap-primary">
+                    <label for="area-filter-status" class="text-xs font-medium text-assocmap-secondary">Status</label>
+                    <select id="area-filter-status" name="status" class="mt-1 w-full rounded-lg border border-assocmap-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-assocmap-primary">
                         <option value="">All Statuses</option>
-                        <option value="active" @selected(($filters['status'] ?? '') === 'active')>Active</option>
+                        <option value="active" @selected(($filters['status'] ?? '') === 'active')>Current</option>
                         <option value="archived" @selected(($filters['status'] ?? '') === 'archived')>Archived</option>
                     </select>
                 </div>
                 <div>
-                    <label class="text-xs font-medium text-assocmap-secondary">Sort By</label>
-                    <select name="muni_sort" class="mt-1 w-full rounded-lg border border-assocmap-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-assocmap-primary">
+                    <label for="area-filter-muni_sort" class="text-xs font-medium text-assocmap-secondary">Sort By</label>
+                    <select id="area-filter-muni_sort" name="muni_sort" class="mt-1 w-full rounded-lg border border-assocmap-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-assocmap-primary">
                         <option value="name" @selected(($filters['muni_sort'] ?? 'name') === 'name')>Name</option>
-                        <option value="created_at" @selected(($filters['muni_sort'] ?? '') === 'created_at')>Date Created</option>
+                        <option value="created_at" @selected(($filters['muni_sort'] ?? '') === 'created_at')>Newest Created</option>
                         <option value="updated_at" @selected(($filters['muni_sort'] ?? '') === 'updated_at')>Recently Updated</option>
                     </select>
                 </div>
@@ -139,7 +151,7 @@
                     <button type="submit" class="rounded-lg bg-assocmap-primary px-4 py-2 text-sm font-semibold text-white hover:bg-assocmap-hover">
                         Apply
                     </button>
-                    <a href="{{ route('areas.index') }}" class="rounded-lg border border-assocmap-border px-4 py-2 text-sm font-semibold text-assocmap-text hover:bg-assocmap-bg">
+                    <a href="{{ route('areas.index', array_merge(\Illuminate\Support\Arr::only($filters, ['brgy_search', 'brgy_status', 'brgy_sort', 'area_unit_id', 'brgy_page', 'per_page']), ['tab' => 'municipalities'])) }}" class="rounded-lg border border-assocmap-border px-4 py-2 text-sm font-semibold text-assocmap-text hover:bg-assocmap-bg">
                         Reset
                     </a>
                 </div>
@@ -148,9 +160,16 @@
                     + Add Municipality
                 </button>
             </div>
-        </form>
 
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-assocmap-secondary">
+                <label for="municipalities-per-page">Rows per page</label>
+                <select id="municipalities-per-page" name="per_page" class="rounded border border-assocmap-border p-1">@foreach ([12, 24, 48] as $size)<option value="{{ $size }}" @selected(($filters['per_page'] ?? 12) == $size)>{{ $size }}</option>@endforeach</select>
+                <span>Showing {{ $municipalities->firstItem() ?? 0 }}–{{ $municipalities->lastItem() ?? 0 }} of {{ $municipalities->total() }} matching records</span>
+            </div>
+</form>
+
+        @include('admin-pages.admin-area-management.filter-chips', ['tab' => 'municipalities'])
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
             @forelse ($municipalities as $muni)
                 @php
                     $muniPayload = [
@@ -161,16 +180,19 @@
                     ];
                 @endphp
 
-                <article role="button" tabindex="0" aria-expanded="false" data-area-card="municipality-detail-{{ $muni->id }}"
-                         class="am-area-card">
+                {{-- Defense: keep separate native buttons for expansion and actions;
+                     a button-like article would hide or confuse its nested controls. --}}
+                <article data-area-card="municipality-detail-{{ $muni->id }}"
+                         aria-labelledby="municipality-name-{{ $muni->id }}" class="am-area-card">
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <h3 class="truncate text-base font-bold text-[#0A3D7A]">{{ $muni->name }}</h3>
+                            <h3 id="municipality-name-{{ $muni->id }}" class="am-area-name text-base font-bold text-[#0A3D7A]">{{ $muni->name }}</h3>
+                            <span class="text-xs font-semibold {{ $muni->is_archived ? 'text-gray-600' : 'text-green-700' }}">{{ $muni->is_archived ? 'Archived' : 'Current' }}</span>
                             <p class="mt-3 flex items-start gap-1.5 text-sm text-assocmap-secondary">
                                 <svg class="mt-0.5 h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                     <path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z"/><path d="M12 12.3a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z"/>
                                 </svg>
-                                <span>{{ $muni->address ?: 'Cebu Province coverage area' }}</span>
+                                <span>{{ $muni->address ?: 'No address on file' }}</span>
                             </p>
                         </div>
 
@@ -183,9 +205,14 @@
                         <svg class="mt-0.5 h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                             <path d="M4 21V10l8-6 8 6v11"/><path d="M9 21v-6h6v6"/>
                         </svg>
-                        <span>Barangays: {{ $muni->barangay_count }} active - {{ $muni->total_barangay_count }} total</span>
+                        <span>Barangays: {{ $muni->barangay_count }} current · {{ $muni->total_barangay_count }} total</span>
                     </p>
 
+                    <button type="button" data-area-card-toggle aria-expanded="false"
+                            aria-controls="municipality-detail-{{ $muni->id }}"
+                            class="mt-3 rounded-md border border-assocmap-border px-3 py-2 text-xs font-semibold">
+                        <span data-area-card-toggle-label>Show summary</span><span class="sr-only"> for {{ $muni->name }}</span>
+                    </button>
                     <div id="municipality-detail-{{ $muni->id }}" class="am-area-card__details hidden">
                         <dl class="grid grid-cols-2 gap-3 text-xs">
                             <div>
@@ -195,23 +222,23 @@
                             <div>
                                 <dt class="text-assocmap-secondary">Status</dt>
                                 <dd class="mt-1 font-semibold {{ $muni->is_archived ? 'text-gray-600' : 'text-green-700' }}">
-                                    {{ $muni->is_archived ? 'Archived' : 'Active' }}
+                                    {{ $muni->is_archived ? 'Archived' : 'Current' }}
                                 </dd>
                             </div>
                             <div>
                                 <dt class="text-assocmap-secondary">Created</dt>
-                                <dd class="mt-1 font-semibold text-assocmap-text">{{ $muni->created_at->format('d M Y') }}</dd>
+                                <dd class="mt-1 font-semibold text-assocmap-text">{{ $muni->created_at?->format('d M Y') }}</dd>
                             </div>
                             <div>
                                 <dt class="text-assocmap-secondary">Updated</dt>
-                                <dd class="mt-1 font-semibold text-assocmap-text">{{ $muni->updated_at->format('d M Y') }}</dd>
+                                <dd class="mt-1 font-semibold text-assocmap-text">{{ $muni->updated_at?->format('d M Y') }}</dd>
                             </div>
                         </dl>
-                        <p class="mt-3 text-[11px] text-assocmap-secondary">Use View for complete barangay coverage and association count details.</p>
+                        <p class="mt-3 text-[11px] text-assocmap-secondary">Use View for barangay records and current association counts.</p>
                     </div>
 
                     <div class="mt-4 flex flex-wrap gap-2" data-prevent-card-toggle>
-                        <button type="button" data-area-view-url="{{ route('areas.municipalities.show', $muni->id) }}"
+                        <button type="button" aria-label="View municipality {{ $muni->name }}" data-area-view-url="{{ route('areas.municipalities.show', $muni->id) }}"
                                 class="inline-flex items-center gap-1.5 rounded-md border border-assocmap-border bg-white px-3 py-1.5 text-xs font-semibold text-assocmap-text hover:bg-assocmap-bg">
                             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
@@ -219,12 +246,12 @@
                             View
                         </button>
 
-                        <button type="button" data-municipality-modal-open="edit" data-municipality='@json($muniPayload)'
+                        <button type="button" aria-label="Edit municipality {{ $muni->name }}" @disabled($muni->is_archived) title="{{ $muni->is_archived ? 'Restore before editing' : 'Edit municipality' }}" data-municipality-modal-open="edit" data-municipality='@json($muniPayload)'
                                 class="inline-flex items-center gap-1.5 rounded-md border border-assocmap-border bg-white px-3 py-1.5 text-xs font-semibold text-assocmap-text hover:bg-assocmap-bg">
                             Edit
                         </button>
 
-                        <form id="muni-toggle-form-{{ $muni->id }}" action="{{ route('areas.municipalities.toggle-archive', $muni->id) }}" method="POST" class="hidden">
+                        <form id="muni-toggle-form-{{ $muni->id }}" action="{{ route('areas.municipalities.' . ($muni->is_archived ? 'restore' : 'archive'), $muni->id) }}" method="POST" class="hidden">
                             @csrf
                             @method('PATCH')
                         </form>
@@ -232,7 +259,7 @@
                                 data-confirm-open
                                 data-confirm-target="muni-toggle-form-{{ $muni->id }}"
                                 data-confirm-title="{{ $muni->is_archived ? 'Restore Municipality?' : 'Archive Municipality?' }}"
-                                data-confirm-message="{{ $muni->is_archived ? 'This municipality will become active again.' : 'This municipality will be archived. It cannot be archived if active barangays or associations still reference it.' }}"
+                                data-confirm-message="{{ $muni->is_archived ? 'This municipality will become current again.' : 'This municipality will be archived. It cannot be archived if current barangays or associations still reference it.' }}"
                                 data-confirm-label="{{ $muni->is_archived ? 'Restore' : 'Archive' }}"
                                 class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold {{ $muni->is_archived ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-red-50 text-red-700 hover:bg-red-100' }}">
                             {{ $muni->is_archived ? 'Restore' : 'Archive' }}
@@ -252,41 +279,46 @@
             @endforelse
         </div>
 
-        <div class="mt-5">{{ $municipalities->links() }}</div>
+        <div class="am-area-pagination mt-5">{{ $municipalities->links() }}</div>
     </section>
 
     {{-- ================= BARANGAYS PANEL ================= --}}
-    <section data-am-tab-panel="barangays" class="hidden">
+    <section id="am-panel-barangays" role="tabpanel" aria-labelledby="am-tab-barangays" data-am-tab-panel="barangays" class="hidden">
 
-        <form method="GET" action="{{ route('areas.index') }}" class="mb-6 rounded-xl border border-assocmap-border bg-white p-4 shadow-card">
+        <form data-area-filters="barangays" method="GET" action="{{ route('areas.index') }}" class="mb-6 rounded-xl border border-assocmap-border bg-white p-4 shadow-card">
+            <input type="hidden" name="tab" value="barangays">
+            @foreach (['search', 'status', 'muni_sort'] as $key)
+                <input type="hidden" name="{{ $key }}" value="{{ $filters[$key] ?? '' }}">
+            @endforeach
             <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
                 <div>
-                    <label class="text-xs font-medium text-assocmap-secondary">Search</label>
-                    <input type="text" name="brgy_search" value="{{ $filters['brgy_search'] ?? '' }}" placeholder="Search barangay..."
+                    <label for="area-filter-brgy_search" class="text-xs font-medium text-assocmap-secondary">Search</label>
+                    <input type="text" id="area-filter-brgy_search" name="brgy_search" value="{{ $filters['brgy_search'] ?? '' }}" placeholder="Search barangay..."
                            class="mt-1 w-full rounded-lg border border-assocmap-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-assocmap-primary">
                 </div>
                 <div>
-                    <label class="text-xs font-medium text-assocmap-secondary">Municipality</label>
-                    <select name="area_unit_id" class="mt-1 w-full rounded-lg border border-assocmap-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-assocmap-primary">
+                    <label for="area-filter-area_unit_id" class="text-xs font-medium text-assocmap-secondary">Municipality</label>
+                    <select id="area-filter-area_unit_id" name="area_unit_id" aria-describedby="area-filter-parent-preview" class="mt-1 w-full rounded-lg border border-assocmap-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-assocmap-primary">
                         <option value="">All Municipalities</option>
-                        @foreach ($activeMunicipalities as $muniOption)
-                            <option value="{{ $muniOption->id }}" @selected(($filters['area_unit_id'] ?? '') == $muniOption->id)>{{ $muniOption->name }}</option>
+                        @foreach ($filterMunicipalities as $muniOption)
+                            <option value="{{ $muniOption->id }}" @selected(($filters['area_unit_id'] ?? '') == $muniOption->id)>{{ $muniOption->name }}{{ $muniOption->is_archived ? ' (Archived)' : '' }}</option>
                         @endforeach
                     </select>
+                    <p id="area-filter-parent-preview" data-area-value-preview="area-filter-area_unit_id" hidden class="am-area-name mt-1 text-xs text-assocmap-secondary"></p>
                 </div>
                 <div>
-                    <label class="text-xs font-medium text-assocmap-secondary">Status</label>
-                    <select name="brgy_status" class="mt-1 w-full rounded-lg border border-assocmap-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-assocmap-primary">
+                    <label for="area-filter-brgy_status" class="text-xs font-medium text-assocmap-secondary">Status</label>
+                    <select id="area-filter-brgy_status" name="brgy_status" class="mt-1 w-full rounded-lg border border-assocmap-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-assocmap-primary">
                         <option value="">All Statuses</option>
-                        <option value="active" @selected(($filters['brgy_status'] ?? '') === 'active')>Active</option>
+                        <option value="active" @selected(($filters['brgy_status'] ?? '') === 'active')>Current</option>
                         <option value="archived" @selected(($filters['brgy_status'] ?? '') === 'archived')>Archived</option>
                     </select>
                 </div>
                 <div>
-                    <label class="text-xs font-medium text-assocmap-secondary">Sort By</label>
-                    <select name="brgy_sort" class="mt-1 w-full rounded-lg border border-assocmap-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-assocmap-primary">
+                    <label for="area-filter-brgy_sort" class="text-xs font-medium text-assocmap-secondary">Sort By</label>
+                    <select id="area-filter-brgy_sort" name="brgy_sort" class="mt-1 w-full rounded-lg border border-assocmap-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-assocmap-primary">
                         <option value="name" @selected(($filters['brgy_sort'] ?? 'name') === 'name')>Name</option>
-                        <option value="created_at" @selected(($filters['brgy_sort'] ?? '') === 'created_at')>Date Created</option>
+                        <option value="created_at" @selected(($filters['brgy_sort'] ?? '') === 'created_at')>Newest Created</option>
                         <option value="updated_at" @selected(($filters['brgy_sort'] ?? '') === 'updated_at')>Recently Updated</option>
                     </select>
                 </div>
@@ -297,7 +329,7 @@
                     <button type="submit" class="rounded-lg bg-assocmap-primary px-4 py-2 text-sm font-semibold text-white hover:bg-assocmap-hover">
                         Apply
                     </button>
-                    <a href="{{ route('areas.index') }}" class="rounded-lg border border-assocmap-border px-4 py-2 text-sm font-semibold text-assocmap-text hover:bg-assocmap-bg">
+                    <a href="{{ route('areas.index', array_merge(\Illuminate\Support\Arr::only($filters, ['search', 'status', 'muni_sort', 'muni_page', 'per_page']), ['tab' => 'barangays'])) }}" class="rounded-lg border border-assocmap-border px-4 py-2 text-sm font-semibold text-assocmap-text hover:bg-assocmap-bg">
                         Reset
                     </a>
                 </div>
@@ -306,10 +338,18 @@
                     + Add Barangay
                 </button>
             </div>
-        </form>
 
+            <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-assocmap-secondary">
+                <label for="barangays-per-page">Rows per page</label>
+                <select id="barangays-per-page" name="per_page" class="rounded border border-assocmap-border p-1">@foreach ([12, 24, 48] as $size)<option value="{{ $size }}" @selected(($filters['per_page'] ?? 12) == $size)>{{ $size }}</option>@endforeach</select>
+                <span>Showing {{ $barangays->firstItem() ?? 0 }}–{{ $barangays->lastItem() ?? 0 }} of {{ $barangays->total() }} matching records</span>
+            </div>
+</form>
+
+        @include('admin-pages.admin-area-management.filter-chips', ['tab' => 'barangays'])
         <div class="hidden overflow-x-auto rounded-xl border border-assocmap-border bg-white shadow-card md:block">
-            <table class="min-w-full divide-y divide-assocmap-border text-sm">
+            <table class="am-area-table min-w-full divide-y divide-assocmap-border text-sm">
+                <caption class="sr-only">Barangay records matching the selected filters</caption>
                 <thead class="bg-assocmap-bg">
                     <tr>
                         <th class="px-4 py-3 text-left font-semibold text-assocmap-text">Barangay</th>
@@ -337,20 +377,20 @@
                                 @if ($brgy->is_archived)
                                     <span class="inline-flex rounded-full bg-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600">Archived</span>
                                 @else
-                                    <span class="inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">Active</span>
+                                    <span class="inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">Current</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-assocmap-secondary">{{ $brgy->created_at->format('d M Y') }}</td>
+                            <td class="px-4 py-3 text-assocmap-secondary">{{ $brgy->created_at?->format('d M Y') }}</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="relative inline-block text-left" data-am-dropdown>
-                                    <button type="button" data-am-dropdown-toggle
+                                    <button type="button" data-am-dropdown-toggle aria-label="Actions for {{ $brgy->name }}" aria-expanded="false" aria-controls="barangay-actions-{{ $brgy->id }}"
                                             class="rounded-md border border-assocmap-border p-1.5 text-assocmap-text hover:bg-assocmap-bg">
                                         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                                             <circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/>
                                         </svg>
                                     </button>
 
-                                    <div data-am-dropdown-menu
+                                    <div data-am-dropdown-menu id="barangay-actions-{{ $brgy->id }}"
                                          class="absolute right-0 z-10 mt-1 hidden w-44 rounded-lg border border-assocmap-border bg-white py-1 shadow-lg">
                                         <button type="button"
                                                 data-brgy-view-url="{{ route('areas.barangays.show', $brgy->id) }}"
@@ -358,13 +398,13 @@
                                             View Details
                                         </button>
                                         <button type="button"
-                                                data-barangay-modal-open="edit"
+                                                @disabled($brgy->is_archived) title="{{ $brgy->is_archived ? 'Restore before editing' : 'Edit barangay' }}" data-barangay-modal-open="edit"
                                                 data-barangay='@json($brgyPayload)'
                                                 class="block w-full px-3 py-2 text-left text-xs font-medium text-assocmap-text hover:bg-assocmap-bg">
                                             Edit
                                         </button>
 
-                                        <form id="brgy-toggle-form-{{ $brgy->id }}" action="{{ route('areas.barangays.toggle-archive', $brgy->id) }}" method="POST" class="hidden">
+                                        <form id="brgy-toggle-form-{{ $brgy->id }}" action="{{ route('areas.barangays.' . ($brgy->is_archived ? 'restore' : 'archive'), $brgy->id) }}" method="POST" class="hidden">
                                             @csrf
                                             @method('PATCH')
                                         </form>
@@ -372,7 +412,7 @@
                                                 data-confirm-open
                                                 data-confirm-target="brgy-toggle-form-{{ $brgy->id }}"
                                                 data-confirm-title="{{ $brgy->is_archived ? 'Restore Barangay?' : 'Archive Barangay?' }}"
-                                                data-confirm-message="{{ $brgy->is_archived ? 'This barangay will become active again.' : 'This barangay will be archived. It cannot be archived if associations still reference it.' }}"
+                                                data-confirm-message="{{ $brgy->is_archived ? 'This barangay will become current again.' : 'This barangay will be archived. Current association references must be resolved first.' }}"
                                                 data-confirm-label="{{ $brgy->is_archived ? 'Restore' : 'Archive' }}"
                                                 class="block w-full px-3 py-2 text-left text-xs font-medium {{ $brgy->is_archived ? 'text-green-600' : 'text-red-600' }} hover:bg-assocmap-bg">
                                             {{ $brgy->is_archived ? 'Restore' : 'Archive' }}
@@ -403,26 +443,26 @@
                 @endphp
                 <div class="rounded-xl border border-assocmap-border bg-white p-4 shadow-card">
                     <div class="flex items-start justify-between gap-3">
-                        <div>
+                        <div class="min-w-0">
                             <p class="font-medium text-assocmap-text">{{ $brgy->name }}</p>
                             <p class="text-xs text-assocmap-secondary">{{ $brgy->area_unit_name }} - {{ (int) ($brgy->association_count ?? 0) }} assoc.</p>
                         </div>
                         @if ($brgy->is_archived)
                             <span class="inline-flex flex-shrink-0 rounded-full bg-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600">Archived</span>
                         @else
-                            <span class="inline-flex flex-shrink-0 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">Active</span>
+                            <span class="inline-flex flex-shrink-0 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">Current</span>
                         @endif
                     </div>
                     <div class="mt-3 flex flex-wrap gap-2">
-                        <button type="button" data-brgy-view-url="{{ route('areas.barangays.show', $brgy->id) }}"
+                        <button type="button" aria-label="View barangay {{ $brgy->name }}" data-brgy-view-url="{{ route('areas.barangays.show', $brgy->id) }}"
                                 class="flex-1 rounded-md border border-assocmap-border px-3 py-1.5 text-xs font-semibold text-assocmap-text">
                             View
                         </button>
-                        <button type="button" data-barangay-modal-open="edit" data-barangay='@json($brgyPayloadMobile)'
+                        <button type="button" aria-label="Edit barangay {{ $brgy->name }}" @disabled($brgy->is_archived) title="{{ $brgy->is_archived ? 'Restore before editing' : 'Edit barangay' }}" data-barangay-modal-open="edit" data-barangay='@json($brgyPayloadMobile)'
                                 class="flex-1 rounded-md border border-assocmap-border px-3 py-1.5 text-xs font-semibold text-assocmap-text">
                             Edit
                         </button>
-                        <form id="brgy-toggle-form-m-{{ $brgy->id }}" action="{{ route('areas.barangays.toggle-archive', $brgy->id) }}" method="POST" class="hidden">
+                        <form id="brgy-toggle-form-m-{{ $brgy->id }}" action="{{ route('areas.barangays.' . ($brgy->is_archived ? 'restore' : 'archive'), $brgy->id) }}" method="POST" class="hidden">
                             @csrf
                             @method('PATCH')
                         </form>
@@ -430,7 +470,7 @@
                                 data-confirm-open
                                 data-confirm-target="brgy-toggle-form-m-{{ $brgy->id }}"
                                 data-confirm-title="{{ $brgy->is_archived ? 'Restore Barangay?' : 'Archive Barangay?' }}"
-                                data-confirm-message="{{ $brgy->is_archived ? 'This barangay will become active again.' : 'This barangay will be archived.' }}"
+                                data-confirm-message="{{ $brgy->is_archived ? 'This barangay will become current again.' : 'This barangay will be archived. Current association references must be resolved first.' }}"
                                 data-confirm-label="{{ $brgy->is_archived ? 'Restore' : 'Archive' }}"
                                 class="flex-1 rounded-md border border-assocmap-border px-3 py-1.5 text-xs font-semibold {{ $brgy->is_archived ? 'text-green-600' : 'text-red-600' }}">
                             {{ $brgy->is_archived ? 'Restore' : 'Archive' }}
@@ -444,133 +484,10 @@
             @endforelse
         </div>
 
-        <div class="mt-5">{{ $barangays->links() }}</div>
+        <div class="am-area-pagination mt-5">{{ $barangays->links() }}</div>
     </section>
 
-    {{-- Municipality create/edit modal --}}
-    <div id="am-municipality-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-        <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-card">
-            <div class="mb-5">
-                <p class="text-xs font-semibold uppercase tracking-wide text-assocmap-primary">Municipality Record</p>
-                <h3 id="am-municipality-modal-title" class="text-lg font-bold text-assocmap-text">Add Municipality</h3>
-            </div>
+    @include('admin-pages.admin-area-management.modals')
 
-            <form id="am-municipality-form" method="POST" action="{{ route('areas.municipalities.store') }}">
-                @csrf
-                <input type="hidden" id="am-municipality-form-method" name="_method" value="POST">
-
-                <div class="space-y-4">
-                    <x-text-input id="am-municipality-name" name="name" label="Municipality Name" required />
-
-                    <div class="flex flex-col gap-1.5">
-                        <label for="am-municipality-address" class="text-sm font-medium text-assocmap-text">Address / Coverage Description</label>
-                        <textarea id="am-municipality-address" name="address" rows="3"
-                                  class="w-full rounded-lg border border-assocmap-border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-assocmap-primary"></textarea>
-                        @error('address')
-                            <p class="text-xs text-red-500 mt-0.5">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-sm font-medium text-assocmap-text">Province</label>
-                        <input type="text" value="Cebu" disabled
-                               class="w-full rounded-lg border border-assocmap-border bg-assocmap-bg px-4 py-2.5 text-sm text-assocmap-secondary">
-                    </div>
-                </div>
-
-                <div class="mt-6 flex justify-end gap-3">
-                    <button type="button" data-municipality-modal-close
-                            class="rounded-lg border border-assocmap-border px-4 py-2 text-sm font-semibold text-assocmap-text hover:bg-assocmap-bg">
-                        Cancel
-                    </button>
-                    <x-primary-button type="submit" class="w-auto px-6">Save</x-primary-button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    {{-- Barangay create/edit modal --}}
-    <div id="am-barangay-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-        <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-card">
-            <div class="mb-5">
-                <p class="text-xs font-semibold uppercase tracking-wide text-assocmap-primary">Barangay Record</p>
-                <h3 id="am-barangay-modal-title" class="text-lg font-bold text-assocmap-text">Add Barangay</h3>
-            </div>
-
-            <form id="am-barangay-form" method="POST" action="{{ route('areas.barangays.store') }}">
-                @csrf
-                <input type="hidden" id="am-barangay-form-method" name="_method" value="POST">
-
-                <div class="space-y-4">
-                    <div class="flex flex-col gap-1.5">
-                        <label for="am-barangay-area-unit" class="text-sm font-medium text-assocmap-text">
-                            Municipality <span class="text-red-500 ml-0.5">*</span>
-                        </label>
-                        <select id="am-barangay-area-unit" name="area_unit_id" required
-                                class="w-full rounded-lg border border-assocmap-border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-assocmap-primary">
-                            <option value="">Select a municipality</option>
-                            @foreach ($activeMunicipalities as $muniOption)
-                                <option value="{{ $muniOption->id }}">{{ $muniOption->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('area_unit_id')
-                            <p class="text-xs text-red-500 mt-0.5">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <x-text-input id="am-barangay-name" name="name" label="Barangay Name" required />
-                </div>
-
-                <div class="mt-6 flex justify-end gap-3">
-                    <button type="button" data-barangay-modal-close
-                            class="rounded-lg border border-assocmap-border px-4 py-2 text-sm font-semibold text-assocmap-text hover:bg-assocmap-bg">
-                        Cancel
-                    </button>
-                    <x-primary-button type="submit" class="w-auto px-6">Save</x-primary-button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    {{-- Read-only View Details modal --}}
-    <div id="am-view-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-        <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-card">
-            <div class="flex items-start justify-between gap-4">
-                <div>
-                    <p class="text-xs font-semibold uppercase tracking-wide text-assocmap-primary">View Area Details</p>
-                    <h3 id="am-view-title" class="mt-1 text-xl font-bold text-assocmap-text">Area Details</h3>
-                    <p id="am-view-subtitle" class="mt-1 text-sm text-assocmap-secondary"></p>
-                </div>
-                <span id="am-view-status" class="hidden"></span>
-            </div>
-
-            <div id="am-view-body" class="mt-5"></div>
-
-            <div class="mt-6 flex justify-end">
-                <button type="button" data-view-modal-close
-                        class="rounded-lg border border-assocmap-border px-4 py-2 text-sm font-semibold text-assocmap-text hover:bg-assocmap-bg">
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
-
-    {{-- Generic confirm dialog (wired globally by admin-user-management.js) --}}
-    <div id="am-confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-        <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-card">
-            <h3 id="am-confirm-title" class="text-lg font-bold text-assocmap-text">Are you sure?</h3>
-            <p id="am-confirm-message" class="mt-2 text-sm text-assocmap-secondary"></p>
-            <div class="mt-6 flex justify-end gap-3">
-                <button type="button" data-confirm-close
-                        class="rounded-lg border border-assocmap-border px-4 py-2 text-sm font-semibold text-assocmap-text hover:bg-assocmap-bg">
-                    Cancel
-                </button>
-                <button type="button" id="am-confirm-action-btn"
-                        class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">
-                    Confirm
-                </button>
-            </div>
-        </div>
-    </div>
-
+</div>
 </x-dashboard-layout>

@@ -7,7 +7,7 @@ use App\Models\SubUnit;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 /**
  * AreaManagementService
@@ -27,8 +27,8 @@ class AreaManagementService
                 'subUnits as total_barangay_count',
             ]);
 
-        if (!empty($filters['search'])) {
-            $term = '%' . trim($filters['search']) . '%';
+        if (! empty($filters['search'])) {
+            $term = '%'.trim($filters['search']).'%';
 
             $query->where(function ($q) use ($term) {
                 $q->where('name', 'ilike', $term)
@@ -47,9 +47,9 @@ class AreaManagementService
             ? $filters['muni_sort']
             : 'name';
 
-        $query->orderBy($sort);
+        $query->orderBy($sort, $sort === 'name' ? 'asc' : 'desc')->orderBy('id');
 
-        $municipalities = $query->paginate(12, ['*'], 'muni_page')->withQueryString();
+        $municipalities = $query->paginate((int) ($filters['per_page'] ?? 12), ['*'], 'muni_page')->appends([...$filters, 'tab' => 'municipalities']);
 
         $this->attachAssociationCounts(
             $municipalities->getCollection(),
@@ -66,12 +66,12 @@ class AreaManagementService
             ->select('sub_units.*', 'area_units.name as area_unit_name')
             ->join('area_units', 'area_units.id', '=', 'sub_units.area_unit_id');
 
-        if (!empty($filters['brgy_search'])) {
-            $term = '%' . trim($filters['brgy_search']) . '%';
+        if (! empty($filters['brgy_search'])) {
+            $term = '%'.trim($filters['brgy_search']).'%';
             $query->where('sub_units.name', 'ilike', $term);
         }
 
-        if (!empty($filters['area_unit_id'])) {
+        if (! empty($filters['area_unit_id'])) {
             $query->where('sub_units.area_unit_id', (int) $filters['area_unit_id']);
         }
 
@@ -85,9 +85,9 @@ class AreaManagementService
             ? $filters['brgy_sort']
             : 'name';
 
-        $query->orderBy($sort === 'name' ? 'sub_units.name' : "sub_units.{$sort}");
+        $query->orderBy("sub_units.{$sort}", $sort === 'name' ? 'asc' : 'desc')->orderBy('sub_units.id');
 
-        $barangays = $query->paginate(10, ['*'], 'brgy_page')->withQueryString();
+        $barangays = $query->paginate((int) ($filters['per_page'] ?? 12), ['*'], 'brgy_page')->appends([...$filters, 'tab' => 'barangays']);
 
         $this->attachAssociationCounts(
             $barangays->getCollection(),
@@ -123,16 +123,18 @@ class AreaManagementService
             'province' => $areaUnit->province ?: 'Cebu',
             'address' => $areaUnit->address ?: 'No address on file',
             'is_archived' => (bool) $areaUnit->is_archived,
-            'status' => $areaUnit->is_archived ? 'Archived' : 'Active',
+            'status' => $areaUnit->is_archived ? 'Archived' : 'Current',
             'barangay_count' => (int) $areaUnit->barangay_count,
             'total_barangay_count' => (int) $areaUnit->total_barangay_count,
+            'barangays_truncated' => $areaUnit->total_barangay_count > $areaUnit->subUnits->count(),
+            'barangays_url' => route('areas.index', ['tab' => 'barangays', 'area_unit_id' => $id]),
             'association_count' => $this->activeAssociationCount('area_unit_id', $areaUnit->id),
             'created_at' => optional($areaUnit->created_at)->format('d M Y, h:i A'),
             'updated_at' => optional($areaUnit->updated_at)->format('d M Y, h:i A'),
             'barangays' => $areaUnit->subUnits->map(fn (SubUnit $subUnit) => [
                 'id' => $subUnit->id,
                 'name' => $subUnit->name,
-                'status' => $subUnit->is_archived ? 'Archived' : 'Active',
+                'status' => $subUnit->is_archived ? 'Archived' : 'Current',
                 'is_archived' => (bool) $subUnit->is_archived,
             ])->values(),
         ];
@@ -154,9 +156,9 @@ class AreaManagementService
             'municipality' => $subUnit->areaUnit?->name ?? 'Unknown municipality',
             'area_unit_id' => $subUnit->area_unit_id,
             'province' => $subUnit->areaUnit?->province ?: 'Cebu',
-            'municipality_status' => $subUnit->areaUnit?->is_archived ? 'Archived' : 'Active',
+            'municipality_status' => $subUnit->areaUnit?->is_archived ? 'Archived' : 'Current',
             'is_archived' => (bool) $subUnit->is_archived,
-            'status' => $subUnit->is_archived ? 'Archived' : 'Active',
+            'status' => $subUnit->is_archived ? 'Archived' : 'Current',
             'association_count' => $this->activeAssociationCount('sub_unit_id', $subUnit->id),
             'created_at' => optional($subUnit->created_at)->format('d M Y, h:i A'),
             'updated_at' => optional($subUnit->updated_at)->format('d M Y, h:i A'),
@@ -165,15 +167,19 @@ class AreaManagementService
 
     public function summaryCounts(): array
     {
+        // One aggregate per reference table keeps the global cards consistent
+        // without six independent table scans.
+        $municipalities = AreaUnit::selectRaw('COUNT(*) AS total, COUNT(*) FILTER (WHERE is_archived = false) AS current, COUNT(*) FILTER (WHERE is_archived = true) AS archived')->first();
+        $barangays = SubUnit::selectRaw('COUNT(*) AS total, COUNT(*) FILTER (WHERE is_archived = false) AS current, COUNT(*) FILTER (WHERE is_archived = true) AS archived')->first();
+
         return [
-            'total_municipalities'    => AreaUnit::count(),
-            'active_municipalities'   => AreaUnit::where('is_archived', false)->count(),
-            'archived_municipalities' => AreaUnit::where('is_archived', true)->count(),
-            'total_barangays'         => SubUnit::count(),
-            'active_barangays'        => SubUnit::where('is_archived', false)->count(),
-            'archived_barangays'      => SubUnit::where('is_archived', true)->count(),
-            'total_associations'      => $this->totalActiveAssociations(),
-            'coverage_label'          => 'South & North Cebu',
+            'total_municipalities' => (int) $municipalities->total,
+            'active_municipalities' => (int) $municipalities->current,
+            'archived_municipalities' => (int) $municipalities->archived,
+            'total_barangays' => (int) $barangays->total,
+            'active_barangays' => (int) $barangays->current,
+            'archived_barangays' => (int) $barangays->archived,
+            'total_associations' => $this->totalActiveAssociations(),
         ];
     }
 
@@ -184,13 +190,19 @@ class AreaManagementService
             ->get(['id', 'name']);
     }
 
+    public function municipalitiesForFilter()
+    {
+        return AreaUnit::orderBy('name')->get(['id', 'name', 'is_archived']);
+    }
+
     public function createMunicipality(array $data, ?int $actorId): AreaUnit
     {
         return DB::transaction(function () use ($data, $actorId) {
+            $this->requireUniqueName('area_units', $data['name']);
             $areaUnit = AreaUnit::create([
-                'name'        => trim($data['name']),
-                'province'    => 'Cebu',
-                'address'     => $data['address'] ?? null,
+                'name' => $this->normalizeName($data['name']),
+                'province' => 'Cebu',
+                'address' => $data['address'] ?? null,
                 'is_archived' => false,
             ]);
 
@@ -205,29 +217,36 @@ class AreaManagementService
         return DB::transaction(function () use ($id, $data, $actorId) {
             $areaUnit = AreaUnit::query()->lockForUpdate()->findOrFail($id);
 
+            $this->requireEditable($areaUnit);
+            $this->requireUniqueName('area_units', $data['name'], $id);
+            $before = $areaUnit->only(['name', 'address']);
             $areaUnit->update([
-                'name'    => trim($data['name']),
+                'name' => $this->normalizeName($data['name']),
                 'address' => $data['address'] ?? null,
             ]);
 
-            $this->logAction($actorId, 'UPDATE', $areaUnit->id, "Updated municipality {$areaUnit->name}");
+            $this->logAction($actorId, 'UPDATE', $areaUnit->id, 'Municipality changes: '.json_encode(['before' => $before, 'after' => $areaUnit->only(['name', 'address'])], JSON_THROW_ON_ERROR));
 
             return $areaUnit;
         });
     }
 
     /**
-     * Toggle archive/restore. Blocks archiving while active barangays
-     * or active associations still reference this municipality.
+     * Explicit archive/restore. Blocks archiving while current barangays
+     * or current associations still reference this municipality.
      *
      * @return array{ok: bool, is_archived?: bool, message?: string}
      */
-    public function toggleArchiveMunicipality(int $id, ?int $actorId): array
+    public function setMunicipalityArchived(int $id, bool $archived, ?int $actorId): array
     {
-        return DB::transaction(function () use ($id, $actorId) {
+        return DB::transaction(function () use ($id, $archived, $actorId) {
             $areaUnit = AreaUnit::query()->lockForUpdate()->findOrFail($id);
 
-            if (!$areaUnit->is_archived) {
+            // Defense: a repeated Archive request must never restore the record.
+            if ($areaUnit->is_archived === $archived) {
+                return ['ok' => true, 'is_archived' => $archived];
+            }
+            if ($archived) {
                 $activeBarangays = SubUnit::where('area_unit_id', $id)
                     ->where('is_archived', false)
                     ->count();
@@ -235,7 +254,7 @@ class AreaManagementService
                 if ($activeBarangays > 0) {
                     return [
                         'ok' => false,
-                        'message' => "Cannot archive - {$activeBarangays} active barangay(s) still belong to this municipality.",
+                        'message' => "Cannot archive - {$activeBarangays} current barangay(s) still belong to this municipality.",
                     ];
                 }
 
@@ -248,7 +267,7 @@ class AreaManagementService
                 }
             }
 
-            $areaUnit->is_archived = !$areaUnit->is_archived;
+            $areaUnit->is_archived = $archived;
             $areaUnit->save();
 
             $action = $areaUnit->is_archived ? 'ARCHIVE' : 'RESTORE';
@@ -261,10 +280,12 @@ class AreaManagementService
     public function createBarangay(array $data, ?int $actorId): SubUnit
     {
         return DB::transaction(function () use ($data, $actorId) {
+            $this->lockCurrentMunicipality((int) $data['area_unit_id']);
+            $this->requireUniqueName('sub_units', $data['name'], null, (int) $data['area_unit_id']);
             $subUnit = SubUnit::create([
                 'area_unit_id' => (int) $data['area_unit_id'],
-                'name'         => trim($data['name']),
-                'is_archived'  => false,
+                'name' => $this->normalizeName($data['name']),
+                'is_archived' => false,
             ]);
 
             $this->logAction($actorId, 'CREATE', $subUnit->id, "Created barangay {$subUnit->name}");
@@ -276,31 +297,44 @@ class AreaManagementService
     public function updateBarangay(int $id, array $data, ?int $actorId): SubUnit
     {
         return DB::transaction(function () use ($id, $data, $actorId) {
-            $subUnit = SubUnit::query()->lockForUpdate()->findOrFail($id);
-
+            $subUnit = $this->lockBarangay($id, (int) $data['area_unit_id']);
+            $this->requireEditable($subUnit);
+            $this->lockCurrentMunicipality((int) $data['area_unit_id']);
+            // Historical associations also store the municipality/barangay pair.
+            if ((int) $subUnit->area_unit_id !== (int) $data['area_unit_id'] && DB::table('associations')->where('sub_unit_id', $id)->exists()) {
+                throw ValidationException::withMessages(['area_unit_id' => 'This barangay cannot move because current or archived associations reference it.']);
+            }
+            $this->requireUniqueName('sub_units', $data['name'], $id, (int) $data['area_unit_id']);
+            $before = $subUnit->only(['name', 'area_unit_id']);
             $subUnit->update([
                 'area_unit_id' => (int) $data['area_unit_id'],
-                'name'         => trim($data['name']),
+                'name' => $this->normalizeName($data['name']),
             ]);
 
-            $this->logAction($actorId, 'UPDATE', $subUnit->id, "Updated barangay {$subUnit->name}");
+            $this->logAction($actorId, 'UPDATE', $subUnit->id, 'Barangay changes: '.json_encode(['before' => $before, 'after' => $subUnit->only(['name', 'area_unit_id'])], JSON_THROW_ON_ERROR));
 
             return $subUnit;
         });
     }
 
     /**
-     * Toggle archive/restore. Blocks archiving while active
+     * Explicit archive/restore. Blocks archiving while active
      * associations still reference this barangay.
      *
      * @return array{ok: bool, is_archived?: bool, message?: string}
      */
-    public function toggleArchiveBarangay(int $id, ?int $actorId): array
+    public function setBarangayArchived(int $id, bool $archived, ?int $actorId): array
     {
-        return DB::transaction(function () use ($id, $actorId) {
-            $subUnit = SubUnit::query()->lockForUpdate()->findOrFail($id);
+        return DB::transaction(function () use ($id, $archived, $actorId) {
+            $subUnit = $this->lockBarangay($id);
+            if ($subUnit->is_archived === $archived) {
+                return ['ok' => true, 'is_archived' => $archived];
+            }
+            if (! $archived) {
+                $this->lockCurrentMunicipality((int) $subUnit->area_unit_id);
+            }
 
-            if (!$subUnit->is_archived) {
+            if ($archived) {
                 $activeAssociations = $this->activeAssociationCount('sub_unit_id', $id);
 
                 if ($activeAssociations > 0) {
@@ -311,7 +345,7 @@ class AreaManagementService
                 }
             }
 
-            $subUnit->is_archived = !$subUnit->is_archived;
+            $subUnit->is_archived = $archived;
             $subUnit->save();
 
             $action = $subUnit->is_archived ? 'ARCHIVE' : 'RESTORE';
@@ -321,10 +355,58 @@ class AreaManagementService
         });
     }
 
+    private function lockCurrentMunicipality(int $id): AreaUnit
+    {
+        $parent = AreaUnit::query()->lockForUpdate()->find($id);
+        if (! $parent || $parent->is_archived) {
+            throw ValidationException::withMessages(['area_unit_id' => 'Restore the municipality first, or select a current municipality.']);
+        }
+
+        return $parent;
+    }
+
+    private function lockBarangay(int $id, ?int $newParent = null): SubUnit
+    {
+        $parentId = (int) SubUnit::findOrFail($id)->area_unit_id;
+        // Defense: lock parents in ID order, then the child. Association assignments
+        // use the same parent-before-child order, so archival cannot miss a new link.
+        AreaUnit::whereIn('id', array_unique([$parentId, $newParent ?? $parentId]))
+            ->orderBy('id')->lockForUpdate()->get();
+        $child = SubUnit::query()->lockForUpdate()->findOrFail($id);
+        if ((int) $child->area_unit_id !== $parentId) {
+            throw ValidationException::withMessages(['area_unit_id' => 'This barangay moved while you were editing. Reload and review its municipality.']);
+        }
+
+        return $child;
+    }
+
+    private function requireEditable(AreaUnit|SubUnit $record): void
+    {
+        if ($record->is_archived) {
+            throw ValidationException::withMessages(['name' => 'Restore this archived record before editing.']);
+        }
+    }
+
+    private function normalizeName(string $name): string
+    {
+        return preg_replace('/\s+/u', ' ', trim($name));
+    }
+
+    private function requireUniqueName(string $table, string $name, ?int $id = null, ?int $parent = null): void
+    {
+        $query = DB::table($table)->when($id, fn ($q) => $q->where('id', '<>', $id))
+            ->when($parent, fn ($q) => $q->where('area_unit_id', $parent))
+            ->whereRaw("LOWER(REGEXP_REPLACE(BTRIM(name), '\s+', ' ', 'g')) = LOWER(REGEXP_REPLACE(BTRIM(?), '\s+', ' ', 'g'))", [$name]);
+        if ($query->exists()) {
+            throw ValidationException::withMessages(['name' => 'This name already exists in the selected geographic scope, including archived records.']);
+        }
+    }
+
     private function attachAssociationCounts(Collection $records, string $foreignKey, string $attribute): void
     {
-        if ($records->isEmpty() || !Schema::hasTable('associations')) {
+        if ($records->isEmpty()) {
             $records->each(fn ($record) => $record->setAttribute($attribute, 0));
+
             return;
         }
 
@@ -344,25 +426,17 @@ class AreaManagementService
 
     private function totalActiveAssociations(): int
     {
-        if (!Schema::hasTable('associations')) {
-            return 0;
-        }
-
         return DB::table('associations')
             ->where('is_archived', false)
             ->count();
     }
 
     /**
-     * Counts active associations referencing a given column/value.
-     * Returns 0 while the associations module has not been built yet.
+     * Counts current (nonarchived) associations, regardless of operational status.
+     * A missing required table is an error, never a misleading zero count.
      */
     private function activeAssociationCount(string $column, int $value): int
     {
-        if (!Schema::hasTable('associations')) {
-            return 0;
-        }
-
         return DB::table('associations')
             ->where($column, $value)
             ->where('is_archived', false)
@@ -371,16 +445,17 @@ class AreaManagementService
 
     private function logAction(?int $actorId, string $actionType, int|string $recordId, string $details): void
     {
-        if (!$actorId || !Schema::hasTable('audit_logs')) {
-            return;
+        // Defense: an official mutation is rolled back if its audit cannot be written.
+        if (! $actorId) {
+            throw new \LogicException('Area changes require an authenticated audit actor.');
         }
 
         DB::table('audit_logs')->insert([
-            'user_id'      => $actorId,
-            'action_type'  => $actionType,
-            'module'       => 'Area',
-            'record_id'    => $recordId,
-            'details'      => $details,
+            'user_id' => $actorId,
+            'action_type' => $actionType,
+            'module' => 'Area',
+            'record_id' => $recordId,
+            'details' => $details,
             'performed_at' => now(),
         ]);
     }
