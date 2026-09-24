@@ -2,31 +2,18 @@
 
 namespace App\Http\Requests\Admin;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-/**
- * app/Http/Requests/Admin/StoreAreaUnitRequest.php
- * Validation for creating a new municipality (area_units row).
- */
-class StoreAreaUnitRequest extends FormRequest
+class StoreAreaUnitRequest extends AreaFormRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
-
     public function rules(): array
     {
         return [
-            'name'    => ['required', 'string', 'max:255', 'unique:area_units,name'],
+            'name' => ['bail', 'required', 'string', 'max:255', $this->uniqueName('area_units')],
             'address' => ['nullable', 'string', 'max:500'],
         ];
     }
 
     public function messages(): array
     {
-        return [
-            'name.unique' => 'A municipality with this name already exists.',
-        ];
+        return ['area_unit_id.exists' => 'Select a current municipality. Restore an archived municipality first.'];
     }
 }

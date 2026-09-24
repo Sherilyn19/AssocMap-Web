@@ -331,6 +331,8 @@ final class AssociationManagementService
 
             $this->requireOfficer((int) $locked->field_officer_id);
 
+            $this->lockCurrentGeography((int) $locked->area_unit_id, (int) $locked->sub_unit_id);
+
             if (! $locked->areaUnit || ! $locked->subUnit || $locked->areaUnit?->is_archived || $locked->subUnit?->is_archived) {
                 throw new AssociationRuleException(
                     'The association cannot be restored while its municipality or barangay is archived.'
@@ -464,6 +466,7 @@ final class AssociationManagementService
     private function validateAssignment(array $data, ?int $ignoreId = null): void
     {
         $this->requireOfficer((int) $data['field_officer_id']);
+        $this->lockCurrentGeography((int) $data['area_unit_id'], (int) $data['sub_unit_id']);
         // The composite FK protects geography; these checks add understandable validation messages.
         $checks = DB::query()
             ->selectSub(DB::table('area_units')->where('id', $data['area_unit_id'])->where('is_archived', false)->selectRaw('COUNT(*)'), 'area')
@@ -483,6 +486,20 @@ final class AssociationManagementService
         }
         if ($errors) {
             throw ValidationException::withMessages($errors);
+        }
+    }
+
+    private function lockCurrentGeography(int $areaId, int $subId): void
+    {
+        // Defense: Area archival takes these same locks. Recheck after waiting;
+        // an earlier Form Request or eager-loaded relationship may now be stale.
+        $parent = DB::table('area_units')->where('id', $areaId)->lockForUpdate()->first();
+        $child = DB::table('sub_units')->where('id', $subId)->lockForUpdate()->first();
+        if (! $parent || $parent->is_archived) {
+            throw ValidationException::withMessages(['area_unit_id' => 'Select a current municipality.']);
+        }
+        if (! $child || $child->is_archived || (int) $child->area_unit_id !== $areaId) {
+            throw ValidationException::withMessages(['sub_unit_id' => 'Select a current barangay belonging to this municipality.']);
         }
     }
 

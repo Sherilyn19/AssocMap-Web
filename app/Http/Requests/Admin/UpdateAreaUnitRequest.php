@@ -2,34 +2,18 @@
 
 namespace App\Http\Requests\Admin;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
-
-/**
- * app/Http/Requests/Admin/UpdateAreaUnitRequest.php
- * Validation for editing an existing municipality.
- */
-class UpdateAreaUnitRequest extends FormRequest
+class UpdateAreaUnitRequest extends AreaFormRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
-
     public function rules(): array
     {
-        $areaUnitId = $this->route('areaUnit');
-
         return [
-            'name'    => ['required', 'string', 'max:255', Rule::unique('area_units', 'name')->ignore($areaUnitId)],
+            'name' => ['bail', 'required', 'string', 'max:255', $this->uniqueName('area_units', (int) $this->route('areaUnit'))],
             'address' => ['nullable', 'string', 'max:500'],
         ];
     }
 
     public function messages(): array
     {
-        return [
-            'name.unique' => 'A municipality with this name already exists.',
-        ];
+        return ['area_unit_id.exists' => 'Select a current municipality. Restore an archived municipality first.'];
     }
 }

@@ -1,3 +1,4 @@
+import { initConfirmModal, initRowDropdowns, initToast } from "./management-actions";
 /**
  * resources/js/admin-user/admin-user-management.js
  * Add/Edit modal, confirm-action modal, SVG password eye toggle,
@@ -71,47 +72,6 @@ function initUserModal() {
     });
 }
 
-function initConfirmModal() {
-    const modal = document.getElementById("am-confirm-modal");
-    if (!modal) return;
-
-    const titleEl   = document.getElementById("am-confirm-title");
-    const messageEl = document.getElementById("am-confirm-message");
-    const actionBtn = document.getElementById("am-confirm-action-btn");
-    let targetFormId = null;
-
-    document.querySelectorAll("[data-confirm-open]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-            titleEl.textContent = btn.dataset.confirmTitle || "Are you sure?";
-            messageEl.textContent = btn.dataset.confirmMessage || "";
-            actionBtn.textContent = btn.dataset.confirmLabel || "Confirm";
-            targetFormId = btn.dataset.confirmTarget;
-            modal.classList.remove("hidden");
-            modal.classList.add("flex");
-        });
-    });
-
-    actionBtn.addEventListener("click", () => {
-        if (targetFormId) {
-            const form = document.getElementById(targetFormId);
-            if (form) form.submit();
-        }
-    });
-
-    document.querySelectorAll("[data-confirm-close]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-            modal.classList.add("hidden");
-            modal.classList.remove("flex");
-        });
-    });
-    modal.addEventListener("click", (event) => {
-        if (event.target === modal) {
-            modal.classList.add("hidden");
-            modal.classList.remove("flex");
-        }
-    });
-}
-
 /** Swaps the open/closed eye SVGs instead of a broken emoji glyph. */
 function initPasswordToggle() {
     document.querySelectorAll("[data-toggle-password]").forEach((btn) => {
@@ -127,43 +87,4 @@ function initPasswordToggle() {
             closedIcon.classList.toggle("hidden", !isPassword);
         });
     });
-}
-
-/** Per-row "..." action menu. Closes on outside click or Escape. */
-function initRowDropdowns() {
-    const dropdowns = document.querySelectorAll("[data-am-dropdown]");
-    if (!dropdowns.length) return;
-
-    function closeAll(except) {
-        dropdowns.forEach((d) => {
-            if (d !== except) d.querySelector("[data-am-dropdown-menu]").classList.add("hidden");
-        });
-    }
-
-    dropdowns.forEach((dropdown) => {
-        const toggle = dropdown.querySelector("[data-am-dropdown-toggle]");
-        const menu = dropdown.querySelector("[data-am-dropdown-menu]");
-
-        toggle.addEventListener("click", (event) => {
-            event.stopPropagation();
-            const isHidden = menu.classList.contains("hidden");
-            closeAll(dropdown);
-            menu.classList.toggle("hidden", !isHidden);
-        });
-    });
-
-    document.addEventListener("click", () => closeAll(null));
-    document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") closeAll(null);
-    });
-}
-
-function initToast() {
-    const toast = document.getElementById("am-toast");
-    if (!toast) return;
-    setTimeout(() => {
-        toast.style.transition = "opacity 0.4s ease";
-        toast.style.opacity = "0";
-        setTimeout(() => toast.remove(), 400);
-    }, 3500);
 }

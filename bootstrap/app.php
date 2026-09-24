@@ -13,6 +13,7 @@
 use App\Http\Middleware\AssocMapAuth;
 use App\Http\Middleware\TrackAssociationRequest;
 use App\Support\AssociationErrors;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -49,6 +50,25 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
         $exceptions->render(function (Throwable $error, Request $request) {
+            // Area validation queries run before the controller's try/catch.
+            // Keep database diagnostics private even when APP_DEBUG is enabled.
+            if ($request->is('admin/areas', 'admin/areas/*') && ($error instanceof QueryException || $error instanceof PDOException)) {
+                if ($request->expectsJson()) {
+                    return response()->json(['message' => 'Area Management is temporarily unavailable. Please try again.'], 503);
+                }
+                if (! $request->isMethod('GET') && $request->hasSession()) {
+                    $barangay = $request->is('admin/areas/barangays', 'admin/areas/barangays/*');
+
+                    return back()->withInput([
+                        ...$request->only(['name', 'address', 'area_unit_id']),
+                        '_area_form' => $barangay ? 'barangay' : 'municipality',
+                        '_area_id' => $request->route($barangay ? 'subUnit' : 'areaUnit'),
+                    ])
+                        ->with('error', 'The request could not be confirmed. Check the record before retrying.');
+                }
+
+                return response()->view('admin-pages.admin-area-management.unavailable', [], 503);
+            }
             if (AssociationErrors::handles($request, $error)) {
                 return AssociationErrors::render($error, $request);
             }
