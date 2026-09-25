@@ -148,6 +148,9 @@
                             <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $roleBadgeClass($user->role_name) }}">
                                 {{ strtoupper($user->role_name) }}
                             </span>
+                            @if ($user->role_name === 'Association Member')
+                                <p class="mt-1 text-xs text-assocmap-secondary">{{ $user->association_name ?? 'No association linked' }}</p>
+                            @endif
                         </td>
                         <td class="px-4 py-3">
                             @if ($user->is_active)
@@ -233,6 +236,9 @@
                     @endif
                 </div>
                 <p class="mt-2 text-xs text-assocmap-secondary">
+                    @if ($user->role_name === 'Association Member')
+                        Association: {{ $user->association_name ?? 'No association linked' }}<br>
+                    @endif
                     Last login: {{ $user->last_login ? \Carbon\Carbon::parse($user->last_login)->diffForHumans() : 'Never Logged In' }}
                 </p>
                 <div class="mt-3 flex gap-2">
@@ -265,13 +271,23 @@
     <div class="mt-4">{{ $users->links() }}</div>
 
     {{-- Add/Edit modal --}}
-    <div id="admin-user-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-        <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-card">
+    <div id="admin-user-modal" role="dialog" aria-modal="true" aria-labelledby="admin-user-modal-title" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
+        <div class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-card">
             <h3 id="admin-user-modal-title" class="mb-4 text-lg font-bold text-assocmap-text">Add User</h3>
 
-            <form id="admin-user-form" method="POST" action="{{ route('users.store') }}">
+            {{-- Safe recovery data tells JavaScript which form to reopen after a rejected save. --}}
+            <form id="admin-user-form" method="POST" action="{{ route('users.store') }}"
+                  data-recovery='@json(session("user_form") ? ["form" => session("user_form"), "input" => old()] : null)'>
                 @csrf
                 <input type="hidden" id="admin-user-form-method" name="_method" value="POST">
+                @if ($errors->any() || session('user_form'))
+                    <div data-user-errors role="alert" class="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                        <p>{{ session('error', 'Please correct the highlighted fields.') }}</p>
+                        @foreach ($errors->all() as $error)
+                            <p>{{ $error }}</p>
+                        @endforeach
+                    </div>
+                @endif
 
                 <div class="space-y-6">
                     <div>
@@ -288,9 +304,11 @@
                             <label for="admin-user-password" class="text-sm font-medium text-assocmap-text">Password</label>
                             <div class="relative">
                                 <input id="admin-user-password" name="password" type="password"
+                                       autocomplete="new-password" minlength="8"
                                        placeholder="Leave blank to keep current password"
                                        class="w-full rounded-lg border border-assocmap-border px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-assocmap-primary">
                                 <button type="button" data-toggle-password="admin-user-password"
+                                        aria-label="Show password" aria-pressed="false"
                                         class="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-assocmap-secondary">
                                     <svg data-eye-icon="open" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                         <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" stroke-linecap="round" stroke-linejoin="round"/>
@@ -316,6 +334,18 @@
                         <p id="admin-user-role-hint" class="mt-1 hidden text-xs text-amber-600">
                             This is the last active System Administrator. The system will block any change that leaves zero admins.
                         </p>
+                    </div>
+                    {{-- Shared accounts use this link for record access; representative approval remains separate. --}}
+                    <div id="admin-user-association-section" class="hidden">
+                        <label for="admin-user-association" class="text-sm font-medium text-assocmap-text">Association</label>
+                        <select id="admin-user-association" name="association_id" data-member-role="{{ $memberRoleId }}"
+                                class="mt-1.5 w-full rounded-lg border border-assocmap-border px-4 py-2.5 text-sm">
+                            <option value="">Choose an association</option>
+                            @foreach ($associations as $association)
+                                <option value="{{ $association->id }}" @disabled($association->is_archived)>{{ $association->name }}{{ $association->is_archived ? ' (archived)' : '' }}</option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-xs text-assocmap-secondary">This shared account can access only this association. Its representative approves applications using a separate private review passphrase.</p>
                     </div>
                 </div>
 
