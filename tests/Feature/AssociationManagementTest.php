@@ -70,7 +70,7 @@ final class AssociationManagementTest extends AssociationDatabaseTestCase
     {
         $users = app(AdminUserManagementService::class);
         try {
-            $users->toggleActive(2, 1);
+            $users->setActive(2, false, 1);
             $this->fail('Assigned officer deactivation accepted');
         } catch (AssociationRuleException $error) {
             $this->assertStringContainsString('Reassign', $error->getMessage());
@@ -82,7 +82,7 @@ final class AssociationManagementTest extends AssociationDatabaseTestCase
             $this->assertStringContainsString('Reassign', $error->getMessage());
         }
         DB::table('associations')->update(['is_archived' => true]);
-        $this->assertFalse($users->toggleActive(2, 1));
+        $this->assertFalse($users->setActive(2, false, 1));
         $this->withSession($this->sessionFor(1, 'System Administrator'))->patchJson('/admin/associations/1/restore')->assertUnprocessable()->assertJsonValidationErrors('field_officer_id');
     }
 
@@ -168,9 +168,9 @@ final class AssociationManagementTest extends AssociationDatabaseTestCase
             if (getenv('ASSOCMAP_EXPORT_ASSOCIATION_FIXTURES') === '1') {
                 $dir = base_path('../Capstone-AssocMap/association-qa');
                 if (! is_dir($dir)) {
-                    mkdir($dir,0755,true);
+                    mkdir($dir, 0755, true);
                 }
-                file_put_contents($dir.'/'.$name.'.html',$response->getContent());
+                file_put_contents($dir.'/'.$name.'.html', $response->getContent());
             }
         }
     }
