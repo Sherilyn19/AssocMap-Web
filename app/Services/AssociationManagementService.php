@@ -491,8 +491,8 @@ final class AssociationManagementService
 
     private function lockCurrentGeography(int $areaId, int $subId): void
     {
-        // Defense: Area archival takes these same locks. Recheck after waiting;
-        // an earlier Form Request or eager-loaded relationship may now be stale.
+// Archiving an area uses these same database locks.
+        // Check the records again after waiting because their status may have changed.
         $parent = DB::table('area_units')->where('id', $areaId)->lockForUpdate()->first();
         $child = DB::table('sub_units')->where('id', $subId)->lockForUpdate()->first();
         if (! $parent || $parent->is_archived) {

@@ -18,6 +18,11 @@ export function initConfirmModal() {
             titleEl.textContent = btn.dataset.confirmTitle || "Are you sure?";
             messageEl.textContent = btn.dataset.confirmMessage || "";
             actionBtn.textContent = btn.dataset.confirmLabel || "Confirm";
+// Set the confirmation button color for Archive or Restore.
+            // The form and server still check whether the action is allowed.
+            if (modal.hasAttribute("data-area-confirm-dialog")) {
+                actionBtn.dataset.tone = btn.dataset.confirmTone === "restore" ? "restore" : "archive";
+            }
             targetFormId = btn.dataset.confirmTarget;
             actionBtn.disabled = false;
             if (isDialog) modal.showModal();
@@ -72,8 +77,8 @@ export function initRowDropdowns() {
         const toggle = dropdown.querySelector("[data-am-dropdown-toggle]");
         const menu = dropdown.querySelector("[data-am-dropdown-menu]");
         if (dropdown.closest("[data-area-management-page]")) {
-            // Defense: skip disabled actions and restore a visible focus target
-            // on Escape; Tab still follows the native button order.
+// Skip disabled actions when using arrow keys.
+            // Escape returns focus to More. Tab follows the normal button order.
             const actions = () => [...menu.querySelectorAll("button:not(:disabled), a[href]")];
             toggle.addEventListener("keydown", event => {
                 if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;

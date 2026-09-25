@@ -242,7 +242,7 @@ class AreaManagementService
         return DB::transaction(function () use ($id, $archived, $actorId) {
             $areaUnit = AreaUnit::query()->lockForUpdate()->findOrFail($id);
 
-            // Defense: a repeated Archive request must never restore the record.
+// Repeating an Archive request must keep the record archived.
             if ($areaUnit->is_archived === $archived) {
                 return ['ok' => true, 'is_archived' => $archived];
             }
@@ -368,8 +368,8 @@ class AreaManagementService
     private function lockBarangay(int $id, ?int $newParent = null): SubUnit
     {
         $parentId = (int) SubUnit::findOrFail($id)->area_unit_id;
-        // Defense: lock parents in ID order, then the child. Association assignments
-        // use the same parent-before-child order, so archival cannot miss a new link.
+// Lock municipalities in ID order, then lock the barangay.
+        // Association saves use the same order so archive checks include new links.
         AreaUnit::whereIn('id', array_unique([$parentId, $newParent ?? $parentId]))
             ->orderBy('id')->lockForUpdate()->get();
         $child = SubUnit::query()->lockForUpdate()->findOrFail($id);
@@ -445,7 +445,7 @@ class AreaManagementService
 
     private function logAction(?int $actorId, string $actionType, int|string $recordId, string $details): void
     {
-        // Defense: an official mutation is rolled back if its audit cannot be written.
+// Cancel the record change if its audit entry cannot be saved.
         if (! $actorId) {
             throw new \LogicException('Area changes require an authenticated audit actor.');
         }

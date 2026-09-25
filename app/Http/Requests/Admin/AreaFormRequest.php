@@ -19,7 +19,7 @@ abstract class AreaFormRequest extends FormRequest
     {
         $barangay = $this instanceof StoreSubUnitRequest || $this instanceof UpdateSubUnitRequest;
         $this->errorBag = $barangay ? 'barangay' : 'municipality';
-        // Defense: derive edit identity from the route, never a client-supplied action URL.
+// Get the record ID from the route so form input cannot select a different record.
         $this->merge([
             '_area_form' => $this->errorBag,
             '_area_id' => $this->route($barangay ? 'subUnit' : 'areaUnit'),

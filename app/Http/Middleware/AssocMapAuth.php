@@ -45,8 +45,8 @@ class AssocMapAuth
                 ->with('error', 'Please log in to access this page.');
         }
 
-        // Defense: sessions prove login, but the DATABASE decides today's permissions.
-        // A demotion/deactivation must take effect without waiting for logout.
+// Use the session to identify the user and the database to check current permissions.
+        // Role changes and account deactivation take effect without waiting for logout.
         try {
             $loadActor = fn () => User::with('role')->find($request->session()->get('auth_user.id'));
             // Authentication queries happen before the controller's own database scope.
