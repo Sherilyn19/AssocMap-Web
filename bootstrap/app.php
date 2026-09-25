@@ -13,6 +13,7 @@
 use App\Http\Middleware\AssocMapAuth;
 use App\Http\Middleware\TrackAssociationRequest;
 use App\Support\AssociationErrors;
+use App\Support\TrainingManagementErrors;
 use App\Support\UserManagementErrors;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
@@ -46,6 +47,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         // Covers failures before controller entry, including route binding and Form Requests.
         $exceptions->report(function (Throwable $error) {
+            if (TrainingManagementErrors::handles(request(), $error)) {
+                return false;
+            }
             if (UserManagementErrors::handles(request(), $error)) {
                 return false;
             }
@@ -54,6 +58,9 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
         $exceptions->render(function (Throwable $error, Request $request) {
+            if (TrainingManagementErrors::handles($request, $error)) {
+                return TrainingManagementErrors::render($error, $request);
+            }
             // Form Request validation and middleware run before the controller's try/catch.
             // Keep the same safe account-error responses for failures at those earlier stages.
             if (UserManagementErrors::handles($request, $error)) {

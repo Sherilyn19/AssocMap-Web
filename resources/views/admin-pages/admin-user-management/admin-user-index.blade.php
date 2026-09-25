@@ -36,6 +36,15 @@
         <p class="text-sm text-assocmap-secondary">Manage authorized AssocMap accounts and role-based system access.</p>
     </div>
 
+    {{-- List validation errors stay visible outside the account form until the next request. --}}
+    @if ($errors->any() && ! session('user_form'))
+        <div role="alert" class="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            @foreach ($errors->all() as $error)
+                <p>{{ $error }}</p>
+            @endforeach
+        </div>
+    @endif
+
     {{-- Summary cards - each is a real link, filters the table below --}}
     <div class="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-3 lg:grid-cols-5">
         <a href="{{ route('users.index') }}"
@@ -184,18 +193,19 @@
                                         Edit
                                     </button>
 
-                                    <form id="toggle-active-form-{{ $user->id }}" action="{{ route('users.toggle-active', $user->id) }}" method="POST" class="hidden">
+                                    {{-- The URL fixes the intended status even if this page becomes stale. --}}
+                                    <form id="account-status-form-{{ $user->id }}" action="{{ route($user->is_active ? 'users.deactivate' : 'users.activate', $user->id) }}" method="POST" class="hidden">
                                         @csrf
                                         @method('PATCH')
                                     </form>
                                     <button type="button"
                                             data-confirm-open
-                                            data-confirm-target="toggle-active-form-{{ $user->id }}"
-                                            data-confirm-title="{{ $user->is_active ? 'Deactivate User?' : 'Reactivate User?' }}"
+                                            data-confirm-target="account-status-form-{{ $user->id }}"
+                                            data-confirm-title="{{ $user->is_active ? 'Deactivate User?' : 'Activate User?' }}"
                                             data-confirm-message="{{ $user->is_active ? 'This user will no longer be able to access AssocMap.' : 'This user will be able to log in again.' }}"
-                                            data-confirm-label="{{ $user->is_active ? 'Deactivate' : 'Reactivate' }}"
+                                            data-confirm-label="{{ $user->is_active ? 'Deactivate' : 'Activate' }}"
                                             class="block w-full px-3 py-2 text-left text-xs font-medium {{ $user->is_active ? 'text-red-600' : 'text-green-600' }} hover:bg-assocmap-bg">
-                                        {{ $user->is_active ? 'Deactivate' : 'Reactivate' }}
+                                        {{ $user->is_active ? 'Deactivate' : 'Activate' }}
                                     </button>
                                 </div>
                             </div>
@@ -246,18 +256,18 @@
                             class="flex-1 rounded-md border border-assocmap-border px-3 py-1.5 text-xs font-semibold text-assocmap-text">
                         Edit
                     </button>
-                    <form id="toggle-active-form-m-{{ $user->id }}" action="{{ route('users.toggle-active', $user->id) }}" method="POST" class="hidden">
+                    <form id="account-status-form-m-{{ $user->id }}" action="{{ route($user->is_active ? 'users.deactivate' : 'users.activate', $user->id) }}" method="POST" class="hidden">
                         @csrf
                         @method('PATCH')
                     </form>
                     <button type="button"
                             data-confirm-open
-                            data-confirm-target="toggle-active-form-m-{{ $user->id }}"
-                            data-confirm-title="{{ $user->is_active ? 'Deactivate User?' : 'Reactivate User?' }}"
+                            data-confirm-target="account-status-form-m-{{ $user->id }}"
+                            data-confirm-title="{{ $user->is_active ? 'Deactivate User?' : 'Activate User?' }}"
                             data-confirm-message="{{ $user->is_active ? 'This user will no longer be able to access AssocMap.' : 'This user will be able to log in again.' }}"
-                            data-confirm-label="{{ $user->is_active ? 'Deactivate' : 'Reactivate' }}"
+                            data-confirm-label="{{ $user->is_active ? 'Deactivate' : 'Activate' }}"
                             class="flex-1 rounded-md border border-assocmap-border px-3 py-1.5 text-xs font-semibold {{ $user->is_active ? 'text-red-600' : 'text-green-600' }}">
-                        {{ $user->is_active ? 'Deactivate' : 'Reactivate' }}
+                        {{ $user->is_active ? 'Deactivate' : 'Activate' }}
                     </button>
                 </div>
             </div>

@@ -6,9 +6,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\TrainingCalendar;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 final class Training extends Model
 {
@@ -44,5 +46,17 @@ final class Training extends Model
     public function programComponent(): BelongsTo
     {
         return $this->belongsTo(ProgramComponent::class);
+    }
+
+    public function participants(): HasMany
+    {
+        return $this->hasMany(TrainingParticipant::class);
+    }
+
+    public function canRecordAttendance(): bool
+    {
+        // Compare date strings so a UTC cast does not shift the local training day.
+        return $this->date_conducted !== null
+            && $this->date_conducted->toDateString() <= TrainingCalendar::today();
     }
 }

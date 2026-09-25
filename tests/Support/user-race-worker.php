@@ -22,7 +22,7 @@ try {
         $user = DB::table('users')->where('id', 2)->first();
         $service->update(2, ['name' => $user->name, 'email' => $user->email, 'role_id' => 2], 2);
     } elseif (($argv[1] ?? '') === 'deactivate') {
-        $service->toggleActive(2, 1);
+        $service->setActive(2, false, 1);
     } else {
         exit(2);
     }

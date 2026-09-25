@@ -45,7 +45,7 @@ if ($action === 'drop') {
     app(AdminUserManagementService::class)->update(3, ['name' => 'Officer', 'email' => 'officer@example.test', 'role_id' => 2, 'password' => 'Replacement-Password-2026'], 1);
 } elseif ($action === 'deactivate') {
     // An unassigned synthetic account permits exercising deactivation independently of reassignment.
-    app(AdminUserManagementService::class)->toggleActive(2, 1);
+    app(AdminUserManagementService::class)->setActive(2, false, 1);
 } elseif ($action === 'demote') {
     app(AdminUserManagementService::class)->update(2, ['name' => 'Admin Two', 'email' => 'admin2@example.test', 'role_id' => 2], 1);
 } elseif ($action === 'status') {
