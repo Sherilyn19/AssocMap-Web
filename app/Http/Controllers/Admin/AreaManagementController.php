@@ -124,7 +124,7 @@ class AreaManagementController extends Controller
 
             return back()->with('success', $success);
         } catch (ValidationException $exception) {
-            // Defense: expected rule failures are actionable, while SQL details stay private.
+// Show validation messages that help the user correct the form. Keep SQL details private.
             $response = back()->withErrors($exception->errors(), $draft ? $request->input('_area_form', 'default') : 'default');
 
             return $draft ? $response->withInput($request->except('_token')) : $response->with('error', collect($exception->errors())->flatten()->first());

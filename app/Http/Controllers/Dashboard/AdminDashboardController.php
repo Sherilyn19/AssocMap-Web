@@ -3,37 +3,23 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
-use Illuminate\View\View;
+use App\Services\AdminDashboardService;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\Response;
 
-/**
- * ============================================================
- * AdminDashboardController
- * app/Http/Controllers/Dashboard/AdminDashboardController.php
- * ============================================================
- * This controller strictly handles the Admin dashboard rendering.
- * ============================================================
- */
 class AdminDashboardController extends Controller
 {
-    /**
-     * System Administrator dashboard.
-     * Route: GET /admin/dashboard (dashboard.admin)
-     */
-    public function admin(): View
+    public function admin(AdminDashboardService $dashboard): Response
     {
-        /*
-         * TODO:
-         * Inject AdminDashboardService to fetch:
-         *   - Total associations count
-         *   - Total members count
-         *   - GIS published markers count
-         *   - Recent audit log entries
-         */
-
-        // Retrieve the authenticated user's data from the session
         $user = session('auth_user');
 
-        // Render the admin-specific dashboard view
-        return view('admin-pages.dashboard', compact('user'));
+        try {
+            return response()->view('admin-pages.dashboard', ['user' => $user, ...$dashboard->overview()]);
+        } catch (QueryException $exception) {
+            report($exception);
+
+            // Unavailable data must never be presented as zero records.
+            return response()->view('admin-pages.dashboard', ['user' => $user, 'unavailable' => true], 503);
+        }
     }
 }

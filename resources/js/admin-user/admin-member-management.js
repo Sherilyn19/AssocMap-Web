@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
             populateBarangays(filterBarangay, filterMunicipality.value);
         });
     }
-    // Defense: failed POST/PUT requests keep the user's corrections, not stale DB values.
+// If saving fails, keep the user's latest input instead of older saved values.
     function clearEditErrors(form) {
         form.querySelectorAll('[data-field-error]').forEach((element) => element.remove());
         form.querySelectorAll('[aria-invalid]').forEach((field) => {

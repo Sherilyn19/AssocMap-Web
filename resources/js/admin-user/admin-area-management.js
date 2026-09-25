@@ -31,7 +31,7 @@ function initTabs(recovery) {
         document.querySelectorAll("[data-am-tab-panel]").forEach(panel => {
             panel.classList.toggle("hidden", panel.dataset.amTabPanel !== target);
         });
-        // Defense: URL state survives refresh, pagination and mutation redirects.
+// Save the selected tab in the URL so it stays selected after reloads and saves.
         const url = new URL(location.href);
         url.searchParams.set("tab", target);
         history.replaceState(null, "", url);
@@ -106,11 +106,13 @@ function initCards() {
             toggleButton.setAttribute("aria-expanded", String(expanded));
             toggleButton.querySelector("[data-area-card-toggle-label]").textContent = expanded ? "Hide summary" : "Show summary";
         }
-        // Defense: a real button supplies Enter/Space behavior without nesting
-        // View/Edit/Archive buttons inside an element that also claims to be a button.
+// Use a separate button so Enter and Space can expand the card.
+        // Keep View, Edit, and Archive as separate buttons.
         toggleButton.addEventListener("click", toggle);
         card.addEventListener("click", event => {
-            if (!event.target.closest("button, a, form, input, select, textarea")) toggle();
+// Clicks within the action controls must not expand the card.
+            // This keeps the selected action in the same position.
+            if (!event.target.closest("button, a, form, input, select, textarea, [data-prevent-card-toggle]")) toggle();
         });
     });
 }
@@ -148,29 +150,38 @@ function initDetails() {
                     : { Municipality: record.municipality, "Municipality Archive State": record.municipality_status }),
                 "Current Associations": record.association_count, Created: record.created_at, Updated: record.updated_at,
             };
-            // Defense: escape database text before inserting HTML (stored-XSS protection).
-            body.innerHTML = '<dl class="grid gap-3 sm:grid-cols-2">' + Object.entries(details).map(([label, value]) =>
-                '<div class="rounded-lg border border-assocmap-border p-3"><dt class="text-xs text-assocmap-secondary">' + escapeHtml(label) +
-                '</dt><dd class="mt-1 break-words text-sm font-semibold">' + escapeHtml(value ?? "Not recorded") + '</dd></div>').join("") + "</dl>";
+// Match the detail fields to the form styles.
+            // Escape saved text so the browser displays it as text, not HTML.
+            body.innerHTML = '<dl class="grid gap-4 sm:grid-cols-2">' + Object.entries(details).map(([label, value]) =>
+                '<div class="rounded-lg border border-slate-200 bg-slate-50 p-4"><dt class="text-xs font-medium text-slate-500">' + escapeHtml(label) +
+                '</dt><dd class="mt-1 break-words text-sm font-semibold text-slate-900">' + escapeHtml(value ?? "Not recorded") + '</dd></div>').join("") + "</dl>";
             if (record.type === "municipality") {
                 const barangays = record.barangays || [];
-                const heading = document.createElement("h4");
-                heading.className = "mt-5 font-semibold";
+// Use h3 below the dialog's h2 heading to keep the heading order clear.
+                // Use textContent to display record values as plain text.
+                const heading = document.createElement("h3");
+                heading.className = "mt-5 text-base font-semibold text-slate-900";
                 heading.textContent = record.barangays_truncated ? "First " + barangays.length + " of " + record.total_barangay_count + " barangays" : "Barangays";
                 body.append(heading);
                 const list = document.createElement("ul");
-                list.className = "mt-2 space-y-1 text-sm";
+                list.className = "mt-2 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700";
                 barangays.forEach(child => {
                     const item = document.createElement("li");
+                    item.className = "break-words px-4 py-3";
                     item.textContent = child.name + " · " + child.status;
                     list.append(item);
                 });
-                if (!barangays.length) list.textContent = "No barangays recorded.";
+                if (!barangays.length) {
+                    const empty = document.createElement("li");
+                    empty.className = "px-4 py-3 text-slate-500";
+                    empty.textContent = "No barangays recorded.";
+                    list.append(empty);
+                }
                 body.append(list);
                 const link = document.createElement("a");
                 link.href = record.barangays_url;
                 link.textContent = "Open all barangay records";
-                link.className = "mt-3 inline-block text-assocmap-primary underline";
+                link.className = "mt-3 inline-flex min-h-11 items-center rounded-lg text-sm font-semibold text-slate-700 underline underline-offset-4 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2";
                 body.append(link);
             }
         } catch (error) {
@@ -178,7 +189,8 @@ function initDetails() {
             body.textContent = controller.signal.aborted ? "Loading took too long. Please try again." :
                 (error instanceof SyntaxError ? "Your session may have expired. Refresh the page." : error.message);
             const retry = document.createElement("button");
-            retry.type = "button"; retry.textContent = "Retry"; retry.className = "ml-3 rounded border px-3 py-2";
+            retry.type = "button"; retry.textContent = "Retry";
+            retry.className = "mt-3 block min-h-11 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2";
             retry.addEventListener("click", () => load(url));
             body.append(retry);
         } finally {
@@ -230,8 +242,8 @@ function initDialogFocus(page) {
             : trigger.hasAttribute("data-municipality-modal-open") ? "am-municipality-modal"
             : trigger.hasAttribute("data-barangay-modal-open") ? "am-barangay-modal" : "am-view-modal";
         const modal = document.getElementById(id);
-        // Defense: a row action becomes hidden when its menu closes. Return to
-        // the visible row-menu toggle instead so keyboard users keep their place.
+// The action button is hidden after its menu closes.
+        // Return keyboard focus to the visible More button.
         returnTargets.set(modal, trigger.closest("[data-am-dropdown]")?.querySelector("[data-am-dropdown-toggle]") || trigger);
     }, true);
     page.querySelectorAll("dialog").forEach(modal => {

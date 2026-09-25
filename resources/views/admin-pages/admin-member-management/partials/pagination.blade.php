@@ -1,5 +1,5 @@
 {{-- Laravel supplies a bounded page window and URLs that retain the current filters. --}}
-<nav class="flex flex-wrap items-center gap-2" role="navigation" aria-label="Member pagination">
+<nav class="flex flex-wrap items-center gap-2" role="navigation" aria-label="{{ $paginationLabel ?? 'Member pagination' }}">
     @if($paginator->onFirstPage())
         <button disabled class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400">Previous</button>
     @else

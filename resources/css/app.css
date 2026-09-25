@@ -7,6 +7,11 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+    body:has([data-admin-dashboard]) .am-main { padding-top: 80px; }
+    [data-admin-dashboard] a:focus-visible { outline: 2px solid #1F6E3D; outline-offset: 4px; }
+}
+
 @layer base {
     html,
     body {
@@ -334,8 +339,8 @@
         @apply ml-0 h-8 w-8 rounded-xl;
     }
 
-    /* Defense: flex/grid children must be allowed to shrink before text can wrap.
-       Scope these rules to Area Management so other registers keep their layout. */
+/* Allow flex and grid items to shrink so long text can wrap.
+       Apply these rules only to Area Management. */
     [data-area-management-page],
     [data-area-management-page] :is(.grid, .flex) > * {
         min-width: 0;
@@ -358,8 +363,8 @@
     .am-area-pagination { max-width: 100%; overflow-x: auto; padding: 4px; }
     [data-area-management-page] [data-am-dropdown-menu] { max-height: calc(100dvh - 1rem); overflow-y: auto; }
 
-    /* Defense: the native dialog owns focus containment. One inner scroller
-       prevents nested scrollbars while keeping Save/Cancel outside the scroller. */
+/* The dialog keeps keyboard focus inside it while open.
+       Only the content scrolls, so Save and Cancel stay visible. */
     .am-area-dialog {
         width: calc(100% - 2rem);
         max-height: calc(100vh - 2rem);
