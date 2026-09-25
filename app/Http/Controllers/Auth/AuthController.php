@@ -3,15 +3,18 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\AssocMapAuth;
 use App\Services\AuthService;
-use Illuminate\Http\Request;
+use App\Services\LoginAttemptLimiter;
+use App\Support\SessionCredentials;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
  * ============================================================
  * AuthController
- * app/Http/Controllers/Auth/AuthController.php 
+ * app/Http/Controllers/Auth/AuthController.php
  * ============================================================
  * Handles user authentication: login form display, credential
  * validation, session creation, role-based redirect, and logout.
@@ -27,18 +30,20 @@ class AuthController extends Controller
      * Injected via constructor (Dependency Injection).
      */
     public function __construct(
-        private readonly AuthService $authService
+        private readonly AuthService $authService,
+        private readonly LoginAttemptLimiter $limiter
     ) {}
 
     /**
      * Show the login form.
      * Redirect to dashboard if user already has an active session.
      */
-    public function showLogin(): View|RedirectResponse
+    public function showLogin(Request $request, AssocMapAuth $access): View|RedirectResponse
     {
         // If already logged in, redirect to their dashboard
         if (session()->has('auth_user')) {
-            return $this->redirectToDashboard(session('auth_user.role_name'));
+            // Recheck stale sessions here as well as on protected pages.
+            return $access->handle($request, fn () => $this->redirectToDashboard(session('auth_user.role_name')));
         }
 
         return view('auth.login');
@@ -56,12 +61,20 @@ class AuthController extends Controller
      *  6. Write audit log entry
      *  7. Redirect to role-appropriate dashboard
      */
-    
     public function login(Request $request): RedirectResponse
     {
+        $retryAfter = $this->limiter->retryAfter($request);
+        if ($retryAfter > 0) {
+            return redirect()->route('login')
+                ->withInput(is_string($request->input('email')) ? $request->only('email') : [])
+                ->with('error', "Too many login attempts. Please try again in {$retryAfter} seconds.")
+                ->withHeaders(['Retry-After' => $retryAfter]);
+        }
+        $this->limiter->recordRequest($request);
+
         // ── Step 1: Validate input format ────────────────────
         $validated = $request->validate([
-            'email'    => ['required', 'email', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:6'],
         ]);
 
@@ -69,12 +82,16 @@ class AuthController extends Controller
         $user = $this->authService->findUserWithRole($validated['email']);
 
         if (! $user || ! password_verify($validated['password'], $user['password'])) {
+            $this->limiter->recordFailure($request);
+
             return back()
                 ->withInput($request->only('email'))
                 ->with('error', 'Invalid email or password. Please try again.');
         }
 
         if (! $user['is_active']) {
+            $this->limiter->recordFailure($request);
+
             return back()
                 ->withInput($request->only('email'))
                 ->with('error', 'Your account has been deactivated. Please contact the System Administrator.');
@@ -82,15 +99,17 @@ class AuthController extends Controller
 
         // ── Step 5: Store minimal user data in session ────────
         // Never store password in session.
-        session()->regenerate(); // Prevent session fixation attacks
+        $this->limiter->clearFailures($request);
+        session()->regenerate(true); // Remove the old session ID after successful authentication.
 
         session([
             'auth_user' => [
-                'id'        => $user['id'],
-                'name'      => $user['name'],
-                'email'     => $user['email'],
-                'role_id'   => $user['role_id'],
+                'id' => $user['id'],
+                'name' => $user['name'],
+                'email' => $user['email'],
+                'role_id' => $user['role_id'],
                 'role_name' => $user['role_name'],
+                'credential_fingerprint' => SessionCredentials::fingerprint($user['id'], $user['password']),
             ],
         ]);
 
@@ -134,17 +153,17 @@ class AuthController extends Controller
      * Map role name to the correct dashboard route.
      * Keeps role-routing logic in one place (DRY).
      *
-     * @param  string $roleName  Role name from the roles table
+     * @param  string  $roleName  Role name from the roles table
      */
     private function redirectToDashboard(string $roleName): RedirectResponse
     {
         return match ($roleName) {
             'System Administrator' => redirect()->route('dashboard.admin'),
-            'Field Officer'        => redirect()->route('dashboard.officer'),
-            'Association Member'   => redirect()->route('dashboard.member'),
+            'Field Officer' => redirect()->route('dashboard.officer'),
+            'Association Member' => redirect()->route('dashboard.member'),
             // Fallback: unknown role hits login with error
             default => redirect()->route('login')
-                           ->with('error', 'Unrecognized user role. Contact your administrator.'),
+                ->with('error', 'Unrecognized user role. Contact your administrator.'),
         };
     }
 }

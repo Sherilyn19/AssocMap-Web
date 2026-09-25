@@ -113,7 +113,9 @@ class AdminUserManagementService
     public function update(int $userId, array $data, ?int $actorId): User
     {
         return app(AssociationDatabase::class)->run(function () use ($userId, $data, $actorId) {
+            $this->lockAdministratorChanges();
             $user = User::query()->lockForUpdate()->findOrFail($userId);
+            $this->requireRemainingAdministrator($user, (int) $data['role_id'], $user->is_active);
             $newRole = DB::table('roles')->where('id', $data['role_id'])->value('role_name');
             if ($newRole !== 'Field Officer') {
                 $this->requireReassignment($userId);
@@ -132,7 +134,12 @@ class AdminUserManagementService
     public function toggleActive(int $userId, ?int $actorId): bool
     {
         return app(AssociationDatabase::class)->run(function () use ($userId, $actorId) {
+            $this->lockAdministratorChanges();
             $user = User::query()->lockForUpdate()->findOrFail($userId);
+            if ($user->is_active && $user->id === $actorId) {
+                throw new AssociationRuleException('You cannot deactivate your own account while logged in.');
+            }
+            $this->requireRemainingAdministrator($user, (int) $user->role_id, ! $user->is_active);
             if ($user->is_active) {
                 $this->requireReassignment($userId);
             }
@@ -155,32 +162,20 @@ class AdminUserManagementService
         }
     }
 
-    /**
-     * Guard: would this role change leave zero active System
-     * Administrators? Checked by the controller BEFORE update().
-     */
-    public function wouldRemoveLastAdmin(int $userId, int $newRoleId): bool
+    private function lockAdministratorChanges(): void
     {
-        $user = User::find($userId);
-        if (! $user || $user->role_id !== $this->adminRoleId()) {
-            return false;
-        }
-
-        return $newRoleId !== $this->adminRoleId() && $this->activeAdminCount() <= 1;
+        // Lock one stable row before any target user. Locking only the target allows
+        // two administrators to change different accounts using the same old count.
+        DB::table('roles')->where('id', $this->adminRoleId())->lockForUpdate()->first();
     }
 
-    /**
-     * Guard: would deactivating this account leave zero active
-     * admins? Checked by the controller BEFORE toggleActive().
-     */
-    public function wouldDeactivateLastAdmin(int $userId): bool
+    private function requireRemainingAdministrator(User $user, int $newRoleId, bool $newActive): void
     {
-        $user = User::find($userId);
-        if (! $user || $user->role_id !== $this->adminRoleId() || ! $user->is_active) {
-            return false;
+        if ($user->is_active && (int) $user->role_id === $this->adminRoleId()
+            && (! $newActive || $newRoleId !== $this->adminRoleId())
+            && $this->activeAdminCount() <= 1) {
+            throw new AssociationRuleException('At least one active System Administrator must remain.');
         }
-
-        return $this->activeAdminCount() <= 1;
     }
 
     private function countByRole(string $roleName): int
