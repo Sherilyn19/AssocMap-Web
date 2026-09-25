@@ -59,12 +59,12 @@ Route::middleware('assocmap.auth:System Administrator')
     });
 // USER-MANAGEMENT-ROUTES-END
 
-
 // ============================================================
 // AREA-MANAGEMENT-ROUTES
 // Area Management Module - System Administrator only.
 // ============================================================
 use App\Http\Controllers\Admin\AreaManagementController;
+use App\Http\Controllers\MonitoringController;
 
 Route::middleware('assocmap.auth:System Administrator')
     ->prefix('admin/areas')
@@ -196,6 +196,17 @@ Route::middleware('assocmap.auth:System Administrator')
         Route::post('/{training}/participants', 'addParticipant')->whereNumber('training')->name('participants.store');
         Route::patch('/{training}/participants/{participant}', 'attendance')->whereNumber(['training', 'participant'])->name('participants.attendance');
         Route::delete('/{training}/participants/{participant}', 'removeParticipant')->whereNumber(['training', 'participant'])->name('participants.destroy');
+    });
+
+// Monitoring permissions and association assignments are checked by the service.
+Route::middleware('assocmap.auth')->prefix('monitoring')->name('monitoring.')
+    ->controller(MonitoringController::class)
+    ->group(function (): void {
+        Route::get('/', 'index')->name('index');
+        Route::get('/{type}/create', 'create')->whereIn('type', ['production', 'income', 'materials'])->name('create');
+        Route::post('/{type}', 'store')->whereIn('type', ['production', 'income', 'materials'])->name('store');
+        Route::get('/{type}/{record}/edit', 'edit')->whereIn('type', ['production', 'income', 'materials'])->whereNumber('record')->name('edit');
+        Route::put('/{type}/{record}', 'update')->whereIn('type', ['production', 'income', 'materials'])->whereNumber('record')->name('update');
     });
 
 // MEMBERSHIP-WORKFLOW: scoped viewing; only the association account can submit/review.
