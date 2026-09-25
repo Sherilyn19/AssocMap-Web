@@ -52,8 +52,10 @@ Route::middleware('assocmap.auth:System Administrator')
     ->group(function () {
         Route::get('/', [AdminUserManagementController::class, 'index'])->name('index');
         Route::post('/', [AdminUserManagementController::class, 'store'])->name('store');
-        Route::put('/{user}', [AdminUserManagementController::class, 'update'])->name('update');
-        Route::patch('/{user}/toggle-active', [AdminUserManagementController::class, 'toggleActive'])->name('toggle-active');
+        Route::put('/{user}', [AdminUserManagementController::class, 'update'])->whereNumber('user')->name('update');
+        // Explicit actions make retries safe; an old toggle request must never change status.
+        Route::patch('/{user}/activate', [AdminUserManagementController::class, 'activate'])->whereNumber('user')->name('activate');
+        Route::patch('/{user}/deactivate', [AdminUserManagementController::class, 'deactivate'])->whereNumber('user')->name('deactivate');
     });
 // USER-MANAGEMENT-ROUTES-END
 
