@@ -44,10 +44,6 @@ class AdminUserManagementController extends Controller
     {
         $data = $request->validated();
 
-        if ($this->users->wouldRemoveLastAdmin($user, (int) $data['role_id'])) {
-            return back()->with('error', 'Cannot change this role - at least one active System Administrator must remain.');
-        }
-
         try {
             $this->users->update($user, $data, session('auth_user.id'));
         } catch (AssociationRuleException $error) {
@@ -60,14 +56,6 @@ class AdminUserManagementController extends Controller
     /** Toggle is_active. No hard delete ever. Guards self and last-admin cases. */
     public function toggleActive(int $user): RedirectResponse
     {
-        if ((int) session('auth_user.id') === $user) {
-            return back()->with('error', 'You cannot deactivate your own account while logged in.');
-        }
-
-        if ($this->users->wouldDeactivateLastAdmin($user)) {
-            return back()->with('error', 'Cannot deactivate - at least one active System Administrator must remain.');
-        }
-
         try {
             $isActive = $this->users->toggleActive($user, session('auth_user.id'));
         } catch (AssociationRuleException $error) {

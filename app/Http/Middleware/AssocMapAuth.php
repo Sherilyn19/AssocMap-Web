@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\User;
 use App\Services\AssociationDatabase;
 use App\Support\AssociationRequestContext;
+use App\Support\SessionCredentials;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -45,7 +46,7 @@ class AssocMapAuth
                 ->with('error', 'Please log in to access this page.');
         }
 
-// Use the session to identify the user and the database to check current permissions.
+        // Use the session to identify the user and the database to check current permissions.
         // Role changes and account deactivation take effect without waiting for logout.
         try {
             $loadActor = fn () => User::with('role')->find($request->session()->get('auth_user.id'));
@@ -68,11 +69,19 @@ class AssocMapAuth
             return redirect()->route('login')->with('error', 'Your account is unavailable. Contact an administrator.');
         }
 
+        if (! SessionCredentials::matches($request, $actor)) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->with('error', 'Your sign-in has expired. Please log in again.');
+        }
+
         $request->attributes->set('assocmap.actor', $actor);
         $request->session()->put('auth_user', [
             'id' => $actor->id, 'name' => $actor->name, 'email' => $actor->email,
             'role_id' => $actor->role_id, 'role_name' => $actor->role->role_name,
             'association_id' => $actor->association_id,
+            'credential_fingerprint' => $request->session()->get('auth_user.credential_fingerprint'),
         ]);
 
         // ── Check 2: Does the role match? ─────────────────────

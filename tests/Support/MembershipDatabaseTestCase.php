@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
+use App\Support\SessionCredentials;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -71,6 +72,9 @@ abstract class MembershipDatabaseTestCase extends TestCase
 
     protected function sessionFor(int $id, string $cachedRole): array
     {
-        return ['auth_user' => ['id' => $id, 'role_name' => $cachedRole]];
+        return ['auth_user' => [
+            'id' => $id, 'role_name' => $cachedRole,
+            'credential_fingerprint' => SessionCredentials::fingerprint($id, DB::table('users')->where('id', $id)->value('password')),
+        ]];
     }
 }
