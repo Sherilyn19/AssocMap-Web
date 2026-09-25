@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Admin;
 
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
@@ -10,7 +9,7 @@ use Illuminate\Validation\Rule;
  * Validation for editing an existing account. Password is nullable -
  * leaving it blank in the form keeps the current password unchanged.
  */
-class UpdateAdminUserRequest extends FormRequest
+class UpdateAdminUserRequest extends StoreAdminUserRequest
 {
     public function authorize(): bool
     {
@@ -21,11 +20,10 @@ class UpdateAdminUserRequest extends FormRequest
     {
         $userId = $this->route('user');
 
-        return [
-            'name'     => ['required', 'string', 'max:255'],
-            'email'    => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
+        // Reuse creation rules while allowing this account's own email and a blank password.
+        return array_replace(parent::rules(), [
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'password' => ['nullable', 'string', 'min:8'],
-            'role_id'  => ['required', 'integer', 'exists:roles,id'],
-        ];
+        ]);
     }
 }

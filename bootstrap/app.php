@@ -13,6 +13,7 @@
 use App\Http\Middleware\AssocMapAuth;
 use App\Http\Middleware\TrackAssociationRequest;
 use App\Support\AssociationErrors;
+use App\Support\UserManagementErrors;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -45,11 +46,19 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         // Covers failures before controller entry, including route binding and Form Requests.
         $exceptions->report(function (Throwable $error) {
+            if (UserManagementErrors::handles(request(), $error)) {
+                return false;
+            }
             if (AssociationErrors::handles(request(), $error)) {
                 return false;
             }
         });
         $exceptions->render(function (Throwable $error, Request $request) {
+            // Form Request validation and middleware run before the controller's try/catch.
+            // Keep the same safe account-error responses for failures at those earlier stages.
+            if (UserManagementErrors::handles($request, $error)) {
+                return UserManagementErrors::render($error, $request);
+            }
             // Area validation queries run before the controller's try/catch.
             // Keep database diagnostics private even when APP_DEBUG is enabled.
             if ($request->is('admin/areas', 'admin/areas/*') && ($error instanceof QueryException || $error instanceof PDOException)) {

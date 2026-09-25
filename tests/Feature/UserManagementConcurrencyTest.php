@@ -10,6 +10,43 @@ use Tests\Support\UserManagementFixture;
 
 class UserManagementConcurrencyTest extends UserManagementDatabaseTestCase
 {
+    public function test_concurrent_creation_with_same_email_saves_one_account_and_one_audit(): void
+    {
+        DB::commit();
+        $worker = null;
+        try {
+            DB::beginTransaction();
+            app(AdminUserManagementService::class)->create(['name' => 'First Account', 'email' => 'race@example.test', 'password' => UserManagementFixture::PASSWORD, 'role_id' => 3, 'association_id' => 1], 1);
+            $worker = new Process([PHP_BINARY, base_path('tests/Support/user-race-worker.php'), 'create'], base_path(), ['ASSOCMAP_USER_RACE_SCHEMA' => $this->schema]);
+            $worker->setTimeout(35);
+            $worker->start();
+            $blocked = false;
+            $deadline = microtime(true) + 10;
+            while ($worker->isRunning() && microtime(true) < $deadline) {
+                if (preg_match('/PID:(\d+)/', $worker->getOutput(), $match)) {
+                    $blocked = (bool) DB::selectOne('SELECT cardinality(pg_blocking_pids(?)) > 0 AS blocked', [(int) $match[1]])->blocked;
+                    if ($blocked) {
+                        break;
+                    }
+                }
+                usleep(100000);
+            }
+            $this->assertTrue($blocked, 'The competing save must wait for the first transaction.');
+            DB::commit();
+            $worker->wait();
+            $this->assertSame(0, $worker->getExitCode(), $worker->getOutput());
+            $this->assertStringContainsString('RESULT:rejected', $worker->getOutput());
+            $this->assertSame(1, DB::table('users')->where('email', 'race@example.test')->count());
+            $this->assertSame(1, DB::table('audit_logs')->where('action_type', 'CREATE')->count());
+        } finally {
+            $worker?->stop();
+            while (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            UserManagementFixture::drop($this->schema);
+        }
+    }
+
     public function test_simultaneous_admin_changes_recheck_the_count_after_waiting(): void
     {
         // Commit only the synthetic fixture so a separate process can see it.

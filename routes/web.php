@@ -178,6 +178,24 @@ Route::middleware('assocmap.auth:System Administrator')
     });
 
 // PROJECT-MANAGEMENT-ROUTES-END
+// Training records and attendance use the same administrator access policy as projects.
+Route::middleware('assocmap.auth:System Administrator')
+    ->prefix('admin/trainings')->name('trainings.')
+    ->controller(\App\Http\Controllers\Admin\TrainingManagementController::class)
+    ->group(function (): void {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{training}', 'show')->whereNumber('training')->name('show');
+        Route::get('/{training}/edit', 'edit')->whereNumber('training')->name('edit');
+        Route::put('/{training}', 'update')->whereNumber('training')->name('update');
+        Route::patch('/{training}/archive', 'archive')->whereNumber('training')->name('archive');
+        Route::patch('/{training}/restore', 'restore')->whereNumber('training')->name('restore');
+        Route::post('/{training}/participants', 'addParticipant')->whereNumber('training')->name('participants.store');
+        Route::patch('/{training}/participants/{participant}', 'attendance')->whereNumber(['training', 'participant'])->name('participants.attendance');
+        Route::delete('/{training}/participants/{participant}', 'removeParticipant')->whereNumber(['training', 'participant'])->name('participants.destroy');
+    });
+
 // MEMBERSHIP-WORKFLOW: scoped viewing; only the association account can submit/review.
 Route::middleware('assocmap.auth')->prefix('membership')->name('membership.')
     ->controller(\App\Http\Controllers\MembershipController::class)->group(function (): void {
