@@ -13,6 +13,7 @@
 use App\Http\Middleware\AssocMapAuth;
 use App\Http\Middleware\TrackAssociationRequest;
 use App\Support\AssociationErrors;
+use App\Support\MonitoringErrors;
 use App\Support\TrainingManagementErrors;
 use App\Support\UserManagementErrors;
 use Illuminate\Database\QueryException;
@@ -47,6 +48,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         // Covers failures before controller entry, including route binding and Form Requests.
         $exceptions->report(function (Throwable $error) {
+            if (MonitoringErrors::handles(request(), $error)) {
+                return false;
+            }
             if (TrainingManagementErrors::handles(request(), $error)) {
                 return false;
             }
@@ -58,6 +62,9 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
         $exceptions->render(function (Throwable $error, Request $request) {
+            if (MonitoringErrors::handles($request, $error)) {
+                return MonitoringErrors::render($error, $request);
+            }
             if (TrainingManagementErrors::handles($request, $error)) {
                 return TrainingManagementErrors::render($error, $request);
             }

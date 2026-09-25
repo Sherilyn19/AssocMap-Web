@@ -3,6 +3,7 @@
  * Main Vite JavaScript entry point for AssocMap Web.
  */
 import './bootstrap';
+import './monitoring';
 import './admin-user/admin_sidebar';
 import './admin-user/admin-user-management';
 import './admin-user/admin-area-management';
