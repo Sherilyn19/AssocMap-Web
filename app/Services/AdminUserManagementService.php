@@ -161,20 +161,26 @@ class AdminUserManagementService
         });
     }
 
-    public function toggleActive(int $userId, ?int $actorId): bool
+    /** Set the requested status instead of reversing whatever status happens to be stored. */
+    public function setActive(int $userId, bool $active, ?int $actorId): bool
     {
-        return app(AssociationDatabase::class)->run(function () use ($userId, $actorId) {
+        return app(AssociationDatabase::class)->run(function () use ($userId, $active, $actorId) {
             $this->lockAdministratorChanges();
             $user = User::query()->lockForUpdate()->findOrFail($userId);
-            if ($user->is_active && $user->id === $actorId) {
+            if (! $active && $user->is_active && $user->id === $actorId) {
                 throw new AssociationRuleException('You cannot deactivate your own account while logged in.');
             }
-            $this->requireRemainingAdministrator($user, (int) $user->role_id, ! $user->is_active);
-            if ($user->is_active) {
+            $this->requireRemainingAdministrator($user, (int) $user->role_id, $active);
+            if (! $active && $user->is_active) {
                 $this->requireReassignment($userId);
             }
             $this->requireAdministrator($actorId);
-            $user->is_active = ! $user->is_active;
+            // Check the actor even for repeated requests. A completed action needs no
+            // second write or audit event, and a stale form cannot reverse its outcome.
+            if ($user->is_active === $active) {
+                return $active;
+            }
+            $user->is_active = $active;
             $user->save();
             $action = $user->is_active ? 'ACTIVATE' : 'DEACTIVATE';
             $this->logAction($actorId, $action, (string) $user->id, "{$action} user {$user->email}");

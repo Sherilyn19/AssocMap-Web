@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Services\AdminUserManagementService;
 use App\Services\AssociationDatabase;
 use App\Support\AssociationRequestContext;
 use App\Support\SessionCredentials;
@@ -62,7 +63,10 @@ class AssocMapAuth
             abort(503, 'Account access could not be verified. Please try again shortly.');
         }
 
-        if (! $actor || ! $actor->is_active || ! $actor->role) {
+        // Recheck supported roles on every protected request. This also clears older
+        // sessions after a role is renamed or replaced and prevents a login redirect loop.
+        if (! $actor || ! $actor->is_active || ! $actor->role
+            || ! in_array($actor->role->role_name, AdminUserManagementService::ROLES, true)) {
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 

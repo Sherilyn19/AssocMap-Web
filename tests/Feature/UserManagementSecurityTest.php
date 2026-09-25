@@ -17,7 +17,7 @@ class UserManagementSecurityTest extends UserManagementDatabaseTestCase
         foreach (['demote', 'deactivate'] as $operation) {
             try {
                 $service = app(AdminUserManagementService::class);
-                $operation === 'demote' ? $service->update(1, $this->payload(1, ['role_id' => 2]), 2) : $service->toggleActive(1, 2);
+                $operation === 'demote' ? $service->update(1, $this->payload(1, ['role_id' => 2]), 2) : $service->setActive(1, false, 2);
                 $this->fail('The last active administrator must remain.');
             } catch (AssociationRuleException $error) {
                 $this->assertStringContainsString('at least one', strtolower($error->getMessage()));
@@ -29,11 +29,11 @@ class UserManagementSecurityTest extends UserManagementDatabaseTestCase
 
     public function test_admin_self_deactivation_is_rejected_by_service_and_endpoint(): void
     {
-        $this->withSession($this->sessionFor(1))->from('/admin/users')->patch('/admin/users/1/toggle-active')
+        $this->withSession($this->sessionFor(1))->from('/admin/users')->patch('/admin/users/1/deactivate')
             ->assertRedirect('/admin/users')->assertSessionHas('error', 'You cannot deactivate your own account while logged in.');
         $this->assertTrue(DB::table('users')->where('id', 1)->value('is_active'));
         $this->expectException(AssociationRuleException::class);
-        app(AdminUserManagementService::class)->toggleActive(1, 1);
+        app(AdminUserManagementService::class)->setActive(1, false, 1);
     }
 
     public function test_inactive_admin_can_be_demoted_when_one_active_admin_remains(): void
@@ -46,7 +46,7 @@ class UserManagementSecurityTest extends UserManagementDatabaseTestCase
     public function test_assigned_officer_still_requires_reassignment_for_both_changes(): void
     {
         $this->withSession($this->sessionFor(1))->from('/admin/users');
-        $this->patch('/admin/users/3/toggle-active')->assertSessionHas('error');
+        $this->patch('/admin/users/3/deactivate')->assertSessionHas('error');
         $this->put('/admin/users/3', $this->payload(3, ['role_id' => 1]))->assertSessionHas('error');
         $officer = DB::table('users')->where('id', 3)->first();
         $this->assertTrue($officer->is_active);
@@ -100,7 +100,7 @@ class UserManagementSecurityTest extends UserManagementDatabaseTestCase
         app(AdminUserManagementService::class)->update(2, $this->payload(2, ['role_id' => 2]), 1);
         $this->withSession($saved)->get('/admin/users')->assertRedirect('/officer/dashboard');
         $this->get('/officer/dashboard')->assertOk();
-        app(AdminUserManagementService::class)->toggleActive(2, 1);
+        app(AdminUserManagementService::class)->setActive(2, false, 1);
         $this->get('/officer/dashboard')->assertRedirect('/login')->assertSessionMissing('auth_user');
         $this->post('/login', ['email' => 'admin2@example.test', 'password' => UserManagementFixture::PASSWORD])->assertSessionMissing('auth_user');
     }
@@ -123,7 +123,8 @@ class UserManagementSecurityTest extends UserManagementDatabaseTestCase
             $this->get('/admin/users')->assertRedirect($destination);
             $this->post('/admin/users', [])->assertRedirect($destination);
             $this->put('/admin/users/1', $this->payload(1))->assertRedirect($destination);
-            $this->patch('/admin/users/1/toggle-active')->assertRedirect($destination);
+            $this->patch('/admin/users/1/deactivate')->assertRedirect($destination);
+            $this->patch('/admin/users/1/activate')->assertRedirect($destination);
         }
         $this->assertSame(0, DB::table('audit_logs')->count());
     }

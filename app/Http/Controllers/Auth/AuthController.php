@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\AssocMapAuth;
+use App\Services\AdminUserManagementService;
 use App\Services\AuthService;
 use App\Services\LoginAttemptLimiter;
 use App\Support\SessionCredentials;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use RuntimeException;
 
 /**
  * ============================================================
@@ -79,7 +81,14 @@ class AuthController extends Controller
         ]);
 
         // ── Step 2 & 3 & 4: Fetch user + verify via PDO ──────
-        $user = $this->authService->findUserWithRole($validated['email']);
+        try {
+            $user = $this->authService->findUserWithRole($validated['email']);
+        } catch (RuntimeException $error) {
+            // AuthService records lookup failures. Keep database details off the login form
+            // and do not create a session or count an outage as an incorrect password.
+            return redirect()->route('login')->withInput($request->only('email'))
+                ->with('error', 'Sign-in is temporarily unavailable. Please try again.');
+        }
 
         if (! $user || ! password_verify($validated['password'], $user['password'])) {
             $this->limiter->recordFailure($request);
@@ -95,6 +104,17 @@ class AuthController extends Controller
             return back()
                 ->withInput($request->only('email'))
                 ->with('error', 'Your account has been deactivated. Please contact the System Administrator.');
+        }
+
+        // A valid password does not authorize a role the application does not support.
+        // Reject it before creating a session or writing a successful login audit event.
+        if (! in_array($user['role_name'], AdminUserManagementService::ROLES, true)) {
+            $this->limiter->recordFailure($request);
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withInput($request->only('email'))
+                ->with('error', 'Your account role is unavailable. Contact the System Administrator.');
         }
 
         // ── Step 5: Store minimal user data in session ────────

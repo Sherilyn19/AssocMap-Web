@@ -1,6 +1,6 @@
 /** Shared feedback for server-rendered management screens. No artificial loading delay. */
 document.addEventListener('DOMContentLoaded', () => {
-    const page = document.querySelector('[data-member-management-page], [data-pm-page], [data-association-page], [data-area-management-page]');
+    const page = document.querySelector('[data-member-management-page], [data-pm-page], [data-training-page], [data-association-page], [data-area-management-page]');
     if (!page) return;
     const content = document.querySelector('.am-content');
     const heading = page.querySelector('h1');

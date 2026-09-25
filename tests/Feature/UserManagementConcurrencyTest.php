@@ -10,6 +10,44 @@ use Tests\Support\UserManagementFixture;
 
 class UserManagementConcurrencyTest extends UserManagementDatabaseTestCase
 {
+    public function test_concurrent_deactivation_retries_keep_one_status_change_and_audit(): void
+    {
+        DB::commit();
+        $worker = null;
+        try {
+            DB::beginTransaction();
+            app(AdminUserManagementService::class)->setActive(2, false, 1);
+            $worker = new Process([PHP_BINARY, base_path('tests/Support/user-race-worker.php'), 'deactivate'], base_path(), ['ASSOCMAP_USER_RACE_SCHEMA' => $this->schema]);
+            $worker->setTimeout(35);
+            $worker->start();
+            $blocked = false;
+            $deadline = microtime(true) + 10;
+            // Verify actual lock waiting so the test covers overlapping requests, not just retries.
+            while ($worker->isRunning() && microtime(true) < $deadline) {
+                if (preg_match('/PID:(\d+)/', $worker->getOutput(), $match)) {
+                    $blocked = (bool) DB::selectOne('SELECT cardinality(pg_blocking_pids(?)) > 0 AS blocked', [(int) $match[1]])->blocked;
+                    if ($blocked) {
+                        break;
+                    }
+                }
+                usleep(100000);
+            }
+            $this->assertTrue($blocked);
+            DB::commit();
+            $worker->wait();
+            $this->assertSame(0, $worker->getExitCode(), $worker->getOutput());
+            $this->assertStringContainsString('RESULT:accepted', $worker->getOutput());
+            $this->assertFalse(DB::table('users')->where('id', 2)->value('is_active'));
+            $this->assertSame(1, DB::table('audit_logs')->where('action_type', 'DEACTIVATE')->count());
+        } finally {
+            $worker?->stop();
+            while (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            UserManagementFixture::drop($this->schema);
+        }
+    }
+
     public function test_concurrent_creation_with_same_email_saves_one_account_and_one_audit(): void
     {
         DB::commit();
@@ -62,7 +100,7 @@ class UserManagementConcurrencyTest extends UserManagementDatabaseTestCase
                 if ($first === 'demote') {
                     $service->update(1, $this->payload(1, ['role_id' => 2]), 1);
                 } else {
-                    $service->toggleActive(1, 2);
+                    $service->setActive(1, false, 2);
                 }
                 $worker = new Process([PHP_BINARY, base_path('tests/Support/user-race-worker.php'), $second], base_path(), ['ASSOCMAP_USER_RACE_SCHEMA' => $this->schema]);
                 $worker->setTimeout(35);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\UserAccountId;
 use Illuminate\Validation\Rule;
 
 /**
@@ -18,7 +19,7 @@ class UpdateAdminUserRequest extends StoreAdminUserRequest
 
     public function rules(): array
     {
-        $userId = $this->route('user');
+        $userId = UserAccountId::parse((string) $this->route('user'));
 
         // Reuse creation rules while allowing this account's own email and a blank password.
         return array_replace(parent::rules(), [

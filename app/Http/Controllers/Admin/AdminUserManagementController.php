@@ -7,15 +7,19 @@ namespace App\Http\Controllers\Admin;
 use App\Exceptions\AssociationDeadlineException;
 use App\Exceptions\AssociationRuleException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ListAdminUsersRequest;
 use App\Http\Requests\Admin\StoreAdminUserRequest;
 use App\Http\Requests\Admin\UpdateAdminUserRequest;
 use App\Services\AdminUserManagementService;
+use App\Support\UserAccountId;
 use App\Support\UserManagementErrors;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use PDOException;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * AdminUserManagementController
@@ -25,9 +29,9 @@ class AdminUserManagementController extends Controller
 {
     public function __construct(private readonly AdminUserManagementService $users) {}
 
-    public function index(Request $request): View|Response
+    public function index(ListAdminUsersRequest $request): View|Response
     {
-        $filters = $request->only(['search', 'role_id', 'status', 'sort']);
+        $filters = $request->validated();
 
         try {
             return view('admin-pages.admin-user-management.admin-user-index', [
@@ -57,13 +61,13 @@ class AdminUserManagementController extends Controller
         return back()->with('success', 'User account created successfully.');
     }
 
-    public function update(UpdateAdminUserRequest $request, int $user): Response
+    public function update(UpdateAdminUserRequest $request, string $user): Response
     {
         $data = $request->validated();
 
         try {
-            $this->users->update($user, $data, session('auth_user.id'));
-        } catch (ValidationException|AssociationRuleException|PDOException|AssociationDeadlineException $error) {
+            $this->users->update(UserAccountId::parse($user), $data, session('auth_user.id'));
+        } catch (ValidationException|AssociationRuleException|PDOException|AssociationDeadlineException|ModelNotFoundException|NotFoundHttpException $error) {
             // Reopen this user's edit form without flashing the submitted password.
             return UserManagementErrors::render($error, $request);
         }
@@ -71,17 +75,27 @@ class AdminUserManagementController extends Controller
         return back()->with('success', 'User account updated successfully.');
     }
 
-    /** Toggle is_active. No hard delete ever. Guards self and last-admin cases. */
-    public function toggleActive(Request $request, int $user): Response
+    public function activate(Request $request, string $user): Response
+    {
+        return $this->changeStatus($request, $user, true);
+    }
+
+    public function deactivate(Request $request, string $user): Response
+    {
+        return $this->changeStatus($request, $user, false);
+    }
+
+    /** Both routes share error handling, but each fixes the intended final status. */
+    private function changeStatus(Request $request, string $user, bool $active): Response
     {
         try {
-            $isActive = $this->users->toggleActive($user, session('auth_user.id'));
-        } catch (AssociationRuleException|PDOException|AssociationDeadlineException $error) {
+            $this->users->setActive(UserAccountId::parse($user), $active, session('auth_user.id'));
+        } catch (AssociationRuleException|PDOException|AssociationDeadlineException|ModelNotFoundException|NotFoundHttpException $error) {
             // Explain blocked status changes without reporting them as successful saves.
             return UserManagementErrors::render($error, $request);
         }
-        $status = $isActive ? 'reactivated' : 'deactivated';
+        $status = $active ? 'active' : 'inactive';
 
-        return back()->with('success', "User account {$status} successfully.");
+        return back()->with('success', "User account is now {$status}.");
     }
 }

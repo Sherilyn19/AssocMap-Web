@@ -99,7 +99,7 @@ class UserProvisioningTest extends UserManagementDatabaseTestCase
                     match ($operation) {
                         'create' => $service->create($this->account(), $actor),
                         'update' => $service->update(4, $this->payload(4, ['association_id' => 1]), $actor),
-                        'toggle' => $service->toggleActive(2, $actor),
+                        'toggle' => $service->setActive(2, false, $actor),
                     };
                     $this->fail('An unauthorized actor must not change accounts.');
                 } catch (AssociationRuleException $error) {
