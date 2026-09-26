@@ -29,7 +29,28 @@ function initUserModal() {
     const associationField = document.getElementById("admin-user-association");
     const associationSection = document.getElementById("admin-user-association-section");
     const submitButton = form.querySelector('[type="submit"]');
+    const existingAccountNote = document.getElementById('admin-user-existing-account-note');
     let opener = null;
+    let editingId = null;
+
+    function syncAssociationOptions() {
+        // Add may open an existing account. Edit cannot move an account onto another
+        // account's association, so the database's uniqueness rule remains intact.
+        let available = 0;
+        associationField.querySelectorAll('option[data-account-id]').forEach(option => {
+            const occupied = option.dataset.accountId && option.dataset.accountId !== String(editingId);
+            const archived = option.dataset.archived === 'true';
+            option.disabled = archived || (editingId !== null && Boolean(occupied));
+            option.textContent = option.dataset.name + (archived ? ' (archived)' : occupied
+                ? (editingId === null ? ' (edit existing account)' : ' (account already exists)') : '');
+            if (!option.disabled) available++;
+        });
+        document.getElementById('admin-user-association-hint').textContent = available
+            ? (editingId === null
+                ? 'Select an association. If it already has an account, its existing details will open for editing.'
+                : 'Keep this association or choose one without an account.')
+            : 'No current associations are available. Register or restore an association first.';
+    }
 
     function syncAssociation() {
         // Keep the association field relevant to the chosen role. The server repeats this check.
@@ -57,10 +78,15 @@ function initUserModal() {
     }
 
     function openCreateModal() {
+        existingAccountNote.classList.add('hidden');
+        editingId = null;
+        syncAssociationOptions();
         form.reset();
         // Form defaults may contain recovered input; a deliberate new attempt should start blank.
         nameField.value = "";
         emailField.value = "";
+        roleField.value = "";
+        associationField.value = "";
         form.setAttribute("action", storeUrl);
         methodField.value = "POST";
         titleEl.textContent = "Add User";
@@ -74,6 +100,9 @@ function initUserModal() {
 
     function openEditModal(userJson) {
         const user = JSON.parse(userJson);
+        existingAccountNote.classList.add('hidden');
+        editingId = user.id;
+        syncAssociationOptions();
         form.reset();
         form.setAttribute("action", storeUrl.replace(/\/users\/?$/, "/users/" + user.id));
         methodField.value = "PUT";
@@ -111,7 +140,34 @@ function initUserModal() {
         if (event.target === modal) closeModal();
     });
     roleField.addEventListener("change", syncAssociation);
+    associationField.addEventListener('change', () => {
+        const option = associationField.selectedOptions[0];
+        if (editingId !== null || !option?.dataset.accountId) return;
+        try {
+            // Use the server's existing account ID and switch to PUT. Selecting an
+            // association never submits a form or overwrites the account immediately.
+            const account = JSON.parse(option.dataset.account);
+            if (!account?.id || String(account.id) !== option.dataset.accountId) {
+                throw new Error('Account details are unavailable.');
+            }
+            const associationName = option.dataset.name;
+            const originalOpener = opener;
+            openEditModal(JSON.stringify(account));
+            // Closing this edit should return to Add User, not the now-hidden selector.
+            opener = originalOpener;
+            existingAccountNote.textContent = `Editing the existing shared account for ${associationName}. Leave the password blank to keep it.${account.is_active ? '' : ' This account is inactive; editing does not activate it.'}`;
+            existingAccountNote.classList.remove('hidden');
+        } catch (error) {
+            // Never leave a create request pointing at an occupied association when
+            // its edit data cannot be read. Keep the entered fields for recovery.
+            associationField.value = '';
+            existingAccountNote.textContent = 'The existing account could not be loaded. Refresh the page and try again.';
+            existingAccountNote.classList.remove('hidden');
+        }
+    });
     form.addEventListener("submit", () => { submitButton.disabled = true; });
+    // Back navigation can restore the form from browser cache with Save still disabled.
+    window.addEventListener("pageshow", () => { submitButton.disabled = false; });
     modal.addEventListener("keydown", (event) => {
         if (event.key === "Escape") closeModal();
         if (event.key !== "Tab") return;

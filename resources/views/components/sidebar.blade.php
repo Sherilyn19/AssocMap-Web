@@ -29,7 +29,7 @@
         ['route' => 'trainings.index',    'label' => 'Training Management',    'icon' => 'M4 6.5 12 3l8 3.5-8 3.5-8-3.5ZM7 10.5V16c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-5.5'],
         ['route' => 'monitoring.index',   'label' => 'Monitoring Module',      'icon' => 'M3 17l5-6 4 4 8-9M15 6h5v5'],
         ['route' => 'reports.index',      'label' => 'Reports & Analytics',    'icon' => 'M4 10h4v10H4V10Zm6-4h4v14h-4V6Zm6 7h4v7h-4v-7Z'],
-        ['route' => 'audit-logs.index',   'label' => 'Audit Log',              'icon' => 'M7 3h10a1 1 0 0 1 1 1v16l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1ZM9 8h6M9 11.5h6'],
+        ['route' => 'admin.audit-logs.index', 'label' => 'Audit Log',           'icon' => 'M7 3h10a1 1 0 0 1 1 1v16l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1ZM9 8h6M9 11.5h6'],
     ];
     // These roles use scoped membership routes; admin links must not be their navigation.
     if (session('auth_user.role_name') !== 'System Administrator') {

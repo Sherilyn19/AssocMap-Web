@@ -23,6 +23,10 @@ export function initConfirmModal() {
             if (modal.hasAttribute("data-area-confirm-dialog")) {
                 actionBtn.dataset.tone = btn.dataset.confirmTone === "restore" ? "restore" : "archive";
             }
+            // Activation and deactivation use distinct colors with the same button sizing.
+            if (modal.hasAttribute("data-user-confirm-dialog")) {
+                actionBtn.dataset.tone = btn.dataset.confirmTone === "activate" ? "activate" : "deactivate";
+            }
             targetFormId = btn.dataset.confirmTarget;
             actionBtn.disabled = false;
             if (isDialog) modal.showModal();
@@ -64,7 +68,7 @@ export function initRowDropdowns() {
             if (d !== except) {
                 const menu = d.querySelector("[data-am-dropdown-menu]");
                 const toggle = d.querySelector("[data-am-dropdown-toggle]");
-                const returnFocus = d.closest("[data-area-management-page]") && menu.contains(document.activeElement)
+                const returnFocus = d.closest("[data-area-management-page], [data-user-table-scroll]") && menu.contains(document.activeElement)
                     && !document.querySelector("dialog[open]");
                 menu.classList.add("hidden");
                 toggle?.setAttribute("aria-expanded", "false");
@@ -76,8 +80,8 @@ export function initRowDropdowns() {
     dropdowns.forEach((dropdown) => {
         const toggle = dropdown.querySelector("[data-am-dropdown-toggle]");
         const menu = dropdown.querySelector("[data-am-dropdown-menu]");
-        if (dropdown.closest("[data-area-management-page]")) {
-// Skip disabled actions when using arrow keys.
+        if (dropdown.closest("[data-area-management-page], [data-user-table-scroll]")) {
+            // Skip disabled actions when using arrow keys.
             // Escape returns focus to More. Tab follows the normal button order.
             const actions = () => [...menu.querySelectorAll("button:not(:disabled), a[href]")];
             toggle.addEventListener("keydown", event => {
@@ -110,7 +114,7 @@ export function initRowDropdowns() {
             closeAll(dropdown);
             menu.classList.toggle("hidden", !isHidden);
             toggle.setAttribute("aria-expanded", String(isHidden));
-            if (isHidden && dropdown.closest("[data-area-management-page]")) {
+            if (isHidden && dropdown.closest("[data-area-management-page], [data-user-table-scroll]")) {
                 // Fixed placement avoids clipping inside the responsive table scroller.
                 const bounds = toggle.getBoundingClientRect();
                 menu.style.position = "fixed";
