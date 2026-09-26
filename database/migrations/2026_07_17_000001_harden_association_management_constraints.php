@@ -39,7 +39,7 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conname = 'sub_units_id_area_unit_id_unique'
+        WHERE conname IN ('sub_units_id_area_unit_id_unique', 'uq_sub_units_id_area_unit') AND conrelid = 'sub_units'::regclass
     ) THEN
         ALTER TABLE sub_units
             ADD CONSTRAINT sub_units_id_area_unit_id_unique
@@ -49,7 +49,7 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conname = 'fk_associations_sub_unit_area'
+        WHERE conname = 'fk_associations_sub_unit_area' AND conrelid = 'associations'::regclass
     ) THEN
         ALTER TABLE associations
             ADD CONSTRAINT fk_associations_sub_unit_area

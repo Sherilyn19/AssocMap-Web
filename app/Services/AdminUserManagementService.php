@@ -101,8 +101,14 @@ class AdminUserManagementService
 
     public function associationOptions()
     {
-        // Keep archived associations visible for existing links; the form disables new selection.
-        return DB::table('associations')->select('id', 'name', 'is_archived')->orderBy('name')->get();
+        // The selector can open an existing account even when it is on another page.
+        // Select only editable public fields; password hashes must never reach the form.
+        return DB::table('associations')
+            ->leftJoin('users', 'users.association_id', '=', 'associations.id')
+            ->select('associations.id', 'associations.name', 'associations.is_archived',
+                'users.id as account_id', 'users.name as account_name', 'users.email as account_email',
+                'users.role_id as account_role_id', 'users.is_active as account_is_active')
+            ->orderBy('associations.name')->get();
     }
 
     public function create(array $data, ?int $actorId): User
@@ -117,6 +123,7 @@ class AdminUserManagementService
             $association = $this->lockAssociation($role, $data);
             $associationId = $this->associationLink($role, $association);
             $this->requireUniqueEmail($data['email']);
+            $this->requireUniqueAssociation($associationId);
             $user = User::create([
                 'name' => $data['name'], 'email' => $data['email'],
                 'password' => Hash::make($data['password']), 'role_id' => $data['role_id'],
@@ -145,6 +152,7 @@ class AdminUserManagementService
             $this->requireAdministrator($actorId);
             $associationId = $this->associationLink($newRole, $association);
             $this->requireUniqueEmail($data['email'], $userId);
+            $this->requireUniqueAssociation($associationId, $userId);
             // Preserve the old link and role for the audit trail before changing the account.
             $previousRole = $user->role_id;
             $previousAssociation = $user->association_id;
@@ -243,6 +251,18 @@ class AdminUserManagementService
         // Recheck after the shared lock: request validation may predate another completed save.
         if (User::where('email', $email)->when($exceptId, fn ($query) => $query->where('id', '<>', $exceptId))->exists()) {
             throw ValidationException::withMessages(['email' => 'This email address is already used by another account.']);
+        }
+    }
+
+    private function requireUniqueAssociation(?int $associationId, ?int $exceptId = null): void
+    {
+        // Recheck under the association lock: another administrator may have saved
+        // after this form opened. Inactive accounts still own their association link.
+        if ($associationId !== null && User::where('association_id', $associationId)
+            ->when($exceptId, fn ($query) => $query->where('id', '<>', $exceptId))->exists()) {
+            throw ValidationException::withMessages([
+                'association_id' => 'This association already has an account. Edit or activate its existing account, or choose another association.',
+            ]);
         }
     }
 

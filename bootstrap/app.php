@@ -48,6 +48,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         // Covers failures before controller entry, including route binding and Form Requests.
         $exceptions->report(function (Throwable $error) {
+            if (request()->is('admin/audit-logs') && ($error instanceof QueryException || $error instanceof PDOException)) {
+                logger()->error('Audit history unavailable.', ['exception_type' => $error::class]);
+                return false;
+            }
             if (MonitoringErrors::handles(request(), $error)) {
                 return false;
             }
@@ -62,6 +66,11 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
         $exceptions->render(function (Throwable $error, Request $request) {
+            if ($request->is('admin/audit-logs') && ($error instanceof QueryException || $error instanceof PDOException)) {
+                return $request->expectsJson()
+                    ? response()->json(['message' => 'Audit Logs temporarily unavailable. Please try again.'], 503)
+                    : response()->view('errors.audit-logs-unavailable', [], 503);
+            }
             if (MonitoringErrors::handles($request, $error)) {
                 return MonitoringErrors::render($error, $request);
             }
