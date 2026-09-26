@@ -376,12 +376,7 @@ final class ProjectManagementService
         int $recordId,
         string $details
     ): void {
-        // Preserve compatibility with installations without the audit table. If it
-        // exists, an insert failure is rethrown below and rolls back the business write.
-        if (! DB::getSchemaBuilder()->hasTable('audit_logs')) {
-            return;
-        }
-
+        // A project change must fail if its required audit entry cannot be saved.
         try {
             DB::table('audit_logs')->insert([
                 'user_id' => $actorId,

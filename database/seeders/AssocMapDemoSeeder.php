@@ -8,6 +8,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use PDOException;
 use RuntimeException;
 
 class AssocMapDemoSeeder extends Seeder
@@ -16,28 +17,45 @@ class AssocMapDemoSeeder extends Seeder
 
     public function run(): void
     {
+        // Two deliberate gates prevent a normal or production seed from installing public credentials.
+        if (! app()->environment(['local', 'testing']) || ! config('seeding.allow_demo')) {
+            throw new RuntimeException('Demo seeding requires local/testing and ASSOCMAP_ALLOW_DEMO_SEEDING=true.');
+        }
         $this->assertRequiredTables();
 
-        DB::transaction(function (): void {
-            $lookups = $this->seedAndLoadLookups();
-            $users = $this->seedFieldOfficers($lookups['roles']);
-            $places = $this->seedCebuPlaces();
-            $associations = $this->seedAssociations($places, $users, $lookups);
-            $sharedUsers = $this->seedAssociationAccounts($associations, $lookups['roles']);
-            $members = $this->seedMembers($associations, $lookups['sex']);
-            $this->assignRepresentatives($associations, $members);
-            $this->seedMemberApplications($associations, $members, $lookups);
-            $projects = $this->seedProjects($associations, $lookups);
-            $materials = $this->seedProjectMaterials($projects, $lookups['statuses']);
-            $trainings = $this->seedTrainings($associations, $lookups['components']);
-            $this->seedTrainingParticipants($trainings, $members, $lookups['statuses']);
-            $this->seedMonitoring($associations, $projects, $materials, $users, $lookups);
-            $this->seedGisLocations($associations);
-            $this->seedAuditLogs($users, $associations, $projects);
+        try {
+            DB::transaction(function (): void {
+                $lookups = $this->seedAndLoadLookups();
+                // Demo data is one-time disposable setup. Never reset an existing account or domain record.
+                DB::table('roles')->where('id', $lookups['roles']['System Administrator'])->lockForUpdate()->first();
+                foreach (['users', 'area_units', 'sub_units', 'associations', 'members', 'member_applications', 'projects', 'trainings', 'audit_logs'] as $table) {
+                    if (DB::table($table)->exists()) {
+                        throw new RuntimeException('Demo seeding requires empty account and domain tables. Existing records were not changed.');
+                    }
+                }
+                $this->upsertUser('Demo Administrator', 'admin@assocmap.test', $lookups['roles']['System Administrator'], null);
+                $users = $this->seedFieldOfficers($lookups['roles']);
+                $places = $this->seedCebuPlaces();
+                $associations = $this->seedAssociations($places, $users, $lookups);
+                $sharedUsers = $this->seedAssociationAccounts($associations, $lookups['roles']);
+                $members = $this->seedMembers($associations, $lookups['sex']);
+                $this->assignRepresentatives($associations, $members);
+                $this->seedMemberApplications($associations, $members, $lookups);
+                $projects = $this->seedProjects($associations, $lookups);
+                $materials = $this->seedProjectMaterials($projects, $lookups['statuses']);
+                $trainings = $this->seedTrainings($associations, $lookups['components']);
+                $this->seedTrainingParticipants($trainings, $members, $lookups['statuses']);
+                $this->seedMonitoring($associations, $projects, $materials, $users, $lookups);
+                $this->seedGisLocations($associations);
+                $this->seedAuditLogs($users, $associations, $projects);
 
-            // Keeps variables intentionally referenced for clarity during maintenance.
-            unset($sharedUsers);
-        }, 3);
+                // Keeps variables intentionally referenced for clarity during maintenance.
+                unset($sharedUsers);
+            }, 1);
+        } catch (PDOException $error) {
+            // Rollback completes before surfacing a safe error; do not replay a partially confirmed run.
+            throw new RuntimeException('Demo seeding could not be confirmed. Check the disposable database before retrying.');
+        }
 
         $this->command?->info('AssocMap Filipino demo data seeded successfully.');
         $this->command?->line('Demo password for generated accounts: '.self::DEMO_PASSWORD);
@@ -795,6 +813,11 @@ class AssocMapDemoSeeder extends Seeder
     ): int {
         $existingId = DB::table('users')->where('email', $email)->value('id');
 
+        // Even internal reuse must preserve passwords, activation, roles and association links.
+        if ($existingId) {
+            return (int) $existingId;
+        }
+
         $payload = [
             'name' => $name,
             'password' => Hash::make(self::DEMO_PASSWORD),
@@ -803,11 +826,6 @@ class AssocMapDemoSeeder extends Seeder
             'is_active' => true,
             'updated_at' => now(),
         ];
-
-        if ($existingId) {
-            DB::table('users')->where('id', $existingId)->update($payload);
-            return (int) $existingId;
-        }
 
         return (int) DB::table('users')->insertGetId(array_merge($payload, [
             'email' => $email,
@@ -831,6 +849,7 @@ class AssocMapDemoSeeder extends Seeder
 
         if ($existingId) {
             DB::table($table)->where('id', $existingId)->update($payload);
+
             return (int) $existingId;
         }
 

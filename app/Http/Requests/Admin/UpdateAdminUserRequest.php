@@ -23,8 +23,8 @@ class UpdateAdminUserRequest extends StoreAdminUserRequest
 
         // Reuse creation rules while allowing this account's own email and a blank password.
         return array_replace(parent::rules(), [
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
-            'password' => ['nullable', 'string', 'min:8'],
+            'email' => ['bail', 'required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
+            'password' => $this->passwordRules(optional: true),
         ]);
     }
 }

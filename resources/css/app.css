@@ -8,6 +8,31 @@
 @tailwind utilities;
 
 @layer components {
+    /* Keep account columns readable without letting long text widen the dashboard.
+       Only this table scrolls; floating action menus are placed outside its clipping area. */
+    .am-user-table-scroll { max-width: 100%; overflow-x: auto; }
+    .am-user-table { width: 100%; min-width: 64rem; table-layout: fixed; }
+    .am-user-table td { padding: 1rem; vertical-align: middle; }
+    .am-user-table th { padding: 0.75rem 1rem; white-space: nowrap; font-size: 0.75rem; letter-spacing: 0.025em; text-transform: uppercase; color: #475569; }
+    .am-user-text { overflow-wrap: anywhere; line-height: 1.5; }
+    .am-user-table-scroll:focus-visible { outline: 2px solid #64748b; outline-offset: -2px; }
+
+    /* Use the management register's slate controls without changing login or public pages. */
+    .am-user-summary {
+        @apply min-w-0 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2;
+    }
+    .am-user-control {
+        @apply min-h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200;
+    }
+    .am-user-button {
+        @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60;
+    }
+    .am-user-button-primary { @apply bg-slate-800 text-white hover:bg-slate-700; }
+    .am-user-button-secondary { @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-50; }
+    .am-user-badge { @apply inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold; }
+    [data-user-confirm-dialog] [data-tone="deactivate"] { @apply bg-red-600 hover:bg-red-700; }
+    [data-user-confirm-dialog] [data-tone="activate"] { @apply bg-emerald-700 hover:bg-emerald-800; }
+
     body:has([data-admin-dashboard]) .am-main { padding-top: 80px; }
     [data-admin-dashboard] a:focus-visible { outline: 2px solid #1F6E3D; outline-offset: 4px; }
 }

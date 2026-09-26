@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Exceptions\AuthenticationAuditException;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\AssocMapAuth;
 use App\Services\AdminUserManagementService;
@@ -59,8 +60,8 @@ class AuthController extends Controller
      *  2. Look up user via PDO JOIN (users + roles)
      *  3. Verify bcrypt password
      *  4. Check is_active flag
-     *  5. Write session
-     *  6. Write audit log entry
+     *  5. Confirm the login audit event
+     *  6. Write session
      *  7. Redirect to role-appropriate dashboard
      */
     public function login(Request $request): RedirectResponse
@@ -117,7 +118,25 @@ class AuthController extends Controller
                 ->with('error', 'Your account role is unavailable. Contact the System Administrator.');
         }
 
-        // ── Step 5: Store minimal user data in session ────────
+        // Confirm the audit write before granting access. An audit outage must not
+        // produce an authenticated session or be counted as an incorrect password.
+        try {
+            $this->authService->writeAuditLog(
+                userId: $user['id'],
+                actionType: 'LOGIN',
+                module: 'Auth',
+                details: 'Credentials and account access verified; session issuance authorized.'
+            );
+        } catch (AuthenticationAuditException $error) {
+            // Clear a pre-existing session as well, so a failed login cannot retain access.
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withInput($request->only('email'))
+                ->with('error', 'Sign-in could not be completed. Please try again shortly.');
+        }
+
+        // ── Step 6: Store minimal user data in session ────────
         // Never store password in session.
         $this->limiter->clearFailures($request);
         session()->regenerate(true); // Remove the old session ID after successful authentication.
@@ -133,14 +152,6 @@ class AuthController extends Controller
             ],
         ]);
 
-        // ── Step 6: Write login event to audit_logs ───────────
-        $this->authService->writeAuditLog(
-            userId     : $user['id'],
-            actionType : 'LOGIN',
-            module     : 'Auth',
-            details    : 'User logged in successfully'
-        );
-
         // ── Step 7: Redirect to role dashboard ────────────────
         return $this->redirectToDashboard($user['role_name']);
     }
@@ -151,19 +162,30 @@ class AuthController extends Controller
      */
     public function logout(Request $request): RedirectResponse
     {
-        // Write logout event before clearing session
-        if (session()->has('auth_user')) {
-            $this->authService->writeAuditLog(
-                userId     : session('auth_user.id'),
-                actionType : 'LOGOUT',
-                module     : 'Auth',
-                details    : 'User logged out'
-            );
+        $auditFailed = false;
+        try {
+            if ($request->session()->has('auth_user')) {
+                $this->authService->writeAuditLog(
+                    userId: $request->session()->get('auth_user.id'),
+                    actionType: 'LOGOUT',
+                    module: 'Auth',
+                    details: 'Logout requested; session invalidation follows regardless of audit outcome.'
+                );
+            }
+        } catch (AuthenticationAuditException $error) {
+            // The service records safe diagnostics. A missing audit must never keep access open.
+            $auditFailed = true;
+        } finally {
+            // Run cleanup even when auditing throws an unexpected error. Forget access data
+            // before attempting session destruction, then replace the CSRF token.
+            $request->session()->forget('auth_user');
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
         }
 
-        // Invalidate session and regenerate CSRF token
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        if ($auditFailed) {
+            return redirect()->route('login')->with('error', 'You have been logged out, but the logout record could not be confirmed. Please inform the System Administrator.');
+        }
 
         return redirect()->route('login')
             ->with('success', 'You have been logged out successfully.');

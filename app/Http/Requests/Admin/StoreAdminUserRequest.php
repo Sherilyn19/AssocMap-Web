@@ -25,11 +25,11 @@ class StoreAdminUserRequest extends FormRequest
         // Only shared accounts accept an association link. Excluding it for other roles
         // prevents stale or manually submitted values from granting unintended access.
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
-            'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->whereIn('role_name', AdminUserManagementService::ROLES)],
-            'association_id' => [Rule::excludeIf(! $this->isSharedAccount()), 'required', 'integer', Rule::exists('associations', 'id')->where(fn ($query) => $query->where('is_archived', false))],
+            'name' => ['bail', 'required', 'string', 'max:255'],
+            'email' => ['bail', 'required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password' => $this->passwordRules(),
+            'role_id' => ['bail', 'required', 'integer', 'min:1', 'max:'.PHP_INT_MAX, Rule::exists('roles', 'id')->whereIn('role_name', AdminUserManagementService::ROLES)],
+            'association_id' => [Rule::excludeIf(! $this->isSharedAccount()), 'bail', 'required', 'integer', 'min:1', 'max:'.PHP_INT_MAX, Rule::exists('associations', 'id')->where(fn ($query) => $query->where('is_archived', false))],
         ];
     }
 
@@ -38,7 +38,22 @@ class StoreAdminUserRequest extends FormRequest
         $roleId = $this->input('role_id');
 
         // Reject malformed role values before using them in the association-rule lookup.
-        return is_scalar($roleId) && ctype_digit((string) $roleId)
+        return is_scalar($roleId) && filter_var($roleId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) !== false
             && DB::table('roles')->where('id', $roleId)->value('role_name') === 'Association Member';
+    }
+
+    protected function passwordRules(bool $optional = false): array
+    {
+        // bcrypt accepts at most 72 bytes. Validate before hashing, including multibyte
+        // input, so oversized passwords become field errors instead of server failures.
+        return ['bail', $optional ? 'nullable' : 'required', 'string', 'min:8', function ($attribute, $value, $fail): void {
+            if (strlen($value) > 72) {
+                $fail('The password must not exceed 72 bytes. Use a shorter password.');
+            }
+            // bcrypt also rejects null bytes; report the problem before saving anything.
+            if (str_contains($value, "\0")) {
+                $fail('The password contains an unsupported null character.');
+            }
+        }];
     }
 }
