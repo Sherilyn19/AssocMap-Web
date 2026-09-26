@@ -10,5 +10,6 @@ import './admin-user/admin-area-management';
 import './admin-user/admin-association-management';
 import './admin-user/admin-member-management';
 import './admin-user/admin-project-management';
+import './admin-user/admin-audit-log';
 
 import './admin-user/management-ui';

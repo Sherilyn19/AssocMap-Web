@@ -12,31 +12,51 @@ use Tests\Support\UserManagementFixture;
 
 class UserProvisioningTest extends UserManagementDatabaseTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Association 1 already owns account 4; new accounts need an unoccupied association.
+        DB::table('associations')->insert(['name' => 'Available Association']);
+    }
+
     private function account(array $extra = []): array
     {
-        return array_replace(['name' => 'New Shared Account', 'email' => 'new@example.test', 'password' => UserManagementFixture::PASSWORD, 'role_id' => 3, 'association_id' => 1], $extra);
+        return array_replace(['name' => 'New Shared Account', 'email' => 'new@example.test', 'password' => UserManagementFixture::PASSWORD, 'role_id' => 3, 'association_id' => 2], $extra);
     }
 
     public function test_create_saves_link_password_and_exactly_one_audit_event(): void
     {
         $this->withSession($this->sessionFor(1))->post('/admin/users', $this->account())->assertSessionHas('success');
         $user = DB::table('users')->where('email', 'new@example.test')->first();
-        $this->assertSame(1, $user->association_id);
+        $this->assertSame(2, $user->association_id);
         $this->assertTrue(Hash::check(UserManagementFixture::PASSWORD, $user->password));
         $this->assertTrue($user->is_active);
         $log = DB::table('audit_logs')->sole();
         $this->assertSame(1, $log->user_id);
         $this->assertSame($user->id, $log->record_id);
         $this->assertSame('CREATE', $log->action_type);
-        $this->assertStringContainsString('association 1', $log->details);
+        $this->assertStringContainsString('association 2', $log->details);
         $this->assertStringNotContainsString(UserManagementFixture::PASSWORD, $log->details);
         $this->get('/admin/users')->assertOk()->assertSee('Synthetic Association')->assertSee('new@example.test');
+    }
+
+    public function test_malformed_ids_and_oversized_passwords_are_field_errors_without_partial_accounts(): void
+    {
+        $this->withSession($this->sessionFor(1));
+        foreach ([['role_id' => '999999999999999999999999'], ['role_id' => ['3']], ['association_id' => '999999999999999999999999'], ['association_id' => ['1']], ['password' => str_repeat('x', 73)], ['password' => str_repeat('é', 37)], ['password' => "Password\0Invalid"], ['email' => ['invalid']]] as $invalid) {
+            $this->postJson('/admin/users', $this->account($invalid))->assertUnprocessable()
+                ->assertJsonValidationErrors(array_key_first($invalid))->assertDontSee('SQLSTATE');
+        }
+        $this->putJson('/admin/users/4', $this->payload(4, ['association_id' => 1, 'password' => str_repeat('x', 73)]))
+            ->assertUnprocessable()->assertJsonValidationErrors('password');
+        $this->assertSame(4, DB::table('users')->count());
+        $this->assertSame(0, DB::table('audit_logs')->count());
     }
 
     public function test_missing_nonexistent_and_archived_associations_are_rejected_and_form_recovers(): void
     {
         DB::table('associations')->insert(['name' => 'Archived', 'is_archived' => true]);
-        foreach ([null, 999, 2] as $id) {
+        foreach ([null, 999, 3] as $id) {
             $this->withSession($this->sessionFor(1))->post('/admin/users', $this->account(['association_id' => $id]))
                 ->assertRedirect('/admin/users')->assertSessionHasErrors('association_id')
                 ->assertSessionHas('user_form.mode', 'create')->assertSessionHas('_old_input.name', 'New Shared Account')
@@ -49,7 +69,6 @@ class UserProvisioningTest extends UserManagementDatabaseTestCase
 
     public function test_link_changes_and_role_transitions_clear_unintended_association_scope(): void
     {
-        DB::table('associations')->insert(['name' => 'Other Association']);
         $this->withSession($this->sessionFor(1))->put('/admin/users/4', $this->payload(4, ['association_id' => 2]))->assertSessionHas('success');
         $this->assertSame(2, DB::table('users')->where('id', 4)->value('association_id'));
         $this->put('/admin/users/4', $this->payload(4, ['role_id' => 2, 'association_id' => 2]))->assertSessionHas('success');
@@ -121,7 +140,7 @@ class UserProvisioningTest extends UserManagementDatabaseTestCase
         } catch (ValidationException $error) {
             $this->assertArrayHasKey('email', $error->errors());
         }
-        DB::table('associations')->where('id', 1)->update(['is_archived' => true]);
+        DB::table('associations')->where('id', 2)->update(['is_archived' => true]);
         try {
             $service->create($this->account(['email' => 'another@example.test']), 1);
             $this->fail('An association archived since validation must be rejected.');
@@ -173,5 +192,61 @@ class UserProvisioningTest extends UserManagementDatabaseTestCase
             ->assertSessionMissing('_old_input.password');
         $this->assertSame('association@example.test', DB::table('users')->where('id', 4)->value('email'));
         $this->get('/admin/users')->assertOk()->assertDontSee('Secret-Not-Preserved');
+    }
+
+    public function test_existing_association_account_is_a_field_error_and_its_own_edit_is_allowed(): void
+    {
+        // Match the live schema rule for both active and inactive association accounts.
+        $this->withSession($this->sessionFor(1));
+        foreach ([true, false] as $active) {
+            DB::table('users')->where('id', 4)->update(['is_active' => $active]);
+            $this->post('/admin/users', $this->account(['association_id' => 1]))
+                ->assertSessionHasErrors('association_id')->assertSessionHas('user_form.mode', 'create')
+                ->assertSessionMissing('_old_input.password');
+        }
+        $this->assertSame(4, DB::table('users')->count());
+        $this->assertSame(0, DB::table('audit_logs')->count());
+        $this->get('/admin/users')->assertOk()->assertSee('edit existing account')->assertSee('data-account-id="4"', false);
+        $this->put('/admin/users/4', $this->payload(4, ['association_id' => 1]))->assertSessionHasNoErrors()->assertSessionHas('success');
+        $this->post('/admin/users', $this->account())->assertSessionHasNoErrors()->assertSessionHas('success');
+        $this->putJson('/admin/users/4', $this->payload(4, ['association_id' => 2]))
+            ->assertUnprocessable()->assertJsonValidationErrors('association_id');
+        $this->assertSame(1, DB::table('users')->where('id', 4)->value('association_id'));
+    }
+
+    public function test_database_association_conflict_returns_a_safe_field_error(): void
+    {
+        // Simulate an external writer after form validation, exercising the real unique constraint.
+        $this->mock(AdminUserManagementService::class, function ($mock) {
+            $mock->shouldReceive('create')->once()->andReturnUsing(function ($data) {
+                return DB::transaction(fn () => DB::table('users')->insert([
+                    'name' => $data['name'], 'email' => $data['email'], 'password' => Hash::make($data['password']),
+                    'role_id' => 3, 'association_id' => 1,
+                ]));
+            });
+        });
+        $this->withSession($this->sessionFor(1))->postJson('/admin/users', $this->account())
+            ->assertUnprocessable()->assertJsonValidationErrors('association_id')->assertDontSee('SQLSTATE');
+        $this->assertSame(4, DB::table('users')->count());
+        $this->assertSame(0, DB::table('audit_logs')->count());
+    }
+
+    public function test_existing_association_is_selectable_with_safe_edit_details(): void
+    {
+        $existing = DB::table('users')->where('id', 4)->first();
+        $response = $this->withSession($this->sessionFor(1))->get('/admin/users')->assertOk();
+        // The existing account must be selectable even when it belongs to another list page.
+        $this->assertSame(1, preg_match('/<option value="1" data-account-id="4"[^>]*>/', $response->getContent(), $option));
+        $this->assertStringNotContainsString('disabled', $option[0]);
+        $this->assertSame(1, preg_match("/data-account='([^']*)'/", $option[0], $payload));
+        $account = json_decode(html_entity_decode($payload[1], ENT_QUOTES), true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame(4, $account['id']);
+        $this->assertSame($existing->name, $account['name']);
+        $this->assertSame($existing->email, $account['email']);
+        $this->assertSame(1, $account['association_id']);
+        $this->assertArrayNotHasKey('password', $account);
+        $response->assertDontSee($existing->password, false);
+        $this->assertSame(4, DB::table('users')->count());
+        $this->assertSame(0, DB::table('audit_logs')->count());
     }
 }

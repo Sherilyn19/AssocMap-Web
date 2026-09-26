@@ -14,6 +14,10 @@ class UserProvisioningWorkflowTest extends MembershipDatabaseTestCase
 {
     public function test_created_shared_account_can_log_in_submit_and_review_only_its_association(): void
     {
+        // Provision into an association without an existing shared account.
+        // The synthetic placeholder account is not needed by this creation workflow.
+        DB::table('users')->where('id', 3)->update(['association_id' => null]);
+        DB::statement('ALTER TABLE users ADD CONSTRAINT uq_users_association UNIQUE (association_id)');
         $password = 'New-Shared-Login-2026';
         $this->withSession($this->sessionFor(1, 'System Administrator'))->post('/admin/users', [
             'name' => 'New Association Account', 'email' => 'provisioned@example.test', 'password' => $password, 'role_id' => 3, 'association_id' => 1,

@@ -31,7 +31,15 @@ if ($action === 'create') {
     }
     $schema = 'assocmap_test_users_'.bin2hex(random_bytes(8));
     UserManagementFixture::connect($schema);
-    DB::transaction(fn () => UserManagementFixture::create($schema));
+    DB::transaction(function () use ($schema, $argv): void {
+        UserManagementFixture::create($schema);
+        // Optional long synthetic names reproduce table sizing problems without real accounts.
+        if (($argv[2] ?? '') === 'long-names') {
+            $name = 'Synthetic Coastal Livelihood and Mangingisda Association';
+            DB::table('associations')->where('id', 1)->update(['name' => $name]);
+            DB::table('users')->where('id', 4)->update(['name' => $name, 'email' => 'synthetic.coastal.association@example.test']);
+        }
+    });
     file_put_contents($file, $schema);
     echo 'Synthetic browser fixture created.'.PHP_EOL;
     exit;

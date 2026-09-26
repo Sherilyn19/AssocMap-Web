@@ -35,6 +35,7 @@ final class UserManagementFixture
             CREATE TABLE associations (id bigserial PRIMARY KEY, name varchar NOT NULL, field_officer_id bigint, is_archived boolean NOT NULL DEFAULT false);
             CREATE TABLE users (id bigserial PRIMARY KEY, name varchar NOT NULL, email varchar NOT NULL UNIQUE, password varchar NOT NULL, role_id bigint NOT NULL REFERENCES roles(id), association_id bigint REFERENCES associations(id), is_active boolean NOT NULL DEFAULT true, created_at timestamp, updated_at timestamp);
             ALTER TABLE associations ADD FOREIGN KEY (field_officer_id) REFERENCES users(id);
+            ALTER TABLE users ADD CONSTRAINT uq_users_association UNIQUE (association_id);
             CREATE TABLE audit_logs (id bigserial PRIMARY KEY, user_id bigint REFERENCES users(id), action_type varchar NOT NULL, module varchar NOT NULL, record_id bigint, details text, performed_at timestamp NOT NULL);
             CREATE TABLE sessions (id varchar PRIMARY KEY, user_id bigint, ip_address varchar(45), user_agent text, payload text NOT NULL, last_activity integer NOT NULL);
             CREATE INDEX sessions_last_activity_index ON sessions(last_activity);

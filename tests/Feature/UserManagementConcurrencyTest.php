@@ -50,6 +50,10 @@ class UserManagementConcurrencyTest extends UserManagementDatabaseTestCase
 
     public function test_concurrent_creation_with_same_email_saves_one_account_and_one_audit(): void
     {
+        // Match the worker's budget on this remote test connection; production limits stay unchanged.
+        config(['association.operation_timeout_ms' => 20000]);
+        // Free the synthetic association before racing two new shared-account requests.
+        DB::table('users')->where('id', 4)->update(['association_id' => null]);
         DB::commit();
         $worker = null;
         try {

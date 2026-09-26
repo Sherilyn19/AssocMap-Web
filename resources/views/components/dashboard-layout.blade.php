@@ -29,7 +29,7 @@
 
     <div class="am-main">
         <x-topbar :title="$topbarTitle ?? $title" :contextual="$topbarTitle !== null"
-                  :workspace="in_array($title, ['Project Management', 'Training Management', 'Member Management', 'Association Management', 'Area Management'], true)" />
+                  :workspace="in_array($title, ['Project Management', 'Training Management', 'Member Management', 'Association Management', 'Area Management', 'User Management'], true)" />
 
         <main class="am-content">
             {{ $slot }}

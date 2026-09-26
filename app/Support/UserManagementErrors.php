@@ -42,17 +42,25 @@ final class UserManagementErrors
         $duplicate = $state === '23505' && $error instanceof QueryException
             && preg_match('/(?:insert into|update) "?users"?/i', $error->getSql())
             && str_contains($error->getMessage(), '(email)=');
+        // The database remains the final guard if another writer bypasses the service lock.
+        $associationDuplicate = $state === '23505' && $error instanceof QueryException
+            && preg_match('/(?:insert into|update) "?users"?/i', $error->getSql())
+            && str_contains($error->getMessage(), '(association_id)=');
         $errors = $error instanceof ValidationException ? $error->errors() : [];
         $message = match (true) {
             $error instanceof ValidationException => 'Please correct the highlighted fields.',
             $error instanceof AssociationRuleException => $error->getMessage(),
             (bool) $duplicate => 'This email address is already used by another account.',
+            (bool) $associationDuplicate => 'This association already has an account. Edit or activate its existing account, or choose another association.',
             default => 'The account change could not be confirmed. Check User Management before submitting again.',
         };
         if ($duplicate) {
             $errors['email'] = [$message];
         }
-        $expected = $error instanceof ValidationException || $error instanceof AssociationRuleException || $duplicate;
+        if ($associationDuplicate) {
+            $errors['association_id'] = [$message];
+        }
+        $expected = $error instanceof ValidationException || $error instanceof AssociationRuleException || $duplicate || $associationDuplicate;
         if (! $expected) {
             // QueryException messages and bindings can contain credentials and personal input.
             Log::error('User Management request failed', ['type' => get_class($error), 'sqlstate' => $state, 'route' => $request->route()?->getName()]);
