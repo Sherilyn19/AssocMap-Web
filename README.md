@@ -204,7 +204,7 @@ Before running the project, ensure the following are installed:
 Clone the repository.
 
 ```bash
-git clone git clone https://github.com/Sherilyn19/AssocMap-Web
+git clone https://github.com/Sherilyn19/AssocMap-Web
 ```
 
 Navigate to the project directory.
@@ -239,11 +239,20 @@ php artisan key:generate
 
 Configure the database credentials in the `.env` file.
 
-Run the database migrations.
+For a **new, empty PostgreSQL database**, run the migrations and reference seeder,
+then create the first administrator using the hidden password prompt.
+The reference seeder does not create accounts or reset existing passwords.
 
 ```bash
 php artisan migrate
+php artisan db:seed
+php artisan assocmap:bootstrap-admin
 ```
+
+Existing databases with manually created domain tables require baseline reconciliation
+before these migrations can run. Do not use `migrate:fresh` against existing records.
+See [database setup and batch 5 notes](docs/user-management/BATCH_5_IMPLEMENTATION.md)
+for demo setup, verification, and upgrade limitations.
 
 Start the Laravel development server.
 
