@@ -31,6 +31,13 @@ Route::get('/admin/dashboard', [AdminDashboardController::class, 'admin'])
     ->middleware('assocmap.auth:System Administrator')
     ->name('dashboard.admin');
 
+// Reports and downloads use the same current administrator permission check.
+Route::middleware('assocmap.auth:System Administrator')->prefix('admin/reports')->name('reports.')
+    ->controller(\App\Http\Controllers\Admin\ReportsController::class)->group(function (): void {
+        Route::get('/', 'index')->name('index');
+        Route::get('/export', 'export')->name('export');
+    });
+
 Route::get('/officer/dashboard', [DashboardController::class, 'officer'])
     ->middleware('assocmap.auth:Field Officer')
     ->name('dashboard.officer');
