@@ -3,6 +3,8 @@
 use App\Http\Controllers\Admin\AssociationManagementController;
 use App\Http\Controllers\Admin\GisController;
 use App\Http\Controllers\Admin\ProjectManagementController;
+use App\Http\Controllers\Admin\AuditLogController;
+
 /*
  * ============================================================
  * routes/web.php
@@ -15,6 +17,15 @@ use App\Http\Controllers\Dashboard\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 // ── Landing Page ─────────────────────────────────────────────
+use App\Http\Controllers\Admin\AdminUserManagementController;
+use App\Http\Controllers\Admin\AreaManagementController;
+use App\Http\Controllers\Admin\MemberApplicationManagementController;
+use App\Http\Controllers\Admin\MemberManagementController;
+use App\Http\Controllers\Admin\ReportsController;
+use App\Http\Controllers\Admin\TrainingManagementController;
+use App\Http\Controllers\MembershipController;
+use App\Http\Controllers\MonitoringController;
+
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
@@ -56,7 +67,6 @@ Route::get('/member/dashboard', [DashboardController::class, 'member'])
 // User and Access Control Module - System Administrator only.
 // Named "users.*" to match sidebar.blade.php's nav item.
 // ============================================================
-use App\Http\Controllers\Admin\AdminUserManagementController;
 
 Route::middleware('assocmap.auth:System Administrator')
     ->prefix('admin/users')
@@ -75,14 +85,6 @@ Route::middleware('assocmap.auth:System Administrator')
 // AREA-MANAGEMENT-ROUTES
 // Area Management Module - System Administrator only.
 // ============================================================
-use App\Http\Controllers\Admin\AreaManagementController;
-use App\Http\Controllers\Admin\AuditLogController;
-use App\Http\Controllers\Admin\MemberApplicationManagementController;
-use App\Http\Controllers\Admin\MemberManagementController;
-use App\Http\Controllers\Admin\ReportsController;
-use App\Http\Controllers\Admin\TrainingManagementController;
-use App\Http\Controllers\MembershipController;
-use App\Http\Controllers\MonitoringController;
 
 Route::middleware('assocmap.auth:System Administrator')
     ->prefix('admin/areas')
