@@ -1,0 +1,39 @@
+/* Keep GIS sizing inside its own page so other modules retain their layout. */
+body:has([data-gis-page]) .am-main { padding-top: 80px; }
+body:has([data-gis-page]) .am-content { max-width: none; padding: 1rem 1.5rem; }
+.gis-page { --gis-published: #1f6e3d; --gis-unpublished: #92400e; }
+.gis-page [hidden] { display: none !important; }
+.gis-page :is(button, a, input, select, summary, [tabindex]):focus-visible { outline: 3px solid #1f6e3d; outline-offset: 3px; }
+.gis-filters { display: grid; grid-template-columns: minmax(220px, 2fr) repeat(4, minmax(125px, 1fr)); gap: .75rem; }
+.gis-filters label { min-width: 0; font-size: .75rem; font-weight: 600; color: #475569; }
+.gis-input { display: block; width: 100%; min-height: 42px; margin-top: .35rem; border: 1px solid #cbd5e1; border-radius: .5rem; padding: .5rem .65rem; font-size: .875rem; font-weight: 400; background: white; color: #0f172a; }
+.gis-button { min-height: 36px; padding: .4rem .7rem; border: 1px solid #cbd5e1; border-radius: .5rem; background: white; color: #334155; font-size: .75rem; font-weight: 600; }
+.gis-button:hover { background: #f1f5f9; }
+.gis-button:disabled { opacity: .5; cursor: not-allowed; }
+.gis-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 1rem; align-items: stretch; }
+.gis-map-card { overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.gis-map { flex: 1; min-height: 370px; background: #e8eeeb; z-index: 0; }
+.gis-workspace { height: clamp(490px, calc(100dvh - 345px), 780px); }
+.gis-record-panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+.gis-record-list { overflow-y: auto; min-height: 140px; flex: 1; }
+[data-gis-details] { max-height: 60%; overflow-y: auto; }
+.gis-record-button { width: 100%; overflow-wrap: anywhere; }
+.gis-record p, [data-gis-detail-content] { overflow-wrap: anywhere; }
+.gis-record-button:enabled:hover { text-decoration: underline; }
+.gis-record.is-selected { background: #eef5f2; box-shadow: inset 3px 0 0 var(--gis-published); }
+.gis-badge { display: inline-flex; border-radius: 999px; padding: .2rem .5rem; font-weight: 600; }
+.gis-badge-published { background: #ecfdf5; color: var(--gis-published); }
+.gis-badge-unpublished { background: #fffbeb; color: var(--gis-unpublished); }
+.gis-legend-dot { display: inline-block; width: 10px; height: 10px; margin-right: 4px; border-radius: 50%; }
+.gis-published { background: var(--gis-published); }
+.gis-unpublished { background: var(--gis-unpublished); }
+.gis-pin { display: flex !important; align-items: center; justify-content: center; border: 3px solid white; border-radius: 50%; background: var(--gis-published); box-shadow: 0 1px 5px #33415580; color: white; font: bold 12px sans-serif; }
+.gis-pin.is-unpublished { background: var(--gis-unpublished); border-style: dashed; }
+.gis-pin.is-group { background: #334155; }
+.gis-pin.is-selected { outline: 3px solid #0f172a; outline-offset: 3px; }
+.gis-popup { max-height: 210px; overflow: auto; }
+.gis-popup button { display: block; width: 100%; padding: .5rem 0; text-align: left; color: #1f6e3d; text-decoration: underline; }
+.gis-map .leaflet-control-layers { font-family: inherit; }
+@media (max-width: 1279px) { .gis-filters { grid-template-columns: repeat(4, minmax(0, 1fr)); } .gis-search { grid-column: 1 / -1; } }
+@media (max-width: 900px) { .gis-workspace { grid-template-columns: minmax(0, 1fr); height: auto; } .gis-map { height: 50dvh; flex: none; } .gis-record-panel { max-height: 550px; } }
+@media (max-width: 560px) { body:has([data-gis-page]) .am-content { padding: 1rem; } .gis-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .gis-map { min-height: 340px; } }

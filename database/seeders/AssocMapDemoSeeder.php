@@ -722,6 +722,7 @@ class AssocMapDemoSeeder extends Seeder
 
     private function seedGisLocations(array $associations): void
     {
+        // These coordinates support the demo and have not been verified at the actual sites.
         $coordinates = [
             [11.2745, 124.0524, 'Maya Coastal Livelihood Site'],
             [11.1027, 123.9465, 'Hagnaya Fish Landing Area'],

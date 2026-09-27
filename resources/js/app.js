@@ -13,3 +13,11 @@ import './admin-user/admin-project-management';
 import './admin-user/admin-audit-log';
 
 import './admin-user/management-ui';
+
+// Load map code only when the administrator opens GIS Mapping.
+if (document.querySelector('[data-gis-page]')) {
+    import('./gis/index').catch(() => {
+        const message = document.querySelector('[data-gis-map-status]');
+        if (message) message.textContent = 'The map could not load. Reload the page or use the location list.';
+    });
+}

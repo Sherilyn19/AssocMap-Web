@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AssociationManagementController;
+use App\Http\Controllers\Admin\GisController;
 use App\Http\Controllers\Admin\ProjectManagementController;
 /*
  * ============================================================
@@ -236,3 +237,9 @@ Route::middleware('assocmap.auth')->prefix('membership')->name('membership.')
 Route::post('/admin/members/{member}/review-passphrase', [\App\Http\Controllers\MembershipController::class, 'credential'])
     ->whereNumber('member')->middleware(['assocmap.auth:System Administrator', 'throttle:membership-review'])
     ->name('members.review-passphrase');
+
+// Allow only system administrators to open GIS Mapping.
+// This route name matches the existing GIS Mapping sidebar link.
+Route::get('/admin/gis', [GisController::class, 'index'])
+    ->middleware('assocmap.auth:System Administrator')
+    ->name('gis.index');
