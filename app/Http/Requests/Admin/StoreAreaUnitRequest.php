@@ -7,7 +7,7 @@ class StoreAreaUnitRequest extends AreaFormRequest
     public function rules(): array
     {
         return [
-            'name' => ['bail', 'required', 'string', 'max:255', $this->uniqueName('area_units')],
+            'name' => ['bail', 'required', 'string', 'max:255', \Illuminate\Validation\Rule::in(\App\Support\MunicipalityNames::allowed()), $this->uniqueName('area_units')],
             'address' => ['nullable', 'string', 'max:500'],
         ];
     }

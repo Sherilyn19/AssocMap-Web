@@ -27,13 +27,26 @@
                 <th class="p-4">Remarks</th><th class="p-4">Action</th></tr></thead>
             <tbody class="divide-y divide-slate-200">
             @forelse($records as $record)
-                <tr class="align-top"><td class="p-4"><p class="font-semibold">{{ $record->project_title }}</p><p class="mt-1 text-xs text-slate-600">{{ $record->association_name }}</p>@if($record->project_archived || $record->association_archived)<span class="text-xs text-amber-800">Archived — read only</span>@endif</td>
+                <tr class="align-top {{ !$record->terminated_on && $record->project_status_name === 'Ongoing' ? 'bg-blue-50/50' : '' }}">
+                    <td class="p-4">
+                        <p class="font-semibold">{{ $record->project_title }}</p>
+                        <p class="mt-1 text-xs text-slate-600">{{ $record->association_name }}</p>
+                        <div class="mt-2">
+                            @include('admin-pages.admin-project-management.partials.badge', ['label' => $record->terminated_on ? 'Terminated' : ($record->project_status_name ?? 'Not recorded')])
+                        </div>
+                        @if($record->terminated_on)
+                            <p class="mt-1 text-xs">Terminated: {{ $record->terminated_on }}</p>
+                        @endif
+                        @if($record->project_archived || $record->association_archived)
+                            <span class="text-xs text-amber-800">Archived — read only</span>
+                        @endif
+                    </td>
                     @if($type === 'production')
                         <td class="whitespace-nowrap p-4">{{ $record->quarter_name }} {{ $record->year }}</td>
-                        <td class="p-4">{{ number_format($record->target_output, 2) }} / {{ number_format($record->actual_output, 2) }}</td>
-                        <td class="p-4">{{ (float)$record->target_output > 0 ? number_format((float)$record->actual_output / (float)$record->target_output * 100, 1).'%' : 'N/A (zero target)' }}</td>
+                        <td class="p-4">Target: {{ $record->target_output === null ? 'Not recorded' : number_format($record->target_output, 2) }}<br>Actual: {{ $record->actual_output === null ? 'Not recorded' : number_format($record->actual_output, 2) }}</td>
+                        <td class="p-4">{{ \App\Support\MonitoringProgress::label($record->target_output, $record->actual_output) }}<p class="mt-1 text-xs text-slate-600">Actual ÷ Target × 100</p></td>
                     @elseif($type === 'income')
-                        <td class="whitespace-nowrap p-4">{{ date('F', mktime(0, 0, 0, $record->month, 1)) }} {{ $record->year }}</td><td class="whitespace-nowrap p-4 font-semibold">₱{{ number_format($record->gross_income, 2) }}</td>
+                        <td class="whitespace-nowrap p-4">{{ date('F', mktime(0, 0, 0, $record->month, 1)) }} {{ $record->year }}</td><td class="p-4">@include('monitoring.income-details')</td>
                     @else
                         <td class="p-4"><p class="font-medium">{{ $record->item_name }}</p><p>{{ $record->status_name ?? 'Not recorded' }}</p><p class="mt-1 text-xs text-slate-600">{{ $record->material_description }}</p></td>
                         <td class="whitespace-nowrap p-4"><p>Scheduled: {{ $record->scheduled_maintenance ?? 'Not set' }}</p><p>Actual: {{ $record->actual_maintenance ?? 'Not recorded' }}</p>@if($record->scheduled_maintenance && !$record->actual_maintenance && $record->scheduled_maintenance < now('Asia/Manila')->toDateString())<p class="mt-1 font-semibold text-red-700">Maintenance overdue</p>@endif</td>

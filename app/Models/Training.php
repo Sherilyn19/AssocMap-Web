@@ -16,6 +16,8 @@ final class Training extends Model
 {
     use HasFactory;
 
+    public const STAGES = ['proposal' => 'Initiation / Proposal', 'accepted' => 'Accepted', 'terminated' => 'Termination'];
+
     protected $fillable = [
         'association_id',
         'title',
@@ -23,7 +25,8 @@ final class Training extends Model
         'training_type',
         'venue',
         'date_conducted',
-        'training_cost',
+        'end_date',
+        'stage',
         'conducted_by',
         'remarks',
         'is_archived',
@@ -33,7 +36,7 @@ final class Training extends Model
     {
         return [
             'date_conducted' => 'date',
-            'training_cost' => 'decimal:2',
+            'end_date' => 'date',
             'is_archived' => 'boolean',
         ];
     }

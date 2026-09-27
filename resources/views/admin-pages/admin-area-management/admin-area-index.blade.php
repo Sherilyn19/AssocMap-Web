@@ -172,7 +172,6 @@
                                 'id' => $muni->id,
                                 'name' => $muni->name,
                                 'address' => $muni->address,
-                                'province' => $muni->province,
                             ];
                         @endphp
 
@@ -212,10 +211,6 @@
                             </button>
                             <div id="municipality-detail-{{ $muni->id }}" class="am-area-card__details hidden">
                                 <dl class="grid grid-cols-2 gap-3 text-xs">
-                                    <div>
-                                        <dt class="text-assocmap-secondary">Province</dt>
-                                        <dd class="mt-1 font-semibold text-assocmap-text">{{ $muni->province ?: 'Cebu' }}</dd>
-                                    </div>
                                     <div>
                                         <dt class="text-assocmap-secondary">Status</dt>
                                         <dd class="mt-1 font-semibold {{ $muni->is_archived ? 'text-gray-600' : 'text-green-700' }}">

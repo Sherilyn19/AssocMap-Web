@@ -37,7 +37,12 @@
                     <div class="space-y-4">
                         <div class="flex flex-col gap-1.5">
                             <label for="am-municipality-name" class="{{ $areaModalLabelClass }}">Municipality Name <span aria-hidden="true" class="text-red-600">*</span></label>
-                            <input id="am-municipality-name" name="name" required maxlength="255" aria-describedby="am-municipality-name-preview" class="{{ $areaModalFieldClass }}">
+                            <select id="am-municipality-name" name="name" required aria-describedby="am-municipality-name-preview" class="{{ $areaModalFieldClass }}">
+                                <option value="">Select municipality</option>
+                                @foreach(config('cebu-municipalities') as $municipalityName)
+                                    <option value="{{ $municipalityName }}">{{ $municipalityName }}</option>
+                                @endforeach
+                            </select>
                             <p id="am-municipality-name-preview" data-area-value-preview="am-municipality-name" hidden class="am-area-name text-xs leading-5 text-slate-500"></p>
                         </div>
 
@@ -50,11 +55,6 @@
                             @enderror
                         </div>
 
-                        <div class="flex flex-col gap-1.5">
-                            <label for="am-municipality-province" class="{{ $areaModalLabelClass }}">Province</label>
-                            <input id="am-municipality-province" type="text" value="Cebu" disabled
-                                   class="{{ $areaModalFieldClass }}">
-                        </div>
                     </div>
 
                 </div>

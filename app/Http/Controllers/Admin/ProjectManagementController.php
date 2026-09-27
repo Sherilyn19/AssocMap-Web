@@ -35,7 +35,7 @@ final class ProjectManagementController extends Controller
             'scope' => ['nullable', 'in:active,archived'],
             'status_id' => ['nullable', 'integer', 'min:1'],
             'program_component_id' => ['nullable', 'integer', 'min:1'],
-            'sort' => ['nullable', 'in:updated,title,date,budget_high,budget_low'],
+            'sort' => ['nullable', 'in:updated,title,date'],
             'summary' => ['nullable', 'in:total,planned,ongoing,completed,archived'],
             'page' => ['nullable', 'integer', 'min:1'],
             'summary_page' => ['nullable', 'integer', 'min:1'],
@@ -110,6 +110,12 @@ final class ProjectManagementController extends Controller
 
         return view('admin-pages.admin-project-management.show', [
             'project' => $project,
+            // Trainings share association and component scope; they are not directly owned by a project.
+            'relatedTrainings' => \App\Models\Training::query()
+                ->where('association_id', $project->association_id)
+                ->where('program_component_id', $project->program_component_id)
+                ->with('programComponent')->withCount('participants')
+                ->orderByDesc('date_conducted')->paginate(10, ['*'], 'training_page'),
             'materialStatuses' => $this->projectManagementService->materialStatuses(),
         ]);
     }

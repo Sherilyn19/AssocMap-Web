@@ -36,7 +36,7 @@ final class MemberSafetyTest extends MembershipDatabaseTestCase
             ->put('/admin/members/1', [
                 'first_name' => ['invalid'], 'last_name' => 'One', 'birthday' => 'not-a-date',
                 'sex_id' => 1, 'date_registered' => '2020-01-01',
-            ])->assertRedirect('/admin/members')->assertSessionHasErrors(['first_name', 'birthday'])
+            ])->assertRedirect('/admin/members')->assertSessionHasErrors(['contact_number'])
             ->assertSessionHas('edit_member_id', 1);
     }
 
@@ -47,7 +47,7 @@ final class MemberSafetyTest extends MembershipDatabaseTestCase
                 'first_name' => 'Corrected Name', 'last_name' => 'One', 'birthday' => '1980-01-01',
                 'sex_id' => 1, 'date_registered' => '2020-01-01', 'contact_number' => 'bad contact',
             ])->assertSessionHasErrors('contact_number');
-        $this->get('/admin/members')->assertOk()->assertSee('data-edit-recovery', false)->assertSee('Corrected Name');
+        $this->get('/admin/members')->assertOk()->assertSee('data-edit-recovery', false)->assertDontSee('Corrected Name')->assertSee('Representative');
     }
 
     public function test_representative_cannot_be_archived(): void
@@ -78,7 +78,7 @@ final class MemberSafetyTest extends MembershipDatabaseTestCase
         $member = Member::findOrFail(1);
         try {
             app(MemberManagementService::class)->update($member, [
-                'first_name' => 'Must Roll Back', 'last_name' => 'One', 'birthday' => '1980-01-01',
+                'contact_number' => '09123456789', 'first_name' => 'Must Roll Back', 'last_name' => 'One', 'birthday' => '1980-01-01',
                 'sex_id' => 1, 'date_registered' => '2020-01-01',
             ], 1);
             $this->fail('Audit insert should fail.');

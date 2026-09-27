@@ -25,7 +25,7 @@ final class UpdateProjectRequest extends FormRequest
             'commodity_type' => ['required', 'string', 'max:255'],
             'program_component_id' => ['required', 'integer', 'exists:program_components,id'],
             'implementation_date' => ['required', 'date'],
-            'budget' => ['required', 'numeric', 'min:0'],
+            'terminated_on' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:implementation_date', 'before_or_equal:today'],
             'status_id' => ['required', 'integer', 'exists:statuses,id'],
             'remarks' => ['nullable', 'string'],
         ];

@@ -89,11 +89,9 @@ final class ProjectManagementService
         [$column, $direction] = match ($filters['sort']) {
             'title' => ['title', 'asc'],
             'date' => ['implementation_date', 'desc'],
-            'budget_high' => ['budget', 'desc'],
-            'budget_low' => ['budget', 'asc'],
             default => ['updated_at', 'desc'],
         };
-        // Missing dates/budgets belong last. The ID breaks ties for stable pagination.
+        // Missing dates belong last. The ID breaks ties for stable pagination.
         return $query->orderByRaw($column . ' ' . $direction . ' NULLS LAST')->orderByDesc('id');
     }
 
@@ -180,7 +178,7 @@ final class ProjectManagementService
                 'commodity_type' => trim((string) $data['commodity_type']),
                 'program_component_id' => (int) $data['program_component_id'],
                 'implementation_date' => $data['implementation_date'],
-                'budget' => $data['budget'],
+                'terminated_on' => $data['terminated_on'] ?? null,
                 'status_id' => (int) $data['status_id'],
                 'remarks' => $data['remarks'] ?? null,
                 'is_archived' => false,
@@ -209,7 +207,7 @@ final class ProjectManagementService
                 'commodity_type' => trim((string) $data['commodity_type']),
                 'program_component_id' => (int) $data['program_component_id'],
                 'implementation_date' => $data['implementation_date'],
-                'budget' => $data['budget'],
+                'terminated_on' => $data['terminated_on'] ?? null,
                 'status_id' => (int) $data['status_id'],
                 'remarks' => $data['remarks'] ?? null,
             ]);
@@ -218,7 +216,7 @@ final class ProjectManagementService
                 $actorId,
                 'UPDATE',
                 $project->id,
-                'Updated project: ' . $project->title
+                'Updated project: ' . $project->title . '; status ID: ' . $project->status_id . '; termination date: ' . ($project->terminated_on?->toDateString() ?? 'Not recorded')
             );
 
             return $project->fresh(['association', 'programComponent', 'status']);
@@ -341,9 +339,6 @@ final class ProjectManagementService
             throw new \InvalidArgumentException('The selected project status is not allowed.');
         }
 
-        if ((float) $data['budget'] < 0) {
-            throw new \InvalidArgumentException('Project budget cannot be negative.');
-        }
     }
 
     private function validateMaterialStatus(int $statusId): Status

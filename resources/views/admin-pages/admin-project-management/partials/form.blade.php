@@ -15,7 +15,7 @@
 <legend class="pr-3 font-semibold">Implementation</legend>
 <div class="grid gap-4 md:grid-cols-2">
         @include('admin-pages.admin-project-management.partials.field', ['name'=>'implementation_date','label'=>'Implementation Date','type'=>'date','value'=>$project?->implementation_date?->format('Y-m-d'),'required'=>true])
-        @include('admin-pages.admin-project-management.partials.field', ['name'=>'budget','label'=>'Budget (₱)','type'=>'number','value'=>$project?->budget,'required'=>true,'min'=>0,'step'=>'0.01','help'=>'Enter the approved project budget in Philippine pesos.'])
+        @include('admin-pages.admin-project-management.partials.field', ['name'=>'terminated_on','label'=>'Termination Date (if terminated)','type'=>'date','value'=>$project?->terminated_on?->format('Y-m-d'),'help'=>'Leave blank if the project has not been terminated. The project status remains separate.'])
         @include('admin-pages.admin-project-management.partials.field', ['name'=>'status_id','label'=>'Project Status','type'=>'select','value'=>$project?->status_id,'required'=>true,'options'=>$projectStatuses->pluck('status_name','id')])
     </div>
 </fieldset>

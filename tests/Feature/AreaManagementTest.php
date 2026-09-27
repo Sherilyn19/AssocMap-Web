@@ -40,10 +40,10 @@ class AreaManagementTest extends AssociationDatabaseTestCase
 
     public function test_create_update_normalization_and_scoped_duplicates(): void
     {
-        $this->from('/admin/areas')->post('/admin/areas/municipalities', ['name' => '  New   Town ', 'address' => 'Address'])->assertSessionHas('success');
-        $town = AreaUnit::where('name', 'New Town')->firstOrFail();
-        $this->put('/admin/areas/municipalities/'.$town->id, ['name' => 'New Town', 'address' => 'Changed'])->assertSessionHas('success');
-        $this->post('/admin/areas/municipalities', ['name' => 'new town'])->assertSessionHasErrorsIn('municipality', 'name');
+        $this->from('/admin/areas')->post('/admin/areas/municipalities', ['name' => '  Alcantara ', 'address' => 'Address'])->assertSessionHas('success');
+        $town = AreaUnit::where('name', 'Alcantara')->firstOrFail();
+        $this->put('/admin/areas/municipalities/'.$town->id, ['name' => 'Alcantara', 'address' => 'Changed'])->assertSessionHas('success');
+        $this->post('/admin/areas/municipalities', ['name' => 'alcantara'])->assertSessionHasErrorsIn('municipality', 'name');
         $this->post('/admin/areas/barangays', ['area_unit_id' => $town->id, 'name' => 'Barangay A'])->assertSessionHas('success');
         $this->post('/admin/areas/barangays', ['area_unit_id' => 1, 'name' => ' barangay   a '])->assertSessionHasErrorsIn('barangay', 'name');
         $this->assertSame('Changed', $town->fresh()->address);
@@ -107,9 +107,9 @@ class AreaManagementTest extends AssociationDatabaseTestCase
     public function test_audit_failure_rolls_back_and_preserves_draft_without_sql_leak(): void
     {
         DB::statement("ALTER TABLE audit_logs ADD CONSTRAINT reject_area CHECK (module <> 'Area')");
-        $this->from('/admin/areas')->post('/admin/areas/municipalities', ['name' => 'Rollback Town', 'address' => 'Retain address'])
+        $this->from('/admin/areas')->post('/admin/areas/municipalities', ['name' => 'Alcoy', 'address' => 'Retain address'])
             ->assertSessionHas('error')->assertSessionHas('_old_input.address', 'Retain address');
-        $this->assertFalse(AreaUnit::where('name', 'Rollback Town')->exists());
+        $this->assertFalse(AreaUnit::where('name', 'Alcoy')->exists());
         $this->get('/admin/areas')->assertOk()->assertSee('Retain address')->assertDontSee('reject_area')->assertDontSee('SQLSTATE');
         $this->patch('/admin/areas/barangays/2/archive')->assertSessionHas('error');
         $this->assertFalse(SubUnit::findOrFail(2)->is_archived);
@@ -118,10 +118,10 @@ class AreaManagementTest extends AssociationDatabaseTestCase
     public function test_missing_actor_cannot_silently_skip_audit(): void
     {
         try {
-            app(AreaManagementService::class)->createMunicipality(['name' => 'Unaudited'], null);
+            app(AreaManagementService::class)->createMunicipality(['name' => 'Alegria'], null);
             $this->fail('Missing actor was accepted');
         } catch (\LogicException $exception) {
-            $this->assertFalse(AreaUnit::where('name', 'Unaudited')->exists());
+            $this->assertFalse(AreaUnit::where('name', 'Alegria')->exists());
         }
     }
 
@@ -168,7 +168,7 @@ class AreaManagementTest extends AssociationDatabaseTestCase
             ->assertUnprocessable()->assertJsonValidationErrors(['name', 'address']);
         $this->postJson('/admin/areas/barangays', ['name' => str_repeat('x', 256), 'area_unit_id' => ['invalid']])
             ->assertUnprocessable()->assertJsonValidationErrors(['name', 'area_unit_id']);
-        $this->put('/admin/areas/municipalities/999', ['name' => 'Missing town'])->assertSessionHas('error');
+        $this->put('/admin/areas/municipalities/999', ['name' => 'Argao'])->assertSessionHas('error');
         $this->patch('/admin/areas/barangays/999/archive')->assertSessionHas('error');
     }
 
@@ -178,7 +178,7 @@ class AreaManagementTest extends AssociationDatabaseTestCase
         foreach ([
             fn () => $this->getJson('/admin/areas/municipalities/1')->assertStatus(503)->assertDontSee('SQLSTATE'),
             fn () => $this->get('/admin/areas')->assertStatus(503)->assertSee('temporarily unavailable')->assertDontSee('SQLSTATE'),
-            fn () => $this->postJson('/admin/areas/municipalities', ['name' => 'Database unavailable'])
+            fn () => $this->postJson('/admin/areas/municipalities', ['name' => 'Argao'])
                 ->assertStatus(503)->assertDontSee('SQLSTATE')->assertDontSee('unavailable_area_fixture'),
         ] as $request) {
             // Production reads use autocommit; the rollback-only test has an outer

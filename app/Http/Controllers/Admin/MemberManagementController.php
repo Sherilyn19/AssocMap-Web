@@ -65,6 +65,8 @@ final class MemberManagementController extends Controller
 
         return view('admin-pages.admin-member-management.index', [
             'members' => $this->service->paginate($filters),
+            'editingMember' => $request->session()->hasOldInput() && $request->session()->get('edit_member_id')
+                ? Member::find($request->session()->get('edit_member_id')) : null,
             'summary' => $this->service->summary(),
             'analytics' => $this->service->analytics(),
             'filters' => $filters,

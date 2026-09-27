@@ -13,7 +13,7 @@ final class MonitoringTest extends MembershipDatabaseTestCase
     {
         parent::setUp();
         DB::unprepared(<<<'SQL'
-            CREATE TABLE projects (id bigserial PRIMARY KEY, association_id bigint REFERENCES associations(id), title varchar, is_archived boolean DEFAULT false);
+            CREATE TABLE projects (id bigserial PRIMARY KEY, association_id bigint REFERENCES associations(id), title varchar, status_id bigint REFERENCES statuses(id), terminated_on date, is_archived boolean DEFAULT false);
             CREATE TABLE project_materials (id bigserial PRIMARY KEY, project_id bigint REFERENCES projects(id), item_name varchar);
             CREATE TABLE quarters (id bigserial PRIMARY KEY, quarter_name varchar);
             INSERT INTO quarters (quarter_name) VALUES ('Q1'),('Q2'),('Q3'),('Q4');
@@ -100,6 +100,20 @@ final class MonitoringTest extends MembershipDatabaseTestCase
         $this->travelTo(now('Asia/Manila')->setDate(2026, 1, 5));
         $this->postJson('/monitoring/income', [...$data, 'year' => 2026, 'month' => 2])->assertJsonValidationErrors('month');
         $this->travelBack();
+    }
+
+    public function test_income_details_show_support_and_separate_project_termination(): void
+    {
+        $this->withSession($this->sessionFor(1, 'System Administrator'));
+        $status = DB::table('statuses')->insertGetId(['status_name' => 'Ongoing']);
+        DB::table('projects')->where('id', 1)->update(['status_id' => $status]);
+        $this->post('/monitoring/income', ['project_id' => 1, 'month' => 3, 'year' => 2025, 'gross_income' => '500', 'remarks' => '<script>unsafe</script>'])->assertSessionHasNoErrors();
+        $this->get('/monitoring?type=income')->assertOk()->assertSee('Ongoing')->assertSee('data-income-details', false)
+            ->assertSee('Close income details')->assertSee('Monitoring period')->assertSee('Last updated')
+            ->assertSee('&lt;script&gt;unsafe&lt;/script&gt;', false)->assertDontSee('<script>unsafe</script>', false);
+        DB::table('projects')->where('id', 1)->update(['terminated_on' => '2025-04-01']);
+        $this->get('/monitoring?type=income')->assertOk()->assertSee('Terminated')->assertSee('2025-04-01');
+        $this->assertSame($status, DB::table('projects')->where('id', 1)->value('status_id'));
     }
 
     public function test_material_condition_ownership_maintenance_and_duplicates(): void

@@ -21,19 +21,18 @@ final class Project extends Model
         'commodity_type',
         'program_component_id',
         'implementation_date',
-        'budget',
+        'terminated_on',
         'status_id',
         'remarks',
         'is_archived',
     ];
 
     // Casts support date formatting and boolean archive checks in Blade.
-    // Monetary decimals are returned as fixed-precision strings, not display currency.
     protected function casts(): array
     {
         return [
             'implementation_date' => 'date',
-            'budget' => 'decimal:2',
+            'terminated_on' => 'date',
             'is_archived' => 'boolean',
         ];
     }

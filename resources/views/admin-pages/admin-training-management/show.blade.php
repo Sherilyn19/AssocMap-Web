@@ -7,9 +7,10 @@
         @if($writable)<a href="{{ route('trainings.edit', $training) }}" class="pm-primary">Edit Training</a>@endif
     </header>
     @if(!$writable)<div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{{ $training->is_archived ? 'This training is archived. Restore it to manage participants and attendance.' : 'This association is archived or unavailable. Restore the association before making changes.' }}</div>@endif
+    @include('admin-pages.admin-training-management.progress')
     <section class="rounded-xl border border-slate-200 bg-white p-5" aria-label="Training information">
         <dl class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            @foreach(['Program component' => $training->programComponent?->name, 'Training type' => $training->training_type, 'Training date' => $training->date_conducted?->format('M d, Y'), 'Venue' => $training->venue, 'Conducted by' => $training->conducted_by, 'Training cost' => $training->training_cost !== null ? '₱'.number_format((float)$training->training_cost, 2) : null] as $label => $value)
+            @foreach(['Program component' => $training->programComponent?->name, 'Training type' => $training->training_type, 'From date' => $training->date_conducted?->format('M d, Y'), 'To date' => $training->end_date?->format('M d, Y'), 'Venue' => $training->venue, 'Conducted by' => $training->conducted_by] as $label => $value)
                 <div class="min-w-0"><dt class="text-xs font-medium uppercase text-slate-500">{{ $label }}</dt><dd class="mt-1 break-words text-sm text-slate-900">{{ $value ?: 'Not set' }}</dd></div>
             @endforeach
             <div class="sm:col-span-2 lg:col-span-3"><dt class="text-xs font-medium uppercase text-slate-500">Remarks</dt><dd class="mt-1 whitespace-pre-line break-words text-sm text-slate-700">{{ $training->remarks ?: 'No remarks.' }}</dd></div>

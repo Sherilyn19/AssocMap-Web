@@ -11,11 +11,10 @@
             {{-- Match member column-label typography; retain numeric alignment with the data cells. --}}
             <thead class="border-y border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
-                    <th scope="col" class="w-[24%] p-3">Project / Association</th>
-                    <th scope="col" class="w-[18%] p-3">Classification / Commodity</th>
-                    <th scope="col" class="w-[12%] p-3">Project status</th>
-                    <th scope="col" class="w-[12%] p-3">Implementation</th>
-                    <th scope="col" class="w-[14%] p-3 text-right">Budget</th>
+                    <th scope="col" class="w-[28%] p-3">Project / Association</th>
+                    <th scope="col" class="w-[22%] p-3">Classification / Commodity</th>
+                    <th scope="col" class="w-[15%] p-3">Project lifecycle</th>
+                    <th scope="col" class="w-[15%] p-3">Implementation</th>
                     <th scope="col" class="w-[8%] p-3 text-right">Materials</th>
                     <th scope="col" class="w-[12%] p-3">Actions</th>
                 </tr>
@@ -32,9 +31,8 @@
 <p>{{ $project->program_component_name ?? 'Not recorded' }}</p>
 <p class="mt-1 text-xs text-slate-600">Commodity: {{ $project->commodity_type ?: 'Not recorded' }}</p>
 </td>
-                    <td class="p-3">@include('admin-pages.admin-project-management.partials.badge', ['label' => $project->project_status_name ?? 'Not recorded'])</td>
+                    <td class="p-3">@include('admin-pages.admin-project-management.partials.badge', ['label' => $project->terminated_on ? 'Terminated' : ($project->project_status_name ?? 'Not recorded')])</td>
                     <td class="p-3">{{ $project->implementation_date?->format('M j, Y') ?? 'Not recorded' }}</td>
-                    <td class="break-words p-3 text-right tabular-nums">{{ $project->budget === null ? 'Not recorded' : '₱'.number_format((float)$project->budget, 2) }}</td>
                     <td class="p-3 text-right tabular-nums">{{ $project->materials_count }}</td>
                     <td class="p-2">@include('admin-pages.admin-project-management.partials.actions')</td>
                 </tr>
@@ -47,7 +45,7 @@
         <article class="space-y-3 p-4">
             <div class="flex flex-wrap items-start justify-between gap-2">
                 <h3 class="min-w-0 break-words font-semibold">{{ $project->title }}</h3>
-                @include('admin-pages.admin-project-management.partials.badge', ['label' => $project->project_status_name ?? 'Not recorded'])
+                @include('admin-pages.admin-project-management.partials.badge', ['label' => $project->terminated_on ? 'Terminated' : ($project->project_status_name ?? 'Not recorded')])
             </div>
             <p class="break-words text-sm text-slate-600">{{ $project->association_name ?? 'Association not recorded' }}</p>
             @if($project->is_archived)<p class="text-xs font-semibold">Record: Archived</p>@endif
@@ -63,10 +61,6 @@
                 <div>
 <dt class="text-xs text-slate-600">Implementation</dt>
 <dd>{{ $project->implementation_date?->format('M j, Y') ?? 'Not recorded' }}</dd>
-</div>
-                <div class="min-w-0">
-<dt class="text-xs text-slate-600">Budget</dt>
-<dd class="break-words tabular-nums">{{ $project->budget === null ? 'Not recorded' : '₱'.number_format((float)$project->budget, 2) }}</dd>
 </div>
                 <div>
 <dt class="text-xs text-slate-600">Materials</dt>

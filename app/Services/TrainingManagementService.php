@@ -8,7 +8,6 @@ use App\Models\Association;
 use App\Models\Member;
 use App\Models\Status;
 use App\Models\Training;
-use App\Support\TrainingCalendar;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -27,18 +26,24 @@ final class TrainingManagementService
             if ($editing && (int) $training->association_id !== (int) $data['association_id'] && $training->participants()->exists()) {
                 $this->invalid('association_id', 'The association cannot change while this training has participants. Remove the participants first.');
             }
-            // A changed date must not place recorded attendance in the future.
-            if ($editing && $data['date_conducted'] > TrainingCalendar::today()
-                && $training->participants()->whereHas('attendanceStatus', fn ($query) => $query->whereIn('status_name', ['Present', 'Absent']))->exists()) {
-                $this->invalid('date_conducted', 'Reset recorded attendance to Pending before moving this training to a future date.');
+            // Keep the historical schedule immutable, including for direct service callers.
+            $data = \Illuminate\Support\Arr::only($data, ['association_id', 'title', 'program_component_id', 'training_type', 'venue', 'date_conducted', 'end_date', 'stage', 'conducted_by', 'remarks']);
+            if ($editing) {
+                unset($data['date_conducted'], $data['end_date']);
             }
+            validator($data, [
+                'stage' => ['required', \Illuminate\Validation\Rule::in(array_keys(Training::STAGES))],
+                'date_conducted' => $editing ? ['exclude'] : ['required', 'date_format:Y-m-d'],
+                'end_date' => $editing ? ['exclude'] : ['required', 'date_format:Y-m-d', 'after_or_equal:date_conducted'],
+            ])->validate();
+            $previousStage = $training?->stage;
             $training ??= new Training;
             $training->fill($data);
             if (! $editing) {
                 $training->is_archived = false;
             }
             $training->save();
-            $this->audit($actorId, $editing ? 'UPDATE' : 'CREATE', $training, $editing ? 'Updated training details.' : 'Created training.');
+            $this->audit($actorId, $editing ? 'UPDATE' : 'CREATE', $training, $editing ? 'Updated training details; stage: '.($previousStage ?? 'Not recorded').' → '.$training->stage.'.' : 'Created training; stage: '.$training->stage.'.');
 
             return $training;
         }, 3);

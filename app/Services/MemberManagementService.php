@@ -325,20 +325,9 @@ final class MemberManagementService
                 );
             }
 
-            $previousRole = $locked->role_in_assoc;
-
-            $locked->forceFill([
-                'first_name' => $data['first_name'],
-                'middle_name' => $data['middle_name'] ?? null,
-                'last_name' => $data['last_name'],
-                'birthday' => $data['birthday'],
-                'sex_id' => (int) $data['sex_id'],
-                'role_in_assoc' => $data['role_in_assoc'] ?? null,
-                'beneficiary_type' => $data['beneficiary_type'] ?? null,
-                'contact_number' => $data['contact_number'] ?? null,
-                'address' => $data['address'] ?? null,
-                'date_registered' => $data['date_registered'],
-            ]);
+            validator($data, ['contact_number' => ['present', ...\App\Support\MemberProfile::rules()['contact_number']]])->validate();
+            // Identity and membership history cannot change through the contact editor.
+            $locked->forceFill(['contact_number' => $data['contact_number'] ?? null]);
             $locked->save();
 
             $changedFields = array_values(array_filter(
@@ -354,20 +343,6 @@ final class MemberManagementService
                     'Updated member fields: '.implode(', ', $changedFields).'.'
                 );
             }
-
-            if ($previousRole !== $locked->role_in_assoc) {
-                $this->writeAudit(
-                    $actorId,
-                    'ROLE_CHANGE',
-                    $locked->id,
-                    'Changed association role from '
-                        .($previousRole ?: 'unassigned')
-                        .' to '
-                        .($locked->role_in_assoc ?: 'unassigned')
-                        .'.'
-                );
-            }
-
             return $locked->fresh();
         }, 3);
     }

@@ -29,7 +29,7 @@
 {{-- Applied chips describe the server-rendered results, not unsaved form edits.
      Removing a chip preserves the other filters and restarts pagination at page one. --}}
 @php
-    $sortOptions = ['updated' => 'Recently updated', 'title' => 'Project title A–Z', 'date' => 'Implementation — newest first', 'budget_high' => 'Budget — highest first', 'budget_low' => 'Budget — lowest first'];
+    $sortOptions = ['updated' => 'Recently updated', 'title' => 'Project title A–Z', 'date' => 'Implementation — newest first'];
     $appliedFilters = [];
     if ($filters['search'] !== '') $appliedFilters['search'] = 'Search: '.$filters['search'];
     if ($filters['status_id'] !== '') $appliedFilters['status_id'] = 'Status: '.($projectStatuses->firstWhere('id', $filters['status_id'])?->status_name ?? 'Unavailable');

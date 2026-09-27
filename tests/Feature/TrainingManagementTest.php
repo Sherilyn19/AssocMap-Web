@@ -24,7 +24,7 @@ final class TrainingManagementTest extends MembershipDatabaseTestCase
             CREATE TABLE trainings (
                 id bigserial PRIMARY KEY, association_id bigint NOT NULL REFERENCES associations(id),
                 title varchar(255) NOT NULL, program_component_id bigint REFERENCES program_components(id),
-                training_type varchar(100), venue varchar(255), date_conducted date,
+                training_type varchar(100), venue varchar(255), date_conducted date, end_date date, stage varchar(20),
                 training_cost numeric(10,2), conducted_by varchar(255), remarks text,
                 is_archived boolean NOT NULL DEFAULT false, created_at timestamp DEFAULT now(), updated_at timestamp DEFAULT now()
             );
@@ -41,7 +41,7 @@ final class TrainingManagementTest extends MembershipDatabaseTestCase
         return array_replace([
             'association_id' => 1, 'title' => 'Fish Handling Workshop', 'program_component_id' => 1,
             'training_type' => 'Skills Training', 'venue' => 'Municipal Hall', 'date_conducted' => '2025-03-10',
-            'training_cost' => '25000.00', 'conducted_by' => 'BFAR Region VII', 'remarks' => 'Practical workshop.',
+            'end_date' => $extra['date_conducted'] ?? '2025-03-12', 'stage' => 'proposal', 'conducted_by' => 'BFAR Region VII', 'remarks' => 'Practical workshop.',
         ], $extra);
     }
 
@@ -68,15 +68,15 @@ final class TrainingManagementTest extends MembershipDatabaseTestCase
     public function test_create_edit_details_and_validation(): void
     {
         $this->withSession($this->sessionFor(1, 'System Administrator'));
-        $this->get('/admin/trainings/create')->assertOk()->assertSee('Training Cost');
+        $this->get('/admin/trainings/create')->assertOk()->assertSee('From Date')->assertSee('To Date')->assertDontSee('Training Cost');
         $this->post('/admin/trainings', $this->payload())->assertSessionHasNoErrors()->assertRedirect('/admin/trainings/1');
         $this->get('/admin/trainings/1')->assertOk()->assertSee('Fish Handling Workshop')->assertSee('Register a participant');
-        $this->get('/admin/trainings/1/edit')->assertOk()->assertSee('25000.00');
+        $this->get('/admin/trainings/1/edit')->assertOk()->assertSee('From Date (read-only)');
         $this->put('/admin/trainings/1', $this->payload(['title' => 'Updated Workshop']))->assertSessionHasNoErrors()->assertRedirect('/admin/trainings/1');
         $this->assertSame('Updated Workshop', Training::findOrFail(1)->title);
         $this->postJson('/admin/trainings', $this->payload(['title' => ' ', 'training_cost' => '-1', 'date_conducted' => 'invalid', 'training_type' => str_repeat('a', 101)]))
-            ->assertUnprocessable()->assertJsonValidationErrors(['title', 'training_cost', 'date_conducted', 'training_type']);
-        $this->postJson('/admin/trainings', $this->payload(['training_cost' => '100000000', 'program_component_id' => 999]))->assertUnprocessable()->assertJsonValidationErrors(['training_cost', 'program_component_id']);
+            ->assertUnprocessable()->assertJsonValidationErrors(['title', 'date_conducted', 'training_type']);
+        $this->postJson('/admin/trainings', $this->payload(['training_cost' => '100000000', 'program_component_id' => 999]))->assertUnprocessable()->assertJsonValidationErrors(['program_component_id']);
         $this->assertSame(2, DB::table('audit_logs')->where('module', 'Training Management')->count());
     }
 
@@ -98,10 +98,11 @@ final class TrainingManagementTest extends MembershipDatabaseTestCase
         $this->assertSame(4, DB::table('training_participants')->value('attendance_status_id'));
         $this->get($url)->assertOk()->assertSee('Representative')->assertSee('Present');
         $this->putJson($url, $this->payload(['association_id' => 2]))->assertUnprocessable()->assertJsonValidationErrors('association_id');
-        $this->putJson($url, $this->payload(['date_conducted' => now('Asia/Manila')->addDay()->toDateString()]))->assertUnprocessable()->assertJsonValidationErrors('date_conducted');
+        $this->putJson($url, $this->payload(['date_conducted' => now('Asia/Manila')->addDay()->toDateString()]))->assertRedirect();
+        $this->assertSame('2025-03-10', $training->fresh()->date_conducted->toDateString());
         $this->delete($url.'/participants/'.$participant->id)->assertSessionHasNoErrors();
         $this->assertSame(0, DB::table('training_participants')->count());
-        $this->assertSame(3, DB::table('audit_logs')->where('module', 'Training Management')->count());
+        $this->assertSame(4, DB::table('audit_logs')->where('module', 'Training Management')->count());
     }
 
     public function test_archive_restore_keeps_attendance_and_blocks_stale_writes(): void

@@ -11,7 +11,7 @@
             <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
                     <h1 class="min-w-0 break-words text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{{ $project->title }}</h1>
-                    @include('admin-pages.admin-project-management.partials.badge', ['label'=>$project->status?->status_name ?? 'Not recorded'])
+                    @include('admin-pages.admin-project-management.partials.badge', ['label'=>$project->terminated_on ? 'Terminated' : ($project->status?->status_name ?? 'Not recorded')])
                     @if($project->is_archived)
                         @include('admin-pages.admin-project-management.partials.badge', ['label'=>'Archived'])
                     @endif
@@ -43,7 +43,7 @@
     <section class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5" aria-labelledby="project-information">
         <h2 id="project-information" class="font-semibold">Project Information</h2>
         <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 text-sm">
-            @foreach(['Association'=>$project->association?->name, 'Program Component'=>$project->programComponent?->name, 'Commodity Type'=>$project->commodity_type, 'Implementation Date'=>$project->implementation_date?->format('M j, Y'), 'Budget'=>$project->budget === null ? null : '₱'.number_format((float)$project->budget,2)] as $label=>$value)
+            @foreach(['Association'=>$project->association?->name, 'Program Component'=>$project->programComponent?->name, 'Commodity Type'=>$project->commodity_type, 'Implementation Date'=>$project->implementation_date?->format('M j, Y'), 'Termination Date'=>$project->terminated_on?->format('M j, Y')] as $label=>$value)
                 <div class="min-w-0">
 <dt class="text-xs text-slate-600">{{ $label }}</dt>
 <dd class="mt-1 break-words font-medium">{{ $value ?: 'Not recorded' }}</dd>
@@ -55,6 +55,7 @@
 </div>
         </dl>
     </section>
+    @include('admin-pages.admin-project-management.partials.trainings')
     {{-- Sum only recorded costs; unknown costs make this a partial estimate, not confirmed spending. --}}
     @php
         $missingCosts = $project->materials->whereNull('unit_cost')->count();

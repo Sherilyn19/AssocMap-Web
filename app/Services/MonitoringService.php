@@ -47,7 +47,8 @@ final class MonitoringService
                 $query->join('quarters as q', 'q.id', '=', 'm.quarter_id');
             }
         }
-        $query->select('m.*', 'p.id as project_id', 'p.title as project_title', 'a.name as association_name', 'p.is_archived as project_archived', 'a.is_archived as association_archived');
+        $query->leftJoin('statuses as project_status', 'project_status.id', '=', 'p.status_id');
+        $query->select('p.terminated_on', 'project_status.status_name as project_status_name', 'm.*', 'p.id as project_id', 'p.title as project_title', 'a.name as association_name', 'p.is_archived as project_archived', 'a.is_archived as association_archived');
         if ($type === 'materials') {
             $query->addSelect('pm.item_name', 's.status_name');
         } elseif ($type === 'production') {

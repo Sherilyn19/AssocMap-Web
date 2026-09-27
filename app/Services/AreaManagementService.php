@@ -120,7 +120,7 @@ class AreaManagementService
             'type' => 'municipality',
             'id' => $areaUnit->id,
             'name' => $areaUnit->name,
-            'province' => $areaUnit->province ?: 'Cebu',
+            'province' => $areaUnit->province,
             'address' => $areaUnit->address ?: 'No address on file',
             'is_archived' => (bool) $areaUnit->is_archived,
             'status' => $areaUnit->is_archived ? 'Archived' : 'Current',
@@ -155,7 +155,7 @@ class AreaManagementService
             'name' => $subUnit->name,
             'municipality' => $subUnit->areaUnit?->name ?? 'Unknown municipality',
             'area_unit_id' => $subUnit->area_unit_id,
-            'province' => $subUnit->areaUnit?->province ?: 'Cebu',
+            'province' => $subUnit->areaUnit?->province,
             'municipality_status' => $subUnit->areaUnit?->is_archived ? 'Archived' : 'Current',
             'is_archived' => (bool) $subUnit->is_archived,
             'status' => $subUnit->is_archived ? 'Archived' : 'Current',
@@ -198,10 +198,10 @@ class AreaManagementService
     public function createMunicipality(array $data, ?int $actorId): AreaUnit
     {
         return DB::transaction(function () use ($data, $actorId) {
+            \App\Support\MunicipalityNames::validate($this->normalizeName($data['name']));
             $this->requireUniqueName('area_units', $data['name']);
             $areaUnit = AreaUnit::create([
                 'name' => $this->normalizeName($data['name']),
-                'province' => 'Cebu',
                 'address' => $data['address'] ?? null,
                 'is_archived' => false,
             ]);
@@ -218,6 +218,7 @@ class AreaManagementService
             $areaUnit = AreaUnit::query()->lockForUpdate()->findOrFail($id);
 
             $this->requireEditable($areaUnit);
+            \App\Support\MunicipalityNames::validate($this->normalizeName($data['name']), $id);
             $this->requireUniqueName('area_units', $data['name'], $id);
             $before = $areaUnit->only(['name', 'address']);
             $areaUnit->update([

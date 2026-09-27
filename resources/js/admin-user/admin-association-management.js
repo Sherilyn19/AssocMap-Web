@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearErrors(form);
         form.action = row.update_url;
         form.dataset.loadedAction = form.action;
-        const values = editDrafts.get(form.action) || row;
+        const values = { ...(editDrafts.get(form.action) || row), date_joined: row.date_joined };
         Object.entries(values).forEach(([key, value]) => {
             const field = form.querySelector(`[data-field="${key}"]`);
             if (field && key !== 'sub_unit_id') field.value = value ?? '';

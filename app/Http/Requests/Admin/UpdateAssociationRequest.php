@@ -4,5 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
-// One shared contract keeps Create and Edit normalization and recovery consistent.
-final class UpdateAssociationRequest extends AssociationInputRequest {}
+// Historical dates are excluded even when manually submitted.
+final class UpdateAssociationRequest extends AssociationInputRequest
+{
+    public function rules(): array
+    {
+        return array_replace(parent::rules(), ['date_joined' => ['exclude']]);
+    }
+}

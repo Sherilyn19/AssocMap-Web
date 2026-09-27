@@ -9,7 +9,7 @@
     class="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8"
     data-management-register
     data-member-management-page
-    data-edit-recovery="{{ json_encode(['id' => session('edit_member_id'), 'values' => old(), 'errors' => $errors->messages(), 'url' => session('edit_member_id') ? route('members.update', session('edit_member_id')) : null]) }}"
+    data-edit-recovery="{{ json_encode(['id' => session()->hasOldInput() ? session('edit_member_id') : null, 'values' => array_replace($editingMember?->only(['first_name', 'middle_name', 'last_name', 'birthday', 'sex_id', 'role_in_assoc', 'beneficiary_type', 'address', 'date_registered']) ?? [], ['association_name' => $editingMember?->association?->name, 'birthday' => $editingMember?->birthday?->format('Y-m-d'), 'date_registered' => $editingMember?->date_registered?->format('Y-m-d'), 'contact_number' => old('contact_number')]), 'errors' => $errors->messages(), 'url' => session('edit_member_id') ? route('members.update', session('edit_member_id')) : null]) }}"
     data-barangays="{{ json_encode($barangays->map(fn ($barangay) => [
         'id' => $barangay->id,
         'area_unit_id' => $barangay->area_unit_id,
@@ -198,6 +198,7 @@
 
             $editPayload = [
                 'full_name' => $fullName,
+                'association_name' => $member->association?->name ?? 'Not recorded',
                 'first_name' => $member->first_name,
                 'middle_name' => $member->middle_name,
                 'last_name' => $member->last_name,
@@ -650,7 +651,7 @@
     </x-admin-modal>
 
     {{-- Edit modal --}}
-    <x-admin-modal id="edit-member-modal" title="Edit Member" description="Correct official member profile information without changing the source application or association." size="xl">
+    <x-admin-modal id="edit-member-modal" title="Edit Member" description="Only Contact Number can be changed. Personal and membership information is read-only." size="xl">
         <form method="POST" action="#" data-edit-member-form class="space-y-6">
             @csrf
             @method('PUT')
@@ -678,20 +679,20 @@
                                 maxlength="255"
                                 @if($required) required @endif
                                 class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                            >
+                             disabled>
                         </label>
                     @endforeach
 
                     <label class="block">
                         <span class="text-sm font-medium text-slate-700">Birthday</span>
-                        <input type="date" name="birthday" data-member-field="birthday" max="{{ now()->format('Y-m-d') }}" required
+                        <input type="date" name="birthday" data-member-field="birthday" disabled
                                class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200">
                     </label>
 
                     <label class="block">
                         <span class="text-sm font-medium text-slate-700">Sex</span>
                         <select name="sex_id" data-member-field="sex_id" required
-                                class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200">
+                                class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200" disabled>
                             @foreach ($sexOptions as $sex)
                                 <option value="{{ $sex->id }}">{{ $sex->sex_name }}</option>
                             @endforeach
@@ -704,10 +705,15 @@
                 <h3 class="text-sm font-bold text-slate-900">Membership Information</h3>
                 <p class="mt-1 text-xs text-slate-500">Association ownership and source application are intentionally not editable here.</p>
                 <div class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <label class="block sm:col-span-2 lg:col-span-3">
+                        <span class="text-sm font-medium text-slate-700">Association (read-only)</span>
+                        <input type="text" data-member-field="association_name" disabled value="{{ $editingMember?->association?->name ?? '' }}"
+                               class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm">
+                    </label>
                     <label class="block">
                         <span class="text-sm font-medium text-slate-700">Association Role</span>
                         <select name="role_in_assoc" data-member-field="role_in_assoc"
-                                class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200">
+                                class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200" disabled>
                             <option value="">Unassigned</option>
                             @foreach ($roleOptions as $role)
                                 <option value="{{ $role }}">{{ $role }}</option>
@@ -718,12 +724,12 @@
                     <label class="block">
                         <span class="text-sm font-medium text-slate-700">Beneficiary Type</span>
                         <input type="text" name="beneficiary_type" data-member-field="beneficiary_type" maxlength="100"
-                               class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200">
+                               class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200" disabled>
                     </label>
 
                     <label class="block">
                         <span class="text-sm font-medium text-slate-700">Date Registered</span>
-                        <input type="date" name="date_registered" data-member-field="date_registered" max="{{ now()->format('Y-m-d') }}" required
+                        <input type="date" name="date_registered" data-member-field="date_registered" disabled
                                class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200">
                     </label>
                 </div>
@@ -741,7 +747,7 @@
                     <label class="block sm:col-span-2">
                         <span class="text-sm font-medium text-slate-700">Address</span>
                         <textarea name="address" data-member-field="address" rows="3" maxlength="1000"
-                                  class="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"></textarea>
+                                  class="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200" disabled></textarea>
                     </label>
                 </div>
             </section>

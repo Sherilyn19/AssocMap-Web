@@ -34,7 +34,7 @@ final class TrainingManagementErrors
         }
 
         $input = [];
-        foreach (['association_id', 'title', 'program_component_id', 'training_type', 'venue', 'date_conducted', 'training_cost', 'conducted_by', 'remarks', 'member_id', 'attendance_status_id'] as $field) {
+        foreach (['association_id', 'title', 'program_component_id', 'training_type', 'venue', 'date_conducted', 'end_date', 'stage', 'conducted_by', 'remarks', 'member_id', 'attendance_status_id'] as $field) {
             $value = $request->input($field);
             if (is_scalar($value) || $value === null) {
                 $input[$field] = $value;

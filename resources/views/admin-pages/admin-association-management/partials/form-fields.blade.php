@@ -203,12 +203,12 @@
             --}}
             <input
                 type="date"
-                name="date_joined"
+                @if($prefix === 'create') name="date_joined" @else readonly @endif
                 id="{{ $prefix }}-date_joined"
                 aria-invalid="{{ $fieldError('date_joined') ? 'true' : 'false' }}"
                 aria-describedby="{{ $prefix }}-date_joined-error"
                 data-field="date_joined"
-                required
+                @if($prefix === 'create') required @endif
                 max="{{ now()->format('Y-m-d') }}"
                 value="{{ $formOld(
                     'date_joined',

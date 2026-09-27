@@ -42,8 +42,8 @@ final class AssociationManagementTest extends AssociationDatabaseTestCase
     public function test_edit_failure_recovers_only_the_attempted_form(): void
     {
         $this->withSession($this->sessionFor(1, 'System Administrator'))->from('/admin/associations?search=Assigned')
-            ->put('/admin/associations/1?search=Assigned', $this->payload(['name' => 'Attempted correction', 'date_joined' => '2099-01-01']))
-            ->assertRedirect(route('admin.associations.index', ['search' => 'Assigned']))->assertSessionHasErrors('date_joined')->assertSessionHas('association_form.mode', 'edit');
+            ->put('/admin/associations/1?search=Assigned', $this->payload(['name' => 'Attempted correction', 'address' => '']))
+            ->assertRedirect(route('admin.associations.index', ['search' => 'Assigned']))->assertSessionHasErrors('address')->assertSessionHas('association_form.mode', 'edit');
         $response = $this->get('/admin/associations?search=Assigned')->assertOk();
         $response->assertSee('Attempted correction')->assertSee('data-recovery', false)->assertSee('data-selected-value="1"', false);
         $this->assertSame('Assigned Association', Association::findOrFail(1)->name);

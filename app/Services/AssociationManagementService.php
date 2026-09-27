@@ -228,6 +228,7 @@ final class AssociationManagementService
             $beforeStatus = $locked->status_id;
 
             $this->validateAssignment($data, $locked->id);
+            unset($data['date_joined']);
             $locked->fill($data);
             // The request check can become stale while another request archives a member.
             // Recheck under the association lock, taking the member lock second.

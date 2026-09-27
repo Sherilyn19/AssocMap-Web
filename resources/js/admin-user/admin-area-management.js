@@ -59,6 +59,7 @@ function initForm(entity, recovery, activate) {
     const label = entity === "municipality" ? "Municipality" : "Barangay";
     const parent = form.elements.namedItem("area_unit_id");
     function open(record = {}, recover = false) {
+        form.querySelectorAll('[data-legacy-municipality]').forEach(option => option.remove());
         form.reset();
         form.querySelectorAll("[data-area-errors]").forEach(error => { error.hidden = !recover; });
         parent?.querySelectorAll("[data-unavailable-parent]").forEach(option => option.remove());
@@ -71,6 +72,11 @@ function initForm(entity, recovery, activate) {
             const field = form.elements.namedItem(name);
             if (!field) continue;
             const value = record[name] ?? "";
+            if (entity === 'municipality' && name === 'name' && editing && value && ![...field.options].some(option => option.value === String(value))) {
+                const option = new Option(String(value) + ' (existing record)', String(value));
+                option.dataset.legacyMunicipality = 'true';
+                field.add(option);
+            }
             if (name === "area_unit_id" && value && ![...field.options].some(option => option.value === String(value))) {
                 // Retain a stale parent visibly without making it eligible for assignment.
                 const option = new Option("Previous municipality unavailable — select a current municipality", String(value));
@@ -145,7 +151,6 @@ function initDetails() {
             title.textContent = record.name;
             subtitle.textContent = (record.type === "municipality" ? "Municipality" : "Barangay") + " · " + record.status;
             const details = {
-                Province: record.province,
                 ...(record.type === "municipality" ? { "Address / Description": record.address, "Current Barangays": record.barangay_count, "Total Barangays": record.total_barangay_count }
                     : { Municipality: record.municipality, "Municipality Archive State": record.municipality_status }),
                 "Current Associations": record.association_count, Created: record.created_at, Updated: record.updated_at,

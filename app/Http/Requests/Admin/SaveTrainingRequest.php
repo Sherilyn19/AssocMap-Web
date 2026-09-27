@@ -22,8 +22,9 @@ final class SaveTrainingRequest extends FormRequest
             'program_component_id' => ['required', 'integer', 'exists:program_components,id'],
             'training_type' => ['required', 'string', 'max:100'],
             'venue' => ['required', 'string', 'max:255'],
-            'date_conducted' => ['required', 'date_format:Y-m-d'],
-            'training_cost' => ['required', 'numeric', 'min:0', 'max:99999999.99', 'decimal:0,2'],
+            'date_conducted' => $this->route('training') ? ['exclude'] : ['required', 'date_format:Y-m-d'],
+            'end_date' => $this->route('training') ? ['exclude'] : ['required', 'date_format:Y-m-d', 'after_or_equal:date_conducted'],
+            'stage' => ['required', \Illuminate\Validation\Rule::in(array_keys(\App\Models\Training::STAGES))],
             'conducted_by' => ['required', 'string', 'max:255'],
             'remarks' => ['nullable', 'string', 'max:5000'],
         ];

@@ -48,11 +48,13 @@
     {{-- Brand --}}
     <div class="am-sidebar__brand">
         <div class="am-sidebar__mark">
-    <img src="https://res.cloudinary.com/dibojpqg2/image/upload/v1790480817/AssocMap-Logo-Without_title_muyzbt.png"
-         alt="AssocMap Logo"
-         class="w-10 h-10">
-</div>
-
+            <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="20" cy="20" r="19" fill="#fff"/>
+                <path d="M20 8c-6 4-9.5 9-9.5 13.5A9.5 9.5 0 0 0 20 31a9.5 9.5 0 0 0 9.5-9.5C29.5 17 26 12 20 8Z" fill="#2f9e52"/>
+                <path d="M20 8c-3.6 2.4-6.2 5.4-7.8 8.8C15 15.4 18 14 20 11.5c2 2.5 5 3.9 7.8 5.3C26.2 13.4 23.6 10.4 20 8Z" fill="#e07b1a"/>
+                <circle cx="20" cy="22.5" r="3.4" fill="#0a3d7a"/>
+            </svg>
+        </div>
         <div class="am-sidebar__brand-text">
             <p class="am-sidebar__brand-name">AssocMap</p>
             <p class="am-sidebar__brand-role">{{ session('auth_user')['role_name'] ?? 'System Administrator' }}</p>

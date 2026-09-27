@@ -24,3 +24,20 @@ document.addEventListener('DOMContentLoaded', () => {
         button.textContent = 'Save Record';
     });
 });
+
+// Native disclosures work without JavaScript; Escape closes them and returns focus.
+function closeIncomeDetails(details) {
+    details.open = false;
+    details.querySelector('summary').focus();
+}
+document.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-income-close]');
+    if (button) closeIncomeDetails(button.closest('[data-income-details]'));
+});
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    const details = event.target.closest('[data-income-details][open]');
+    if (details) {
+        closeIncomeDetails(details);
+    }
+});
