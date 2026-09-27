@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Association;
 use App\Models\GisLocation;
+use App\Support\GisRevision;
 
 final class GisIndexService
 {
@@ -14,6 +15,7 @@ final class GisIndexService
         // Load related names together. The map never needs member or account details.
         $locations = GisLocation::query()
             ->select(['id', 'association_id', 'location_name', 'latitude', 'longitude', 'is_published'])
+            ->selectRaw(GisRevision::SQL)
             ->with([
                 'association:id,name,area_unit_id,sub_unit_id,program_component_id,status_id,is_archived',
                 'association.areaUnit:id,name',
@@ -35,6 +37,10 @@ final class GisIndexService
 
             return [
                 'id' => $location->id,
+                'association_id' => $location->association_id,
+                'revision' => $location->revision,
+                'update_url' => route('gis.update', $location->id),
+                'editable' => $association !== null && ! $association->is_archived,
                 'name' => $location->location_name ?: 'Unnamed location',
                 'association' => $association?->name ?? 'Association unavailable',
                 'association_url' => $association ? route('admin.associations.show', $association->id) : null,
@@ -57,6 +63,8 @@ final class GisIndexService
         $unmapped = Association::query()->select(['id', 'name', 'is_archived'])
             ->whereDoesntHave('gisLocations')->orderBy('name')->get();
 
-        return compact('records', 'unmapped');
+        $associations = Association::query()->select(['id', 'name'])->where('is_archived', false)->orderBy('name')->get();
+
+        return compact('records', 'unmapped', 'associations');
     }
 }

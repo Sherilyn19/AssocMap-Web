@@ -1,5 +1,6 @@
 import '../../css/gis.css';
 import { filterRecords, optionsFor, summarize, validPosition } from './data';
+import { createEditor } from './editor';
 
 const page = document.querySelector('[data-gis-page]');
 if (page) initialize(page);
@@ -17,6 +18,7 @@ async function initialize(root) {
     let visible = records;
     let selectedId = null;
     let map = null;
+    let editor = null;
 
     function setOptions(field, parent = '') {
         const input = fields[field];
@@ -38,6 +40,7 @@ async function initialize(root) {
     }
 
     function select(id, focusMap = true) {
+        if (editor?.active) return;
         const record = visible.find(item => item.id === id);
         if (!record) return;
         selectedId = id;
@@ -63,6 +66,12 @@ async function initialize(root) {
             info.append(term, description);
         });
         content.append(info);
+        if (record.editable) {
+            const edit = document.createElement('button');
+            edit.type = 'button'; edit.className = 'gis-button'; edit.textContent = 'Edit location';
+            edit.addEventListener('click', () => editor?.open(record));
+            content.append(edit);
+        }
         if (record.association_url) {
             const link = document.createElement('a'); link.href = record.association_url;
             link.className = 'inline-block text-sm text-assocmap-primary underline'; link.textContent = 'View association'; content.append(link);
@@ -79,6 +88,7 @@ async function initialize(root) {
     }
 
     function update() {
+        if (editor?.active) return;
         const state = filters();
         visible = filterRecords(records, state);
         const ids = new Set(visible.map(record => record.id));
@@ -115,12 +125,22 @@ async function initialize(root) {
     });
     details.addEventListener('keydown', event => { if (event.key === 'Escape') root.querySelector('[data-gis-close]').click(); });
     update();
+    editor = createEditor(root, () => map);
+    try {
+        const savedMessage = sessionStorage.getItem('gis-save-message');
+        if (savedMessage) {
+            const feedback = root.querySelector('[data-gis-feedback]');
+            feedback.textContent = savedMessage; feedback.hidden = false;
+            sessionStorage.removeItem('gis-save-message');
+        }
+    } catch { /* The map also works when browser storage is unavailable. */ }
     try {
         const { createMap } = await import('./map');
         map = createMap(root.querySelector('[data-gis-map]'), select, setStatus);
         map.update(visible);
+        editor.attachMap();
         const reset = root.querySelector('[data-gis-reset]');
-        reset.disabled = false;
+        reset.disabled = editor.active;
         reset.addEventListener('click', () => map.fit());
         setStatus('Loading background map…');
     } catch {

@@ -14,6 +14,7 @@ use App\Http\Middleware\AssocMapAuth;
 use App\Http\Middleware\TrackAssociationRequest;
 use App\Support\AssociationErrors;
 use App\Support\MonitoringErrors;
+use App\Support\GisErrors;
 use App\Support\TrainingManagementErrors;
 use App\Support\UserManagementErrors;
 use Illuminate\Database\QueryException;
@@ -48,6 +49,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         // Covers failures before controller entry, including route binding and Form Requests.
         $exceptions->report(function (Throwable $error) {
+            if (GisErrors::handles(request(), $error)) {
+                return false;
+            }
             if (request()->is('admin/audit-logs') && ($error instanceof QueryException || $error instanceof PDOException)) {
                 logger()->error('Audit history unavailable.', ['exception_type' => $error::class]);
                 return false;
@@ -66,6 +70,9 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
         $exceptions->render(function (Throwable $error, Request $request) {
+            if (GisErrors::handles($request, $error)) {
+                return GisErrors::render($error, $request);
+            }
             if ($request->is('admin/audit-logs') && ($error instanceof QueryException || $error instanceof PDOException)) {
                 return $request->expectsJson()
                     ? response()->json(['message' => 'Audit Logs temporarily unavailable. Please try again.'], 503)

@@ -38,6 +38,15 @@ export function createMap(container, onSelect, onStatus) {
     let records = [];
     let markers = [];
     let selectedId = null;
+    let edit = null;
+    let draft = null;
+    let originalView = null;
+    map.on('click', event => {
+        if (edit) {
+            const position = event.latlng.wrap();
+            edit.pick(position.lat, position.lng);
+        }
+    });
 
     function fit() {
         const valid = records.filter(validPosition);
@@ -50,7 +59,7 @@ export function createMap(container, onSelect, onStatus) {
         markers = [];
         const groups = [];
         // Group nearby pins by screen distance without changing their saved positions.
-        records.filter(validPosition).forEach(record => {
+        records.filter(record => validPosition(record) && record.id !== edit?.id).forEach(record => {
             const point = map.latLngToLayerPoint([record.latitude, record.longitude]);
             const group = groups.find(item => item.point.distanceTo(point) < 30);
             if (group) group.records.push(record);
@@ -80,7 +89,10 @@ export function createMap(container, onSelect, onStatus) {
                 popup.append(name, context, button);
             });
             marker.bindPopup(popup);
-            marker.on('click', () => { if (!multiple) onSelect(first.id, false); });
+            marker.on('click', () => {
+                if (edit) edit.pick(first.latitude, first.longitude);
+                else if (!multiple) onSelect(first.id, false);
+            });
             markers.push({ marker, ids: group.records.map(r => r.id) });
         });
     }
@@ -92,6 +104,33 @@ export function createMap(container, onSelect, onStatus) {
     return {
         update(next) { records = next; selectedId = null; fit(); draw(); },
         fit,
+        beginEdit(id, pick) {
+            originalView = { center: map.getCenter(), zoom: map.getZoom() };
+            edit = { id, pick };
+            map.closePopup();
+            container.classList.add('gis-picking');
+            const record = records.find(item => item.id === id);
+            if (record && validPosition(record)) map.setView([record.latitude, record.longitude], Math.max(map.getZoom(), 15), { animate: false });
+            draw();
+        },
+        preview(position) {
+            if (draft) { map.removeLayer(draft); draft = null; }
+            if (position) {
+                draft = L.circleMarker(position, { radius: 10, color: '#1d4ed8', fillColor: '#dbeafe', fillOpacity: .9, weight: 3, dashArray: '4 3', interactive: false }).addTo(map);
+                draft.bindTooltip('Unsaved location', { permanent: true, direction: 'top' });
+            }
+        },
+        endEdit() {
+            if (draft) { map.removeLayer(draft); draft = null; }
+            edit = null;
+            container.classList.remove('gis-picking');
+            if (originalView) map.setView(originalView.center, originalView.zoom, { animate: false });
+            originalView = null;
+            draw();
+        },
+        showDraft() {
+            if (draft) map.panTo(draft.getLatLng(), { animate: false });
+        },
         select(id, focus) {
             selectedId = id;
             const record = records.find(r => r.id === id);

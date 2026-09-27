@@ -23,11 +23,20 @@ $base = [
     'municipality_id' => 1, 'municipality' => 'North', 'barangay_id' => 10, 'barangay' => 'Bay',
     'component_id' => 1, 'component' => 'Capture Fisheries', 'status' => 'Active', 'archived' => false,
     'latitude' => 11.2745, 'longitude' => 124.0524, 'valid' => true, 'published' => true,
+    'association_id' => 1, 'revision' => str_repeat('a', 32).':1', 'editable' => true,
+    'update_url' => 'http://127.0.0.1:8127/admin/gis/1',
 ];
 $records = collect([
     array_replace($base, ['id' => 1, 'name' => 'Landing area']),
     array_replace($base, ['id' => 2, 'name' => 'Association office', 'published' => false]),
     array_replace($base, ['id' => 3, 'name' => 'Seaweed production site', 'latitude' => 10.9408, 'longitude' => 124.015, 'municipality_id' => 2, 'municipality' => 'South', 'barangay_id' => 20, 'barangay' => 'Shore', 'component_id' => 2, 'component' => 'Aquaculture']),
-    array_replace($base, ['id' => 4, 'name' => 'Location needing review', 'valid' => false, 'latitude' => null, 'longitude' => null, 'archived' => true]),
+    array_replace($base, ['id' => 4, 'name' => 'Location needing review', 'valid' => false, 'latitude' => null, 'longitude' => null, 'archived' => true, 'editable' => false]),
 ]);
-echo view('admin-pages.admin-gis-mapping.index', ['records' => $records, 'unmapped' => collect()])->render();
+// Writes are deliberately rejected in this visual-only fixture.
+if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+    http_response_code(503);
+    header('Content-Type: application/json');
+    echo json_encode(['message' => 'Preview has no database writes.', 'uncertain' => true]);
+    exit;
+}
+echo view('admin-pages.admin-gis-mapping.index', ['records' => $records, 'unmapped' => collect(), 'associations' => collect([(object) ['id' => 1, 'name' => 'Coastal Association']])])->render();

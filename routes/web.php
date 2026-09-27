@@ -243,3 +243,9 @@ Route::post('/admin/members/{member}/review-passphrase', [\App\Http\Controllers\
 Route::get('/admin/gis', [GisController::class, 'index'])
     ->middleware('assocmap.auth:System Administrator')
     ->name('gis.index');
+
+// Every write rechecks the current administrator account and uses CSRF protection.
+Route::post('/admin/gis', [GisController::class, 'store'])
+    ->middleware('assocmap.auth:System Administrator')->name('gis.store');
+Route::put('/admin/gis/{location}', [GisController::class, 'update'])
+    ->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.update');

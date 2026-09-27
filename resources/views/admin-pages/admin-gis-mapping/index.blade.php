@@ -6,11 +6,12 @@
             <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">GIS Mapping</h1>
             <p class="mt-1 text-sm text-slate-600">Explore association locations and program coverage.</p>
         </div>
-        <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">Administrator workspace</span>
+        <button data-gis-add hidden type="button" class="gis-button gis-save-button">+ Add location</button>
     </header>
 
     {{-- Keep a readable record list available even when the map cannot load. --}}
     <noscript><p class="rounded-lg border border-amber-300 bg-amber-50 p-3">Enable JavaScript to use the map and filters. Location details remain available below.</p></noscript>
+    <p data-gis-feedback hidden role="status" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900"></p>
     <section data-gis-controls hidden class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" aria-label="Filter locations">
         <div class="gis-filters">
             <label class="gis-search">Search locations
@@ -44,11 +45,12 @@
         </section>
 
         <aside class="gis-record-panel rounded-xl border border-slate-200 bg-white shadow-sm" aria-label="Location records">
+            @include('admin-pages.admin-gis-mapping.form')
             <section data-gis-details hidden tabindex="-1" class="border-b border-slate-200 bg-assocmap-bg p-4" aria-labelledby="gis-selected-title">
                 <div class="flex items-center justify-between gap-2"><h2 id="gis-selected-title" class="text-sm font-semibold">Selected location</h2><button data-gis-close type="button" class="gis-button">Close</button></div>
                 <div data-gis-detail-content class="mt-3 space-y-2"></div>
             </section>
-            <div class="border-b border-slate-200 px-4 py-3"><h2 class="font-semibold">Location records</h2><p class="mt-1 text-xs text-slate-600">Select a record to see its details and map position.</p></div>
+            <div data-gis-record-heading class="border-b border-slate-200 px-4 py-3"><h2 class="font-semibold">Location records</h2><p class="mt-1 text-xs text-slate-600">Select a record to see its details and map position.</p></div>
             <div class="gis-record-list">
                 <p data-gis-empty @if($records->isNotEmpty()) hidden @endif class="p-5 text-sm text-slate-600">{{ $records->isEmpty() ? 'No GIS locations have been recorded yet.' : 'No locations match. Change or clear your filters.' }}</p>
                 @foreach($records as $record)

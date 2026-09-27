@@ -3,6 +3,13 @@ body:has([data-gis-page]) .am-main { padding-top: 80px; }
 body:has([data-gis-page]) .am-content { max-width: none; padding: 1rem 1.5rem; }
 .gis-page { --gis-published: #1f6e3d; --gis-unpublished: #92400e; }
 .gis-page [hidden] { display: none !important; }
+.gis-page .gis-save-button { background: var(--gis-published); color: white; border-color: var(--gis-published); }
+.gis-page .gis-save-button:hover { background: #17572f; }
+.gis-editor { overflow-y: auto; min-height: 0; }
+.gis-is-editing [data-gis-details], .gis-is-editing [data-gis-record-heading], .gis-is-editing .gis-record-list { display: none; }
+.gis-input[aria-invalid="true"] { border-color: #b91c1c; }
+.gis-input:disabled { background: #f1f5f9; color: #475569; }
+.gis-map.gis-picking { cursor: crosshair; }
 .gis-page :is(button, a, input, select, summary, [tabindex]):focus-visible { outline: 3px solid #1f6e3d; outline-offset: 3px; }
 .gis-filters { display: grid; grid-template-columns: minmax(220px, 2fr) repeat(4, minmax(125px, 1fr)); gap: .75rem; }
 .gis-filters label { min-width: 0; font-size: .75rem; font-weight: 600; color: #475569; }
