@@ -28,6 +28,7 @@ abstract class AssociationDatabaseTestCase extends MembershipDatabaseTestCase
             CREATE TABLE gis_locations (id bigserial PRIMARY KEY, association_id bigint, is_published boolean, updated_at timestamp);
             INSERT INTO gis_locations (association_id,is_published) VALUES (1,true);
         SQL);
+        (require database_path('migrations/2026_09_28_000002_create_gis_submissions.php'))->up();
     }
 
     protected function payload(array $extra = []): array

@@ -1,11 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { coordinateError, parseSaveReply } from '../../resources/js/gis/contracts.ts';
+import { coordinateError, parseSaveReply, parseMapRecords } from '../../resources/js/gis/contracts.ts';
 
 test('coordinates accept zero and boundaries but reject unsafe values', () => {
     for (const value of ['0', '-90', '90', '12.345', '1e1']) assert.equal(coordinateError(value, 90), null);
     for (const value of ['', ' ', 'NaN', 'Infinity', '1e999', '0x10', '91', '-91']) assert.notEqual(coordinateError(value, 90), null);
     assert.equal(coordinateError('180', 180), null);
+});
+
+test('map payload rejects invalid structure instead of failing during rendering', () => {
+    assert.deepEqual(parseMapRecords([]), []);
+    for (const payload of [null, {}, [null], [{id: 1}], '[]']) assert.throws(() => parseMapRecords(payload));
+    const record = { id:1, association_id:1, name:'Site', association:'Association', municipality:'Area', barangay:'Barangay',
+        component:'Program', status:'Active', revision:'a'.repeat(32)+':1', update_url:'/admin/gis/1', publication_url:'/admin/gis/1/publish',
+        latitude_text:'10.123456789123', longitude_text:'123', created_at:'', updated_at:'',
+        valid:true, published:false, archived:false, editable:true, latitude:10.123456789123, longitude:123 };
+    assert.equal(parseMapRecords([record])[0].latitude_text, '10.123456789123');
+    assert.throws(() => parseMapRecords([{...record, latitude:Infinity}]));
+    assert.throws(() => parseMapRecords([{...record, published:'false'}]));
 });
 test('success requires a real success response with a valid identifier', () => {
     assert.equal(parseSaveReply(201, { id: 12, message: 'Location added.' }).ok, true);

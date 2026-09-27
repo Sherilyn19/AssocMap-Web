@@ -3,6 +3,12 @@ body:has([data-gis-page]) .am-main { padding-top: 80px; }
 body:has([data-gis-page]) .am-content { max-width: none; padding: 1rem 1.5rem; }
 .gis-page { --gis-published: #1f6e3d; --gis-unpublished: #92400e; }
 .gis-page [hidden] { display: none !important; }
+.gis-dialog { width: min(480px, calc(100% - 2rem)); }
+.gis-dialog::backdrop { background: #0f172a80; }
+.gis-dialog[open] { animation: gis-appear .16s ease-out; }
+.gis-button, .gis-record { transition: background-color .15s ease, box-shadow .15s ease; }
+@keyframes gis-appear { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .gis-dialog[open] { animation: none; } .gis-button, .gis-record { transition: none; } }
 .gis-page .gis-save-button { background: var(--gis-published); color: white; border-color: var(--gis-published); }
 .gis-page .gis-save-button:hover { background: #17572f; }
 .gis-editor { overflow-y: auto; min-height: 0; }

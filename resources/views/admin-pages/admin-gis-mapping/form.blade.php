@@ -2,6 +2,7 @@
 <section data-gis-editor hidden class="gis-editor p-4" aria-labelledby="gis-editor-title">
     <h2 id="gis-editor-title" class="text-lg font-bold">Add location</h2>
     <p class="mt-1 text-xs text-slate-600">Click the map to place the temporary pin, or enter coordinates below.</p>
+    <p class="mt-1 text-xs text-slate-600">All fields are required.</p>
     <p data-gis-save-message hidden role="alert" tabindex="-1" class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-slate-800"></p>
     <a data-gis-reload hidden href="{{ route('gis.index') }}" class="mt-2 inline-block text-sm text-assocmap-primary underline">Reload GIS Mapping</a>
     <form data-gis-form action="{{ route('gis.store') }}" method="POST" novalidate class="mt-4 space-y-4">

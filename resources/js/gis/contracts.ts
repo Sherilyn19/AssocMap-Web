@@ -22,12 +22,15 @@ export function parseSaveReply(status: number, body: unknown): SaveReply {
     }
     const errors: FieldErrors = {};
     if (status === 422 && object(body) && object(body.errors)) {
-        for (const field of ['association_id', 'location_name', 'latitude', 'longitude', 'revision']) {
+        for (const field of ['association_id', 'location_name', 'latitude', 'longitude', 'revision', 'publication', 'submission_token']) {
             const messages = body.errors[field];
             if (Array.isArray(messages) && messages.every(message => typeof message === 'string')) errors[field] = messages;
         }
-        if (errors.revision?.length) {
+        if (errors.revision?.length || errors.submission_token?.length) {
             return { ok: false, message: 'Reload GIS Mapping before editing this location again.', errors: {}, reload: true };
+        }
+        if (errors.publication?.length) {
+            return { ok: false, message: 'Correct the location name and coordinates before publishing.', errors, reload: false };
         }
         return { ok: false, message: 'Check the fields below. Your changes have not been saved.', errors, reload: false };
     }
@@ -44,4 +47,19 @@ export function parseSaveReply(status: number, body: unknown): SaveReply {
         message: messages[status] ?? 'The save could not be confirmed. Refresh and check the location before trying again.',
         errors, reload: true,
     };
+}
+
+export function parseMapRecords(value: unknown): Record<string, unknown>[] {
+    if (!Array.isArray(value)) throw new Error('Invalid GIS records');
+    for (const record of value) {
+        if (!object(record) || !Number.isSafeInteger(record.id) || Number(record.id) <= 0
+            || !Number.isSafeInteger(record.association_id)
+            || !['name', 'association', 'municipality', 'barangay', 'component', 'status', 'revision', 'update_url', 'publication_url', 'latitude_text', 'longitude_text', 'created_at', 'updated_at'].every(key => typeof record[key] === 'string')
+            || !['valid', 'published', 'archived', 'editable'].every(key => typeof record[key] === 'boolean')
+            || !/^[a-f0-9]{32}:[0-9]+$/.test(String(record.revision))) throw new Error('Invalid GIS record');
+        for (const key of ['latitude', 'longitude']) {
+            if (record[key] !== null && (typeof record[key] !== 'number' || !Number.isFinite(record[key]))) throw new Error('Invalid GIS position');
+        }
+    }
+    return value;
 }

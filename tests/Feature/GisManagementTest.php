@@ -7,6 +7,8 @@ namespace Tests\Feature;
 use App\Services\GisIndexService;
 use App\Services\GisManagementService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Tests\Support\AssociationDatabaseTestCase;
 
 final class GisManagementTest extends AssociationDatabaseTestCase
@@ -23,7 +25,7 @@ final class GisManagementTest extends AssociationDatabaseTestCase
 
     private function fields(array $extra = []): array
     {
-        return array_replace(['association_id' => 1, 'location_name' => '  New site  ', 'latitude' => 0, 'longitude' => 0], $extra);
+        return array_replace(['association_id' => 1, 'location_name' => '  New site  ', 'latitude' => 0, 'longitude' => 0, 'submission_token' => (string) Str::uuid()], $extra);
     }
 
     private function revision(int $id = 1): string
@@ -91,7 +93,7 @@ final class GisManagementTest extends AssociationDatabaseTestCase
         try {
             app(GisManagementService::class)->create($this->fields(), 1);
             $this->fail('An archived association must reject writes.');
-        } catch (\Illuminate\Validation\ValidationException $error) {
+        } catch (ValidationException $error) {
             $this->assertArrayHasKey('association_id', $error->errors());
         }
         $this->assertSame(1, DB::table('gis_locations')->count());

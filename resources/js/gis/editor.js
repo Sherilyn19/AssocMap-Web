@@ -1,4 +1,5 @@
-import { coordinateError, parseSaveReply } from './contracts.ts';
+import { coordinateError } from './contracts.ts';
+import { saveLocation, reloadSaved } from './request';
 
 export function createEditor(root, getMap) {
     // Find the form controls inside this GIS page. getMap provides the map once it is ready.
@@ -18,6 +19,7 @@ export function createEditor(root, getMap) {
     let returnFocus = null;
     let attachedMap = null;
     let saved = false;
+    let submissionToken = null;
 
     // Show a message and move keyboard focus to it without moving the page.
     function feedback(text) {
@@ -87,6 +89,8 @@ export function createEditor(root, getMap) {
         busy = false;
         blocked = false;
         saved = false;
+        // One token belongs to one form opening, including a repeated network submission.
+        submissionToken = crypto.randomUUID();
         form.reset();
         clearErrors();
         feedback('');
@@ -96,8 +100,8 @@ export function createEditor(root, getMap) {
         fields.association_id.disabled = Boolean(record);
         fields.association_id.value = record ? String(record.association_id) : '';
         fields.location_name.value = record?.name ?? '';
-        fields.latitude.value = record?.latitude == null ? '' : String(record.latitude);
-        fields.longitude.value = record?.longitude == null ? '' : String(record.longitude);
+        fields.latitude.value = record?.latitude_text ?? '';
+        fields.longitude.value = record?.longitude_text ?? '';
         save.disabled = false;
         cancel.disabled = false;
         save.textContent = 'Save location';
@@ -161,7 +165,10 @@ export function createEditor(root, getMap) {
         // Send only the allowed fields. The revision lets Laravel detect an outdated edit.
         const payload = { location_name: name, latitude: fields.latitude.value, longitude: fields.longitude.value };
         if (editing) payload.revision = editing.revision;
-        else payload.association_id = fields.association_id.value;
+        else {
+            payload.association_id = fields.association_id.value;
+            payload.submission_token = submissionToken;
+        }
         // Disable controls while saving to prevent repeated clicks or changes during the request.
         busy = true;
         save.disabled = true;
@@ -169,32 +176,20 @@ export function createEditor(root, getMap) {
         panel.querySelector('[data-gis-fields]').disabled = true;
         save.textContent = 'Saving…';
         feedback('Saving location…');
-        // Stop waiting after 25 seconds. This does not guarantee that the server stopped saving.
-        const abort = new AbortController();
-        const timeout = setTimeout(() => abort.abort(), 25000);
         try {
-            // POST creates a location; PUT edits one. Include the session and Laravel CSRF token.
-            const response = await fetch(editing ? editing.update_url : form.action, {
-                method: editing ? 'PUT' : 'POST', credentials: 'same-origin', signal: abort.signal,
-                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': form.elements.namedItem('_token').value },
-                body: JSON.stringify(payload),
-            });
-            // Check the response structure. A redirected login page must not count as a successful save.
-            const body = response.headers.get('content-type')?.includes('application/json') ? await response.json() : null;
-            const result = parseSaveReply(response.redirected ? 401 : response.status, body);
+            const result = await saveLocation(editing ? editing.update_url : form.action, editing ? 'PUT' : 'POST', payload, form.elements.namedItem('_token').value);
             if (result.ok) {
                 saved = true;
                 blocked = true;
                 feedback(`${result.message} Reloading saved locations…`);
                 // Reload from the database after a confirmed commit. Never insert a guessed success pin.
-                try { sessionStorage.setItem('gis-save-message', result.message); } catch { /* Saving still succeeded if browser storage is unavailable. */ }
                 reload.hidden = false;
-                window.location.reload();
+                reloadSaved(result.message);
                 return;
             }
             // Keep the entered values. Some errors allow corrections; others require a reload.
-            blocked = result.reload;
-            reload.hidden = !result.reload;
+            blocked = result.reload || Boolean(editing && result.errors.association_id);
+            reload.hidden = !blocked;
             feedback(result.message);
             showErrors(result.errors);
         } catch {
@@ -204,7 +199,6 @@ export function createEditor(root, getMap) {
             feedback('The save could not be confirmed. Refresh and check the location before trying again.');
         } finally {
             // Always clear the timer. Allow another save only when the result says it is safe.
-            clearTimeout(timeout);
             busy = false;
             save.disabled = blocked;
             cancel.disabled = saved;

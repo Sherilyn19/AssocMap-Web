@@ -1,5 +1,6 @@
 <x-dashboard-layout title="GIS Mapping" topbar-title="GIS Mapping">
 <div data-gis-page class="gis-page space-y-4">
+    @include('admin-pages.admin-gis-mapping.publication')
     <header class="flex flex-wrap items-end justify-between gap-3">
         <div>
             <p class="text-xs font-semibold uppercase tracking-widest text-assocmap-primary">BFAR SAAD Phase II</p>

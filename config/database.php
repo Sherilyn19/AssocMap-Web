@@ -95,7 +95,7 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'require',
+            'sslmode' => env('DB_SSLMODE', 'require'),
             'connect_timeout' => (int) env('DB_CONNECT_TIMEOUT', 5),
         ],
 

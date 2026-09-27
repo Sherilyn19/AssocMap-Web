@@ -296,6 +296,16 @@ final class AssociationManagementService
             $locked->forceFill(['is_archived' => true])->save();
 
             // GIS and audit infrastructure are required: failures must roll back archival.
+            $publishedLocations = DB::table('gis_locations')->where('association_id', $locked->id)
+                ->where('is_published', true)->orderBy('id')->lockForUpdate()->pluck('id');
+            foreach ($publishedLocations as $locationId) {
+                DB::table('audit_logs')->insert([
+                    'user_id' => $actorId, 'action_type' => 'UNPUBLISH', 'module' => 'GIS', 'record_id' => $locationId,
+                    'details' => json_encode(['before' => ['is_published' => true], 'after' => ['is_published' => false],
+                        'reason' => 'Association archived', 'association_id' => $locked->id], JSON_THROW_ON_ERROR),
+                    'performed_at' => now(),
+                ]);
+            }
 
             DB::table('gis_locations')
                 ->where('association_id', $locked->id)
@@ -491,7 +501,7 @@ final class AssociationManagementService
 
     private function lockCurrentGeography(int $areaId, int $subId): void
     {
-// Archiving an area uses these same database locks.
+        // Archiving an area uses these same database locks.
         // Check the records again after waiting because their status may have changed.
         $parent = DB::table('area_units')->where('id', $areaId)->lockForUpdate()->first();
         $child = DB::table('sub_units')->where('id', $subId)->lockForUpdate()->first();

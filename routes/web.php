@@ -32,13 +32,13 @@ Route::get('/admin/dashboard', [AdminDashboardController::class, 'admin'])
     ->middleware('assocmap.auth:System Administrator')
     ->name('dashboard.admin');
 
-Route::get('/admin/audit-logs', [\App\Http\Controllers\Admin\AuditLogController::class, 'index'])
+Route::get('/admin/audit-logs', [AuditLogController::class, 'index'])
     ->middleware('assocmap.auth:System Administrator')
     ->name('admin.audit-logs.index');
 
 // Reports and downloads use the same current administrator permission check.
 Route::middleware('assocmap.auth:System Administrator')->prefix('admin/reports')->name('reports.')
-    ->controller(\App\Http\Controllers\Admin\ReportsController::class)->group(function (): void {
+    ->controller(ReportsController::class)->group(function (): void {
         Route::get('/', 'index')->name('index');
         Route::get('/export', 'export')->name('export');
     });
@@ -76,6 +76,12 @@ Route::middleware('assocmap.auth:System Administrator')
 // Area Management Module - System Administrator only.
 // ============================================================
 use App\Http\Controllers\Admin\AreaManagementController;
+use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\MemberApplicationManagementController;
+use App\Http\Controllers\Admin\MemberManagementController;
+use App\Http\Controllers\Admin\ReportsController;
+use App\Http\Controllers\Admin\TrainingManagementController;
+use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\MonitoringController;
 
 Route::middleware('assocmap.auth:System Administrator')
@@ -128,21 +134,21 @@ Route::middleware('assocmap.auth:System Administrator')
     ->name('members.')
     ->group(function (): void {
         // Static application routes must stay before /{member}.
-        Route::get('/applications', [\App\Http\Controllers\Admin\MemberApplicationManagementController::class, 'index'])
+        Route::get('/applications', [MemberApplicationManagementController::class, 'index'])
             ->name('applications.index');
-        Route::get('/applications/{application}', [\App\Http\Controllers\Admin\MemberApplicationManagementController::class, 'show'])
+        Route::get('/applications/{application}', [MemberApplicationManagementController::class, 'show'])
             ->whereNumber('application')
             ->name('applications.show');
 
-        Route::get('/', [\App\Http\Controllers\Admin\MemberManagementController::class, 'index'])
+        Route::get('/', [MemberManagementController::class, 'index'])
             ->name('index');
-        Route::get('/{member}', [\App\Http\Controllers\Admin\MemberManagementController::class, 'show'])
+        Route::get('/{member}', [MemberManagementController::class, 'show'])
             ->whereNumber('member')
             ->name('show');
-        Route::put('/{member}', [\App\Http\Controllers\Admin\MemberManagementController::class, 'update'])
+        Route::put('/{member}', [MemberManagementController::class, 'update'])
             ->whereNumber('member')
             ->name('update');
-        Route::patch('/{member}/archive', [\App\Http\Controllers\Admin\MemberManagementController::class, 'archive'])
+        Route::patch('/{member}/archive', [MemberManagementController::class, 'archive'])
             ->whereNumber('member')
             ->name('archive');
     });
@@ -195,7 +201,7 @@ Route::middleware('assocmap.auth:System Administrator')
 // Training records and attendance use the same administrator access policy as projects.
 Route::middleware('assocmap.auth:System Administrator')
     ->prefix('admin/trainings')->name('trainings.')
-    ->controller(\App\Http\Controllers\Admin\TrainingManagementController::class)
+    ->controller(TrainingManagementController::class)
     ->group(function (): void {
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
@@ -223,7 +229,7 @@ Route::middleware('assocmap.auth')->prefix('monitoring')->name('monitoring.')
 
 // MEMBERSHIP-WORKFLOW: scoped viewing; only the association account can submit/review.
 Route::middleware('assocmap.auth')->prefix('membership')->name('membership.')
-    ->controller(\App\Http\Controllers\MembershipController::class)->group(function (): void {
+    ->controller(MembershipController::class)->group(function (): void {
         Route::get('/', 'index')->name('index');
         Route::get('/applications/create', 'create')->name('applications.create');
         Route::post('/applications', 'store')->middleware('throttle:membership-submit')->name('applications.store');
@@ -234,7 +240,7 @@ Route::middleware('assocmap.auth')->prefix('membership')->name('membership.')
     });
 
 // Provisioning a credential does not give administrators an approval endpoint.
-Route::post('/admin/members/{member}/review-passphrase', [\App\Http\Controllers\MembershipController::class, 'credential'])
+Route::post('/admin/members/{member}/review-passphrase', [MembershipController::class, 'credential'])
     ->whereNumber('member')->middleware(['assocmap.auth:System Administrator', 'throttle:membership-review'])
     ->name('members.review-passphrase');
 
@@ -249,3 +255,7 @@ Route::post('/admin/gis', [GisController::class, 'store'])
     ->middleware('assocmap.auth:System Administrator')->name('gis.store');
 Route::put('/admin/gis/{location}', [GisController::class, 'update'])
     ->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.update');
+Route::patch('/admin/gis/{location}/publish', [GisController::class, 'publish'])
+    ->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.publish');
+Route::patch('/admin/gis/{location}/unpublish', [GisController::class, 'unpublish'])
+    ->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.unpublish');

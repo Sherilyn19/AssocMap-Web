@@ -14,7 +14,7 @@ final class GisIndexService
     {
         // Load related names together. The map never needs member or account details.
         $locations = GisLocation::query()
-            ->select(['id', 'association_id', 'location_name', 'latitude', 'longitude', 'is_published'])
+            ->select(['id', 'association_id', 'location_name', 'latitude', 'longitude', 'is_published', 'created_at', 'updated_at'])
             ->selectRaw(GisRevision::SQL)
             ->with([
                 'association:id,name,area_unit_id,sub_unit_id,program_component_id,status_id,is_archived',
@@ -40,6 +40,7 @@ final class GisIndexService
                 'association_id' => $location->association_id,
                 'revision' => $location->revision,
                 'update_url' => route('gis.update', $location->id),
+                'publication_url' => route($location->is_published ? 'gis.unpublish' : 'gis.publish', $location->id),
                 'editable' => $association !== null && ! $association->is_archived,
                 'name' => $location->location_name ?: 'Unnamed location',
                 'association' => $association?->name ?? 'Association unavailable',
@@ -54,6 +55,10 @@ final class GisIndexService
                 'archived' => (bool) $association?->is_archived,
                 'latitude' => $valid ? (float) $latitude : null,
                 'longitude' => $valid ? (float) $longitude : null,
+                'latitude_text' => $latitude === null ? '' : (string) $latitude,
+                'longitude_text' => $longitude === null ? '' : (string) $longitude,
+                'created_at' => $location->created_at ? $location->created_at->timezone('Asia/Manila')->format('M d, Y h:i A').' PHT' : '',
+                'updated_at' => $location->updated_at ? $location->updated_at->timezone('Asia/Manila')->format('M d, Y h:i A').' PHT' : '',
                 'valid' => $valid,
                 'published' => $location->is_published,
             ];

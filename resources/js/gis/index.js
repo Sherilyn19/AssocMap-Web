@@ -1,6 +1,8 @@
 import '../../css/gis.css';
 import { filterRecords, optionsFor, summarize, validPosition } from './data';
 import { createEditor } from './editor';
+import { createPublication } from './publication';
+import { parseMapRecords } from './contracts.ts';
 
 const page = document.querySelector('[data-gis-page]');
 if (page) initialize(page);
@@ -9,7 +11,7 @@ async function initialize(root) {
     const status = root.querySelector('[data-gis-map-status]');
     function setStatus(message) { status.textContent = message; status.hidden = !message; }
     let records;
-    try { records = JSON.parse(root.querySelector('[data-gis-data]').textContent); }
+    try { records = parseMapRecords(JSON.parse(root.querySelector('[data-gis-data]').textContent)); }
     catch { setStatus('Map data could not load. Reload the page or use the location list.'); return; }
     const fields = Object.fromEntries([...root.querySelectorAll('[data-filter]')].map(input => [input.dataset.filter, input]));
     const filters = () => Object.fromEntries(Object.entries(fields).map(([key, input]) => [key, input.value]));
@@ -19,6 +21,7 @@ async function initialize(root) {
     let selectedId = null;
     let map = null;
     let editor = null;
+    const publication = createPublication(root);
 
     function setOptions(field, parent = '') {
         const input = fields[field];
@@ -58,6 +61,8 @@ async function initialize(root) {
             'Program component': record.component,
             'Association status': `${record.status}${record.archived ? ' · Archived' : ''}`,
             Publication: record.published ? 'Published' : 'Unpublished',
+            Created: record.created_at || 'Not recorded',
+            Updated: record.updated_at || 'Not recorded',
             Coordinates: validPosition(record) ? `${record.latitude.toFixed(6)}, ${record.longitude.toFixed(6)}` : 'Coordinates need review; no pin is shown.',
         };
         Object.entries(entries).forEach(([label, value]) => {
@@ -71,6 +76,12 @@ async function initialize(root) {
             edit.type = 'button'; edit.className = 'gis-button'; edit.textContent = 'Edit location';
             edit.addEventListener('click', () => editor?.open(record));
             content.append(edit);
+            const publish = document.createElement('button');
+            publish.type = 'button'; publish.className = 'gis-button ml-2';
+            publish.textContent = record.published ? 'Unpublish location' : 'Publish location';
+            publish.disabled = !record.published && (!record.valid || !record.name.trim());
+            publish.addEventListener('click', () => publication.open(record, publish));
+            content.append(publish);
         }
         if (record.association_url) {
             const link = document.createElement('a'); link.href = record.association_url;

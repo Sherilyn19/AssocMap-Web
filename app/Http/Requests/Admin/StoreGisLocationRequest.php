@@ -11,6 +11,7 @@ final class StoreGisLocationRequest extends GisLocationRequest
     public function rules(): array
     {
         return $this->locationRules() + [
+            'submission_token' => ['required', 'uuid'],
             'association_id' => ['bail', 'required', 'integer', Rule::exists('associations', 'id')->where(fn ($query) => $query->where('is_archived', false))],
         ];
     }

@@ -15,7 +15,7 @@ final class GisIndexTest extends AssociationDatabaseTestCase
         parent::setUp();
         // These records exist only in the isolated test schema and are rolled back.
         DB::unprepared(<<<'SQL'
-            ALTER TABLE gis_locations ADD COLUMN location_name varchar, ADD COLUMN latitude numeric, ADD COLUMN longitude numeric;
+            ALTER TABLE gis_locations ADD COLUMN location_name varchar, ADD COLUMN latitude numeric, ADD COLUMN longitude numeric, ADD COLUMN created_at timestamp;
             UPDATE gis_locations SET location_name='Landing area', latitude=10.5, longitude=123.5;
             INSERT INTO gis_locations (association_id,location_name,latitude,longitude,is_published)
                 VALUES (1,'Office',10.5,123.5,false), (1,'Needs review',NULL,123.5,false), (1,'Invalid position',91,181,false), (1,'Zero position',0,0,false);
