@@ -1,10 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { coordinateError, parseSaveReply, parseMapRecords } from '../../resources/js/gis/contracts.ts';
+import { coordinateError, parseSaveReply, parseMapRecords, submissionToken } from '../../resources/js/gis/contracts.ts';
+
+test('submission receipts use secure UUIDs with or without randomUUID', () => {
+    assert.match(submissionToken(), /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/);
+    const source = { getRandomValues: bytes => crypto.getRandomValues(bytes) };
+    const first = submissionToken(source);
+    assert.match(first, /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/);
+    assert.notEqual(first, submissionToken(source));
+    assert.throws(() => submissionToken({}));
+});
 
 test('coordinates accept zero and boundaries but reject unsafe values', () => {
     for (const value of ['0', '-90', '90', '12.345', '1e1']) assert.equal(coordinateError(value, 90), null);
-    for (const value of ['', ' ', 'NaN', 'Infinity', '1e999', '0x10', '91', '-91']) assert.notEqual(coordinateError(value, 90), null);
+    for (const value of ['', ' ', 'NaN', 'Infinity', '1e999', '0x10', '91', '-91', '0.'.padEnd(129, '0'), '1e-100000']) assert.notEqual(coordinateError(value, 90), null);
     assert.equal(coordinateError('180', 180), null);
 });
 

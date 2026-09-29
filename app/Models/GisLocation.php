@@ -37,10 +37,15 @@ final class GisLocation extends Model
         return $this->belongsTo(Association::class);
     }
 
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
     public function scopePubliclyVisible(Builder $query): Builder
     {
         // Public readers must start here, never filter the administrator payload in a browser.
-        return $query->where('is_published', true)
+        return $query->where('is_published', true)->whereNull('archived_at')
             ->whereHas('association', fn (Builder $parent) => $parent->where('is_archived', false))
             ->whereBetween('latitude', [-90, 90])->whereBetween('longitude', [-180, 180])
             ->whereNotNull('location_name')->whereRaw("BTRIM(location_name) <> ''");

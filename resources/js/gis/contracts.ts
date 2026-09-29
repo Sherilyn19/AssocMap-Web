@@ -2,10 +2,23 @@ export type FieldErrors = Record<string, string[]>;
 export type SaveReply = { ok: true; id: number; message: string }
     | { ok: false; message: string; errors: FieldErrors; reload: boolean };
 
+export function submissionToken(source: Crypto = globalThis.crypto): string {
+    if (typeof source?.randomUUID === 'function') return source.randomUUID();
+    // getRandomValues also works on local HTTP demos. Never use Math.random for a receipt.
+    const bytes = source.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 15) | 64;
+    bytes[8] = (bytes[8] & 63) | 128;
+    const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export function coordinateError(value: string, limit: number): string | null {
+    if (value.length > 128) return 'Use no more than 128 characters for a coordinate.';
     if (value.trim() === '') return 'Enter a coordinate.';
     // Accept decimal numbers, including zero. Reject empty text, Infinity, and hex values.
     if (!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim())) return 'Enter a valid number.';
+    const exponent = value.trim().split(/e/i)[1];
+    if (exponent && Math.abs(Number(exponent)) > 1000) return 'Use a coordinate exponent from -1000 to 1000.';
     const number = Number(value);
     if (!Number.isFinite(number) || number < -limit || number > limit) return `Enter a number from ${-limit} to ${limit}.`;
     return null;
@@ -22,7 +35,7 @@ export function parseSaveReply(status: number, body: unknown): SaveReply {
     }
     const errors: FieldErrors = {};
     if (status === 422 && object(body) && object(body.errors)) {
-        for (const field of ['association_id', 'location_name', 'latitude', 'longitude', 'revision', 'publication', 'submission_token']) {
+        for (const field of ['association_id', 'project_id', 'location_name', 'latitude', 'longitude', 'revision', 'publication', 'submission_token']) {
             const messages = body.errors[field];
             if (Array.isArray(messages) && messages.every(message => typeof message === 'string')) errors[field] = messages;
         }

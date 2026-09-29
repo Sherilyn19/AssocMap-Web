@@ -20,6 +20,21 @@ use Throwable;
 
 class GisController extends Controller
 {
+    public function archive(PublishGisLocationRequest $request, int $location, GisManagementService $gis): JsonResponse
+    {
+        $request->validate(['confirmed' => ['accepted']]);
+        try {
+            $id = $gis->archive($location, $request->validated('revision'), (int) $request->attributes->get('assocmap.actor')->id);
+
+            return response()->json(['id' => $id, 'message' => 'Location archived and unpublished. Its record and audit history are preserved.']);
+        } catch (Throwable $error) {
+            if (GisErrors::handles($request, $error)) {
+                return GisErrors::render($error, $request);
+            }
+            throw $error;
+        }
+    }
+
     public function publish(PublishGisLocationRequest $request, int $location, GisManagementService $gis): JsonResponse
     {
         return $this->setPublication($request, $location, $gis, true);
@@ -76,7 +91,8 @@ class GisController extends Controller
     {
         try {
             // The route checks administrator access before any internal records are loaded.
-            $data = $gis->overview();
+            $actor = request()->attributes->get('assocmap.actor');
+            $data = $gis->overview($actor?->role?->role_name === 'Field Officer' ? (int) $actor->id : null);
         } catch (QueryException $exception) {
             // Log the error code without exposing database details or location data.
             Log::error('GIS locations could not be loaded.', [

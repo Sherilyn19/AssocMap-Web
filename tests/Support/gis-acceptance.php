@@ -45,13 +45,22 @@ try {
         });
         file_put_contents($statePath, json_encode(['schema' => $schema], JSON_THROW_ON_ERROR));
         echo 'Acceptance schema ready. Synthetic login: gis-admin@example.test / GisCheck!2026'.PHP_EOL;
-    } elseif (in_array($action, ['inspect', 'cleanup'], true)) {
+    } elseif (in_array($action, ['inspect', 'upgrade', 'cleanup'], true)) {
         $schema = json_decode(file_get_contents($statePath), true, flags: JSON_THROW_ON_ERROR)['schema'];
         if (! preg_match('/^assocmap_gis_acceptance_[a-f0-9]{16}$/D', $schema)) {
             throw new RuntimeException('Invalid acceptance schema.');
         }
         DB::statement('SET search_path TO "'.$schema.'"');
-        if ($action === 'cleanup') {
+        if ($action === 'upgrade') {
+            DB::transaction(function (): void {
+                if (! \Illuminate\Support\Facades\Schema::hasColumn('gis_locations', 'project_id')) {
+                    (require database_path('migrations/2026_09_29_000001_add_gis_project_and_archive.php'))->up();
+                }
+                DB::table('projects')->updateOrInsert(['association_id' => 1, 'title' => 'Coastal livelihood project'], ['commodity_type' => 'Milkfish', 'is_archived' => false]);
+                DB::table('users')->updateOrInsert(['email' => 'gis-member@example.test'], ['name' => 'GIS Acceptance Member', 'password' => Hash::make('GisCheck!2026'), 'role_id' => 3, 'association_id' => 1, 'is_active' => true]);
+            });
+            echo 'Acceptance schema upgraded with project and member fixtures.'.PHP_EOL;
+        } elseif ($action === 'cleanup') {
             DB::statement('DROP SCHEMA "'.$schema.'" CASCADE');
             unlink($statePath);
             echo 'Acceptance schema removed.'.PHP_EOL;
@@ -60,7 +69,7 @@ try {
                 'audits' => DB::table('audit_logs')->select('action_type', 'module', 'record_id')->orderBy('id')->get()], JSON_PRETTY_PRINT).PHP_EOL;
         }
     } else {
-        throw new RuntimeException('Use setup, inspect, or cleanup.');
+        throw new RuntimeException('Use setup, upgrade, inspect, or cleanup.');
     }
 } catch (Throwable $error) {
     fwrite(STDERR, 'Acceptance operation failed: '.$error::class.' ('.$error->getCode().').'.PHP_EOL);

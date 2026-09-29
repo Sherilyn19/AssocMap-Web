@@ -133,13 +133,13 @@ class AuditLogTest extends UserManagementDatabaseTestCase
             INSERT INTO statuses VALUES (1, 'Ongoing');
             CREATE TABLE projects (id bigserial PRIMARY KEY, association_id bigint, title varchar,
                 commodity_type varchar, program_component_id bigint, implementation_date date,
-                budget numeric, status_id bigint, remarks text, is_archived boolean, created_at timestamp, updated_at timestamp);
+                terminated_on date, status_id bigint, remarks text, is_archived boolean, created_at timestamp, updated_at timestamp);
             ALTER TABLE audit_logs RENAME TO unavailable_audit_logs;
             SQL);
         try {
             app(ProjectManagementService::class)->createProject([
                 'association_id' => 1, 'title' => 'Synthetic project', 'commodity_type' => 'Fish',
-                'program_component_id' => 1, 'implementation_date' => '2026-09-26', 'budget' => 100, 'status_id' => 1,
+                'program_component_id' => 1, 'implementation_date' => '2026-09-26', 'status_id' => 1,
             ], 1);
             $this->fail('A project must not be saved without its audit event.');
         } catch (QueryException $error) {

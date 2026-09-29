@@ -200,6 +200,10 @@ final class ProjectManagementService
         return DB::transaction(function () use ($project, $data, $actorId): Project {
             $this->ensureProjectIsWritable($project);
             $this->validateProjectReferences($data);
+            if ((int) $data['association_id'] !== (int) $project->association_id
+                && DB::table('gis_locations')->where('project_id', $project->id)->exists()) {
+                throw new \InvalidArgumentException('Projects linked to active or archived GIS locations must remain in the same association.');
+            }
 
             $project->update([
                 'association_id' => (int) $data['association_id'],

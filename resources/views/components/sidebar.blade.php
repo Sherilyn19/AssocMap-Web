@@ -37,6 +37,7 @@
         $navItems = [
             ['route' => $dashboard, 'label' => 'Dashboard', 'icon' => $navItems[0]['icon']],
             ['route' => 'membership.index', 'label' => 'Member Management', 'icon' => $navItems[4]['icon']],
+            ['route' => session('auth_user.role_name') === 'Field Officer' ? 'gis.officer.index' : 'gis.viewer', 'label' => 'GIS Mapping', 'icon' => $navItems[6]['icon']],
         ];
         if (session('auth_user.role_name') === 'Field Officer') {
             $navItems[] = ['route' => 'monitoring.index', 'label' => 'Monitoring Module', 'icon' => 'M3 17l5-6 4 4 8-9M15 6h5v5'];

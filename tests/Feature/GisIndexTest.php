@@ -6,9 +6,9 @@ namespace Tests\Feature;
 
 use App\Services\GisIndexService;
 use Illuminate\Support\Facades\DB;
-use Tests\Support\AssociationDatabaseTestCase;
+use Tests\Support\GisDatabaseTestCase;
 
-final class GisIndexTest extends AssociationDatabaseTestCase
+final class GisIndexTest extends GisDatabaseTestCase
 {
     protected function setUp(): void
     {

@@ -7,7 +7,7 @@
         <p data-publication-name class="font-semibold break-words"></p>
         <p id="gis-publication-description" class="text-sm text-slate-600"></p>
         <p data-publication-message hidden role="alert" tabindex="-1" class="rounded-lg bg-amber-50 p-3 text-sm text-slate-800"></p>
-        <a data-publication-reload hidden href="{{ route('gis.index') }}" class="text-sm text-assocmap-primary underline">Reload GIS Mapping</a>
+        <a data-publication-reload hidden href="{{ route(request()->routeIs('gis.officer.*') ? 'gis.officer.index' : 'gis.index') }}" class="text-sm text-assocmap-primary underline">Reload GIS Mapping</a>
     </div>
     <footer class="flex justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-4">
         <button data-publication-cancel type="button" class="gis-button">Cancel</button>

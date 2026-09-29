@@ -10,6 +10,10 @@
         <button data-gis-add hidden type="button" class="gis-button gis-save-button">+ Add location</button>
     </header>
 
+    @if(!request()->routeIs('gis.officer.*'))
+        @include('admin-pages.admin-gis-mapping.export')
+    @endif
+
     {{-- Keep a readable record list available even when the map cannot load. --}}
     <noscript><p class="rounded-lg border border-amber-300 bg-amber-50 p-3">Enable JavaScript to use the map and filters. Location details remain available below.</p></noscript>
     <p data-gis-feedback hidden role="status" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900"></p>
@@ -22,6 +26,7 @@
             <label>Barangay<select data-filter="barangay" class="gis-input"><option value="">All barangays</option></select></label>
             <label>Program component<select data-filter="component" class="gis-input"><option value="">All components</option></select></label>
             <label>Publication<select data-filter="publication" class="gis-input"><option value="">All locations</option><option value="published">Published</option><option value="unpublished">Unpublished</option></select></label>
+            <label>Commodity<select data-filter="commodity" class="gis-input"><option value="">All commodities</option></select></label>
         </div>
         <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
             <p data-gis-active class="text-xs text-slate-600">No filters applied.</p>
@@ -73,10 +78,10 @@
     </div>
 
     <details class="rounded-xl border border-slate-200 bg-white p-4 text-sm">
-        <summary class="cursor-pointer font-semibold">Associations without location records: {{ $unmapped->count() }} <span class="font-normal text-slate-500">— all associations, independent of filters</span></summary>
+        <summary class="cursor-pointer font-semibold">Associations without location records: {{ $unmapped->count() }} <span class="font-normal text-slate-500">— {{ request()->routeIs('gis.officer.*') ? 'assigned' : 'all' }} associations, independent of filters</span></summary>
         <ul class="mt-3 space-y-2">
             @forelse($unmapped as $association)
-                <li><a class="text-assocmap-primary underline" href="{{ route('admin.associations.show', $association->id) }}">{{ $association->name }}</a>@if($association->is_archived) <span class="text-slate-500">(Archived)</span>@endif</li>
+                <li>@if(request()->routeIs('gis.officer.*')){{ $association->name }}@else<a class="text-assocmap-primary underline" href="{{ route('admin.associations.show', $association->id) }}">{{ $association->name }}</a>@endif @if($association->is_archived) <span class="text-slate-500">(Archived)</span>@endif</li>
             @empty<li class="text-slate-600">Every association has at least one location record. Check coordinate warnings separately.</li>@endforelse
         </ul>
     </details>

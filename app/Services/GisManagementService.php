@@ -12,11 +12,51 @@ use Illuminate\Validation\ValidationException;
 
 final class GisManagementService
 {
+    public function importRows(array $rows, int $actorId): int
+    {
+        return app(AssociationDatabase::class)->run(function () use ($rows, $actorId): int {
+            $actor = User::with('role')->findOrFail($actorId);
+            abort_unless($actor->is_active && $actor->role?->role_name === 'System Administrator', 403);
+            abort_if(count($rows) < 1 || count($rows) > 1000, 422);
+            $ids = array_unique(array_column($rows, 'association_id'));
+            sort($ids, SORT_NUMERIC);
+            foreach ($ids as $id) {
+                $this->lockAssociation((int) $id, $actorId);
+            }
+            // One bounded insert avoids a network round trip for every imported point.
+            $input = array_map(fn ($row) => $this->fields($row) + ['association_id' => (int) $row['association_id']], $rows);
+            $created = DB::select(<<<'SQL'
+                INSERT INTO gis_locations (association_id, location_name, latitude, longitude, is_published, created_at, updated_at)
+                SELECT association_id, location_name, latitude, longitude, false, clock_timestamp(), clock_timestamp()
+                FROM jsonb_to_recordset(?::jsonb) AS input(association_id bigint, location_name text, latitude numeric, longitude numeric)
+                RETURNING id, association_id, location_name
+                SQL, [json_encode($input, JSON_THROW_ON_ERROR)]);
+            $lookup = [];
+            foreach ($created as $location) {
+                $lookup[$location->association_id.'|'.$location->location_name] = $location->id;
+            }
+            $receipts = $audits = [];
+            foreach ($rows as $index => $row) {
+                $id = $lookup[$row['association_id'].'|'.trim($row['location_name'])];
+                $receipts[] = ['user_id' => $actorId, 'token' => $row['submission_token'], 'location_id' => $id,
+                    'payload_hash' => hash('sha256', json_encode($input[$index], JSON_THROW_ON_ERROR))];
+                $audits[] = ['user_id' => $actorId, 'action_type' => 'CREATE', 'module' => 'GIS', 'record_id' => $id,
+                    'details' => json_encode(['before' => null, 'after' => $input[$index], 'source' => 'file_import'], JSON_THROW_ON_ERROR), 'performed_at' => now()];
+            }
+            DB::table('gis_submissions')->insert($receipts);
+            DB::table('audit_logs')->insert($audits);
+
+            return count($created);
+        });
+    }
+
     public function create(array $data, int $actorId): int
     {
         return app(AssociationDatabase::class)->run(function () use ($data, $actorId): int {
             $this->authorize($actorId);
+            $this->lockAssociation((int) $data['association_id'], $actorId);
             $values = $this->fields($data);
+            $values['project_id'] = $this->projectId($data['project_id'] ?? null, (int) $data['association_id']);
             $hash = hash('sha256', json_encode($values + ['association_id' => (int) $data['association_id']], JSON_THROW_ON_ERROR));
             // A competing copy waits here until the first transaction commits or rolls back.
             DB::table('gis_submissions')->insertOrIgnore([
@@ -29,7 +69,6 @@ final class GisManagementService
             if ($receipt->location_id !== null) {
                 return (int) $receipt->location_id;
             }
-            $this->lockAssociation((int) $data['association_id']);
             // Only these fields may be written. The existing database trigger fills geom.
             $id = DB::table('gis_locations')->insertGetId($values + [
                 'association_id' => (int) $data['association_id'],
@@ -50,10 +89,11 @@ final class GisManagementService
             $this->authorize($actorId);
             $parentId = DB::table('gis_locations')->where('id', $id)->value('association_id');
             abort_if($parentId === null, 404);
-            $this->lockAssociation((int) $parentId);
+            $this->lockAssociation((int) $parentId, $actorId);
             $location = DB::table('gis_locations')->select('gis_locations.*')->selectRaw(GisRevision::SQL)
                 ->where('id', $id)->lockForUpdate()->first();
             abort_if(! $location, 404);
+            abort_if($location->archived_at !== null, 409, 'Archived locations cannot be published or edited.');
             abort_if((int) $location->association_id !== (int) $parentId, 409);
             // Repeating the same explicit state is a no-op, never a toggle or a second audit.
             if ((bool) $location->is_published === $published) {
@@ -85,14 +125,18 @@ final class GisManagementService
             $parentId = DB::table('gis_locations')->where('id', $id)->value('association_id');
             abort_if($parentId === null, 404, 'This location is no longer available. Reload GIS Mapping.');
             // Match association archival: lock the parent first, then the location.
-            $this->lockAssociation((int) $parentId);
-            $location = DB::table('gis_locations')->select(['id', 'association_id', 'location_name', 'latitude', 'longitude'])
+            $this->lockAssociation((int) $parentId, $actorId);
+            $location = DB::table('gis_locations')->select(['id', 'association_id', 'project_id', 'archived_at', 'location_name', 'latitude', 'longitude'])
                 ->selectRaw(GisRevision::SQL)->where('id', $id)->lockForUpdate()->first();
             abort_if(! $location, 404, 'This location is no longer available. Reload GIS Mapping.');
+            abort_if($location->archived_at !== null, 409, 'Archived locations cannot be edited.');
             abort_if((int) $location->association_id !== (int) $parentId || ! hash_equals($location->revision, $data['revision']),
                 409, 'This location changed after you opened the form. Reload GIS Mapping before editing again.');
-            $before = ['location_name' => $location->location_name, 'latitude' => $location->latitude, 'longitude' => $location->longitude];
+            $before = ['location_name' => $location->location_name, 'latitude' => $location->latitude, 'longitude' => $location->longitude, 'project_id' => $location->project_id];
             $values = $this->fields($data);
+            // Older clients omit this optional field; omission must preserve a saved link.
+            $projectId = array_key_exists('project_id', $data) ? $data['project_id'] : $location->project_id;
+            $values['project_id'] = $this->projectId($projectId, (int) $parentId, $location->project_id);
             // Do not write association_id or is_published: preserve their latest saved values.
             DB::table('gis_locations')->where('id', $id)->update($values + ['updated_at' => DB::raw('clock_timestamp()')]);
             $this->audit($actorId, 'UPDATE', $id, $before, $values);
@@ -104,13 +148,56 @@ final class GisManagementService
     private function authorize(int $actorId): void
     {
         $allowed = User::query()->whereKey($actorId)->where('is_active', true)
-            ->whereHas('role', fn ($query) => $query->where('role_name', 'System Administrator'))->exists();
+            ->whereHas('role', fn ($query) => $query->whereIn('role_name', ['System Administrator', 'Field Officer']))->exists();
         abort_unless($allowed, 403, 'You do not have permission to save GIS locations.');
     }
 
-    private function lockAssociation(int $id): void
+    public function archive(int $id, string $revision, int $actorId): int
+    {
+        return app(AssociationDatabase::class)->run(function () use ($id, $revision, $actorId): int {
+            $this->authorize($actorId);
+            $parentId = DB::table('gis_locations')->where('id', $id)->value('association_id');
+            abort_if($parentId === null, 404);
+            $this->lockAssociation((int) $parentId, $actorId);
+            $location = DB::table('gis_locations')->select('gis_locations.*')->selectRaw(GisRevision::SQL)
+                ->where('id', $id)->lockForUpdate()->first();
+            abort_if(! $location, 404);
+            abort_if((int) $location->association_id !== (int) $parentId, 409);
+            if ($location->archived_at !== null) {
+                return $id;
+            }
+            abort_unless(hash_equals($location->revision, $revision), 409);
+            $archivedAt = now();
+            DB::table('gis_locations')->where('id', $id)->update([
+                'archived_at' => $archivedAt, 'is_published' => false, 'updated_at' => DB::raw('clock_timestamp()'),
+            ]);
+            $this->audit($actorId, 'ARCHIVE', $id, ['archived_at' => null, 'is_published' => (bool) $location->is_published],
+                ['archived_at' => $archivedAt->toIso8601String(), 'is_published' => false]);
+
+            return $id;
+        });
+    }
+
+    private function projectId(mixed $id, int $associationId, mixed $existingId = null): ?int
+    {
+        if ($id === null || $id === '') {
+            return null;
+        }
+        // A project archive and GIS assignment must not pass each other unchecked.
+        $project = DB::table('projects')->where('id', (int) $id)->lockForUpdate()->first();
+        if (! $project || (int) $project->association_id !== $associationId
+            || ($project->is_archived && (int) $existingId !== (int) $id)) {
+            throw ValidationException::withMessages(['project_id' => 'Choose an active project from this association, or leave the location unlinked.']);
+        }
+
+        return (int) $id;
+    }
+
+    private function lockAssociation(int $id, int $actorId): void
     {
         $association = Association::query()->lockForUpdate()->find($id);
+        $actor = User::with('role')->findOrFail($actorId);
+        abort_if($actor->role->role_name === 'Field Officer' && (! $association || (int) $association->field_officer_id !== $actorId), 404);
         if (! $association || $association->is_archived) {
             throw ValidationException::withMessages(['association_id' => 'This association is unavailable or archived. Reload GIS Mapping.']);
         }

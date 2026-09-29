@@ -25,7 +25,8 @@ if (! preg_match('/^assocmap_gis_acceptance_[a-f0-9]{16}$/D', $schema)) {
     exit;
 }
 config(['app.debug' => false, 'database.connections.pgsql.search_path' => $schema, 'database.default' => 'pgsql',
-    'session.driver' => 'file', 'session.cookie' => 'gis_acceptance_session', 'cache.default' => 'array']);
+    'session.driver' => 'file', 'session.cookie' => 'gis_acceptance_session', 'cache.default' => 'array',
+    'gis.storage_path' => storage_path('app/gis-acceptance-work')]);
 DB::purge('pgsql');
 app(Vite::class)->useHotFile(storage_path('app/gis-acceptance-no-hot'));
 $request = Request::capture();

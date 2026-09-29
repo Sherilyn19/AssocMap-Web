@@ -23,6 +23,8 @@ body:has([data-gis-page]) .am-content { max-width: none; padding: 1rem 1.5rem; }
 .gis-button { min-height: 36px; padding: .4rem .7rem; border: 1px solid #cbd5e1; border-radius: .5rem; background: white; color: #334155; font-size: .75rem; font-weight: 600; }
 .gis-button:hover { background: #f1f5f9; }
 .gis-button:disabled { opacity: .5; cursor: not-allowed; }
+.gis-record-button { min-height: 36px; }
+@media (pointer: coarse) { .gis-button, .gis-record-button, .gis-input { min-height: 44px; } }
 .gis-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 1rem; align-items: stretch; }
 .gis-map-card { overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
 .gis-map { flex: 1; min-height: 370px; background: #e8eeeb; z-index: 0; }

@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\DB;
-use Tests\Support\AssociationDatabaseTestCase;
+use Tests\Support\GisDatabaseTestCase;
 
-final class GisDatabaseAccessTest extends AssociationDatabaseTestCase
+final class GisDatabaseAccessTest extends GisDatabaseTestCase
 {
     public function test_api_access_is_removed_and_laravel_can_still_write(): void
     {
         $roles = DB::select("SELECT rolname FROM pg_roles WHERE rolname IN ('anon','authenticated')");
+        // CI must exercise both roles, not silently pass an empty permission loop.
+        if (getenv('CI') === 'true') {
+            $this->assertCount(2, $roles, 'Create anon and authenticated in the disposable CI database.');
+        }
         foreach (['gis_locations', 'gis_submissions', 'audit_logs'] as $table) {
             DB::statement("GRANT ALL PRIVILEGES ON TABLE $table TO PUBLIC");
         }

@@ -1,11 +1,23 @@
-import { coordinateError } from './contracts.ts';
+import { coordinateError, submissionToken as newSubmissionToken } from './contracts.ts';
 import { saveLocation, reloadSaved } from './request';
 
 export function createEditor(root, getMap) {
     // Find the form controls inside this GIS page. getMap provides the map once it is ready.
     const panel = root.querySelector('[data-gis-editor]');
     const form = panel.querySelector('form');
-    const fields = Object.fromEntries(['association_id', 'location_name', 'latitude', 'longitude'].map(name => [name, form.elements.namedItem(name)]));
+    const fields = Object.fromEntries(['association_id', 'project_id', 'location_name', 'latitude', 'longitude'].map(name => [name, form.elements.namedItem(name)]));
+    const projects = JSON.parse(panel.querySelector('[data-gis-projects]').textContent);
+    function projectOptions(record = null) {
+        fields.project_id.replaceChildren(new Option('No linked project', ''));
+        projects.filter(project => String(project.association_id) === fields.association_id.value).forEach(project => {
+            fields.project_id.add(new Option(`${project.title} · ${project.commodity_type || 'Commodity not recorded'}`, String(project.id)));
+        });
+        if (record?.project_id && !projects.some(project => project.id === record.project_id)) {
+            fields.project_id.add(new Option(`${record.project_title} (archived — keep or remove link)`, String(record.project_id)));
+        }
+        fields.project_id.value = record?.project_id ? String(record.project_id) : '';
+    }
+    fields.association_id.addEventListener('change', () => projectOptions());
     const save = panel.querySelector('[data-gis-save]');
     const cancel = panel.querySelector('[data-gis-cancel]');
     const message = panel.querySelector('[data-gis-save-message]');
@@ -83,14 +95,23 @@ export function createEditor(root, getMap) {
     // Open a blank form for a new location, or fill it with the selected location.
     function open(record = null) {
         if (active || (record && !record.editable)) return;
+        try {
+            // Keep one token for this form opening, including repeated network submissions.
+            submissionToken = record ? null : newSubmissionToken();
+        } catch {
+            const notice = root.querySelector('[data-gis-feedback]');
+            notice.textContent = 'A secure submission could not be prepared. Reload GIS Mapping or use a supported browser.';
+            notice.hidden = false;
+            notice.setAttribute('tabindex', '-1');
+            notice.focus();
+            return;
+        }
         returnFocus = document.activeElement;
         editing = record;
         active = true;
         busy = false;
         blocked = false;
         saved = false;
-        // One token belongs to one form opening, including a repeated network submission.
-        submissionToken = crypto.randomUUID();
         form.reset();
         clearErrors();
         feedback('');
@@ -99,6 +120,7 @@ export function createEditor(root, getMap) {
         // Existing locations keep their association. Missing coordinates stay blank, not zero.
         fields.association_id.disabled = Boolean(record);
         fields.association_id.value = record ? String(record.association_id) : '';
+        projectOptions(record);
         fields.location_name.value = record?.name ?? '';
         fields.latitude.value = record?.latitude_text ?? '';
         fields.longitude.value = record?.longitude_text ?? '';
@@ -163,7 +185,7 @@ export function createEditor(root, getMap) {
         if (Object.keys(errors).length) { feedback('Check the fields below.'); showErrors(errors); return; }
         clearErrors();
         // Send only the allowed fields. The revision lets Laravel detect an outdated edit.
-        const payload = { location_name: name, latitude: fields.latitude.value, longitude: fields.longitude.value };
+        const payload = { location_name: name, latitude: fields.latitude.value, longitude: fields.longitude.value, project_id: fields.project_id.value || null };
         if (editing) payload.revision = editing.revision;
         else {
             payload.association_id = fields.association_id.value;
@@ -198,7 +220,7 @@ export function createEditor(root, getMap) {
             reload.hidden = false;
             feedback('The save could not be confirmed. Refresh and check the location before trying again.');
         } finally {
-            // Always clear the timer. Allow another save only when the result says it is safe.
+            // Allow another save only when the result says it is safe.
             busy = false;
             save.disabled = blocked;
             cancel.disabled = saved;

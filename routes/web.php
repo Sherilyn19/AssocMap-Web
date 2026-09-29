@@ -30,6 +30,13 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+Route::get('/map', [\App\Http\Controllers\GisMapController::class, 'index'])->name('gis.public');
+Route::get('/map/locations', [\App\Http\Controllers\GisMapController::class, 'index'])->name('gis.public.data');
+Route::middleware('assocmap.auth')->group(function (): void {
+    Route::get('/gis', [\App\Http\Controllers\GisMapController::class, 'index'])->name('gis.viewer');
+    Route::get('/gis/locations', [\App\Http\Controllers\GisMapController::class, 'index'])->name('gis.viewer.data');
+});
+
 // ── Authentication ────────────────────────────────────────────
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
@@ -247,6 +254,22 @@ Route::post('/admin/members/{member}/review-passphrase', [MembershipController::
     ->name('members.review-passphrase');
 
 // Allow only system administrators to open GIS Mapping.
+Route::middleware(['assocmap.auth:System Administrator', 'throttle:10,1'])->prefix('admin/gis')->group(function (): void {
+    Route::get('/transfer', [\App\Http\Controllers\Admin\GisTransferController::class, 'index'])->name('gis.transfer');
+    Route::post('/import/preview', [\App\Http\Controllers\Admin\GisTransferController::class, 'preview'])->name('gis.import.preview');
+    Route::post('/import/confirm', [\App\Http\Controllers\Admin\GisTransferController::class, 'confirm'])->name('gis.import.confirm');
+    Route::post('/export', [\App\Http\Controllers\Admin\GisTransferController::class, 'export'])->name('gis.export');
+});
+
+Route::middleware('assocmap.auth:Field Officer')->prefix('officer/gis')->name('gis.officer.')->group(function (): void {
+    Route::get('/', [GisController::class, 'index'])->name('index');
+    Route::post('/', [GisController::class, 'store'])->name('store');
+    Route::put('/{location}', [GisController::class, 'update'])->whereNumber('location')->name('update');
+    Route::patch('/{location}/publish', [GisController::class, 'publish'])->whereNumber('location')->name('publish');
+    Route::patch('/{location}/unpublish', [GisController::class, 'unpublish'])->whereNumber('location')->name('unpublish');
+    Route::patch('/{location}/archive', [GisController::class, 'archive'])->whereNumber('location')->name('archive');
+});
+
 // This route name matches the existing GIS Mapping sidebar link.
 Route::get('/admin/gis', [GisController::class, 'index'])
     ->middleware('assocmap.auth:System Administrator')
@@ -261,3 +284,5 @@ Route::patch('/admin/gis/{location}/publish', [GisController::class, 'publish'])
     ->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.publish');
 Route::patch('/admin/gis/{location}/unpublish', [GisController::class, 'unpublish'])
     ->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.unpublish');
+Route::patch('/admin/gis/{location}/archive', [GisController::class, 'archive'])
+    ->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.archive');

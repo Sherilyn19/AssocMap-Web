@@ -31,6 +31,8 @@ async function initialize(root) {
         input.value = [...input.options].some(option => option.value === previous) ? previous : '';
     }
     ['municipality', 'barangay', 'component'].forEach(field => setOptions(field));
+    [...new Set(records.filter(record => !record.project_archived && record.commodity).map(record => record.commodity))]
+        .sort((a, b) => a.localeCompare(b)).forEach(value => fields.commodity.add(new Option(value, value)));
 
     function clearSelection() {
         selectedId = null;
@@ -59,6 +61,8 @@ async function initialize(root) {
             Association: record.association,
             Area: `${record.barangay}, ${record.municipality}`,
             'Program component': record.component,
+            Project: record.project_title ? `${record.project_title}${record.project_archived ? ' (archived)' : ''}` : 'No linked project',
+            Commodity: record.commodity || 'Not recorded',
             'Association status': `${record.status}${record.archived ? ' · Archived' : ''}`,
             Publication: record.published ? 'Published' : 'Unpublished',
             Created: record.created_at || 'Not recorded',
@@ -82,6 +86,10 @@ async function initialize(root) {
             publish.disabled = !record.published && (!record.valid || !record.name.trim());
             publish.addEventListener('click', () => publication.open(record, publish));
             content.append(publish);
+            const archive = document.createElement('button');
+            archive.type = 'button'; archive.className = 'gis-button mt-2'; archive.textContent = 'Archive location';
+            archive.addEventListener('click', () => publication.open(record, archive, 'archive'));
+            content.append(archive);
         }
         if (record.association_url) {
             const link = document.createElement('a'); link.href = record.association_url;
@@ -102,12 +110,14 @@ async function initialize(root) {
         if (editor?.active) return;
         const state = filters();
         visible = filterRecords(records, state);
+        const exportScope = root.querySelector('[data-gis-export-scope]');
+        if (exportScope) exportScope.textContent = `${visible.length} filtered records. ${state.publication === 'published' ? 'Published records only.' : 'Includes unpublished records.'} Internal administrator download. Maximum 1,000 records.`;
         const ids = new Set(visible.map(record => record.id));
         rows.forEach(row => { row.hidden = !ids.has(Number(row.dataset.gisRow)); });
         root.querySelector('[data-gis-empty]').hidden = visible.length !== 0;
         const count = summarize(visible);
         root.querySelector('[data-gis-summary]').textContent = `${visible.length} ${visible.length === 1 ? 'location' : 'locations'} · ${count.mapped} mapped · ${count.municipalities} ${count.municipalities === 1 ? 'municipality' : 'municipalities'} · ${count.barangays} ${count.barangays === 1 ? 'barangay' : 'barangays'}${count.invalid ? ` · ${count.invalid} with coordinates needing review` : ''}`;
-        const labels = { search: 'Search', municipality: 'Municipality', barangay: 'Barangay', component: 'Program', publication: 'Publication' };
+        const labels = { search: 'Search', municipality: 'Municipality', barangay: 'Barangay', component: 'Program', publication: 'Publication', commodity: 'Commodity' };
         const active = Object.entries(state).filter(([, value]) => value).map(([key, value]) => `${labels[key]}: ${key === 'search' ? value : fields[key].selectedOptions[0].textContent}`);
         root.querySelector('[data-gis-active]').textContent = active.length ? active.join(' · ') : 'No filters applied.';
         clearSelection();

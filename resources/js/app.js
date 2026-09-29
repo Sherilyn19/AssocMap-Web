@@ -13,6 +13,14 @@ import './admin-user/admin-project-management';
 import './admin-user/admin-audit-log';
 
 import './admin-user/management-ui';
+import './gis/transfer';
+
+if (document.querySelector('[data-gis-viewer]')) {
+    import('./gis/viewer').catch(() => {
+        const status = document.querySelector('[data-viewer-status]');
+        if (status) status.textContent = 'The map could not load. Location details and filters remain available.';
+    });
+}
 
 // Load map code only when the administrator opens GIS Mapping.
 if (document.querySelector('[data-gis-page]')) {

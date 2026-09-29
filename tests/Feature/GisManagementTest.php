@@ -9,9 +9,9 @@ use App\Services\GisManagementService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Tests\Support\AssociationDatabaseTestCase;
+use Tests\Support\GisDatabaseTestCase;
 
-final class GisManagementTest extends AssociationDatabaseTestCase
+final class GisManagementTest extends GisDatabaseTestCase
 {
     protected function setUp(): void
     {
@@ -80,6 +80,21 @@ final class GisManagementTest extends AssociationDatabaseTestCase
         foreach ([[-90, -180], [90, 180], [0, 0]] as [$latitude, $longitude]) {
             $this->postJson('/admin/gis', $this->fields(compact('latitude', 'longitude')))->assertCreated();
         }
+    }
+
+    public function test_oversized_coordinates_fail_validation_without_writes(): void
+    {
+        $revision = $this->revision();
+        foreach (['0.'.str_repeat('1', 127), '1e-100000'] as $coordinate) {
+            $this->postJson('/admin/gis', $this->fields(['latitude' => $coordinate]))
+                ->assertUnprocessable()->assertJsonValidationErrors('latitude');
+            $this->putJson('/admin/gis/1', $this->fields(['longitude' => $coordinate, 'revision' => $revision]))
+                ->assertUnprocessable()->assertJsonValidationErrors('longitude');
+        }
+        $this->assertSame(1, DB::table('gis_locations')->count());
+        $this->assertSame(0, DB::table('gis_submissions')->count());
+        $this->assertSame(0, DB::table('audit_logs')->where('module', 'GIS')->count());
+        $this->assertSame($revision, $this->revision());
     }
 
     public function test_archived_and_missing_records_cannot_be_changed(): void

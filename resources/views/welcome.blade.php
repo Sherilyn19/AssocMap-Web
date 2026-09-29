@@ -32,7 +32,9 @@
                 Associations under the SAAD Phase II Program in Cebu Province.
             </p>
 
-            {{-- Single Login CTA — no register, no public map shortcut --}}
+            <a href="{{ route('gis.public') }}" class="w-full max-w-xs rounded-lg border border-slate-300 px-6 py-3 text-sm font-semibold text-assocmap-primary focus:outline-none focus:ring-2 focus:ring-assocmap-primary">Explore the public map</a>
+
+            {{-- Staff and member access remains separate from the public map. --}}
             <a
                 href="{{ route('login') }}"
                 class="inline-flex items-center justify-center w-full max-w-xs

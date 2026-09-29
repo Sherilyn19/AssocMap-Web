@@ -8,6 +8,7 @@ permissions:
 jobs:
   gis:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgis/postgis:16-3.4
@@ -44,8 +45,25 @@ jobs:
       - run: composer install --prefer-dist --no-interaction --no-progress
       - run: cp .env.example .env
       - run: php artisan key:generate
+      - name: Create API roles in the disposable CI database
+        env:
+          PGPASSWORD: postgres
+        run: psql -h 127.0.0.1 -U postgres -d assocmap_test -v ON_ERROR_STOP=1 -c 'CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;'
       - run: npm ci
       - run: npm run typecheck:gis
       - run: node --test tests/js/gis-*.test.mjs
       - run: npm run build
-      - run: php artisan test --compact --filter='Gis|AssociationManagementTest|AuditLogTest'
+      - name: Verify standard-library GIS formats and archive validation
+        run: python3 -m unittest discover -s python/gis -p test_worker.py -v
+      - name: Check GIS PHP formatting
+        run: >-
+          vendor/bin/pint --test app/Http/Controllers/Admin/GisController.php
+          app/Http/Requests/Admin/GisLocationRequest.php app/Http/Requests/Admin/StoreGisLocationRequest.php
+          app/Http/Requests/Admin/UpdateGisLocationRequest.php app/Http/Requests/Admin/PublishGisLocationRequest.php
+          app/Services/GisManagementService.php app/Services/GisIndexService.php app/Models/GisLocation.php
+          app/Support/GisRevision.php app/Support/GisErrors.php tests/Feature/Gis*Test.php
+          app/Services/GisReadService.php app/Services/GisTransferService.php app/Services/GisFileProcessor.php
+          app/Http/Controllers/GisMapController.php app/Http/Controllers/Admin/GisTransferController.php
+          app/Support/GisCoordinate.php app/Console/Commands/GisCleanup.php tests/Unit/GisCoordinateTest.php
+          tests/Support/GisDatabaseTestCase.php database/migrations/2026_09_29_000001_add_gis_project_and_archive.php
+      - run: php artisan test --compact --filter='Gis[A-Za-z]+Test|AssociationManagementTest|AuditLogTest'

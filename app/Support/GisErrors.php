@@ -14,7 +14,7 @@ final class GisErrors
 {
     public static function handles(Request $request, Throwable $error): bool
     {
-        return $request->is('admin/gis', 'admin/gis/*')
+        return $request->is('admin/gis', 'admin/gis/*', 'officer/gis', 'officer/gis/*')
             && ($error instanceof PDOException || $error instanceof AssociationDeadlineException);
     }
 
@@ -24,6 +24,7 @@ final class GisErrors
         if ($request->expectsJson()) {
             return response()->json(['message' => 'The save could not be confirmed. Refresh and check the location before trying again.', 'uncertain' => true], 503);
         }
+
         return response()->view('admin-pages.admin-gis-mapping.unavailable', [], 503);
     }
 }

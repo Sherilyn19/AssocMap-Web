@@ -7,7 +7,8 @@ export function filterRecords(records, filters) {
             && (!filters.municipality || String(record.municipality_id) === filters.municipality)
             && (!filters.barangay || String(record.barangay_id) === filters.barangay)
             && (!filters.component || String(record.component_id) === filters.component)
-            && (!filters.publication || record.published === (filters.publication === 'published'));
+            && (!filters.publication || record.published === (filters.publication === 'published'))
+            && (!filters.commodity || (!record.project_archived && record.commodity === filters.commodity));
     });
 }
 

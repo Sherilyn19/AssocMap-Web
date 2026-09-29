@@ -10,9 +10,9 @@ use App\Services\AssociationManagementService;
 use App\Services\GisIndexService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Tests\Support\AssociationDatabaseTestCase;
+use Tests\Support\GisDatabaseTestCase;
 
-final class GisPublicationTest extends AssociationDatabaseTestCase
+final class GisPublicationTest extends GisDatabaseTestCase
 {
     protected function setUp(): void
     {

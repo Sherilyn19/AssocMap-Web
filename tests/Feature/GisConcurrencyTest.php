@@ -11,9 +11,9 @@ use App\Services\GisManagementService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
-use Tests\Support\AssociationDatabaseTestCase;
+use Tests\Support\GisDatabaseTestCase;
 
-final class GisConcurrencyTest extends AssociationDatabaseTestCase
+final class GisConcurrencyTest extends GisDatabaseTestCase
 {
     public function test_saves_and_archival_wait_and_recheck_after_the_first_commit(): void
     {
