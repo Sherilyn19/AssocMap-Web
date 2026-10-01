@@ -124,6 +124,7 @@ class AdminUserManagementService
             $associationId = $this->associationLink($role, $association);
             $this->requireUniqueEmail($data['email']);
             $this->requireUniqueAssociation($associationId);
+            $this->requireSeparateReviewCredential($association, $data['password']);
             $user = User::create([
                 'name' => $data['name'], 'email' => $data['email'],
                 'password' => Hash::make($data['password']), 'role_id' => $data['role_id'],
@@ -153,6 +154,13 @@ class AdminUserManagementService
             $associationId = $this->associationLink($newRole, $association);
             $this->requireUniqueEmail($data['email'], $userId);
             $this->requireUniqueAssociation($associationId, $userId);
+            if (! empty($data['password'])) {
+                $this->requireSeparateReviewCredential($association, $data['password']);
+            } elseif ($associationId !== $user->association_id && ! empty($association->representative_member_id)) {
+                // A retained password cannot be compared with another hash. Require
+                // a new password when linking an account to an existing representative.
+                throw ValidationException::withMessages(['password' => 'Set a new shared password when changing association so credential separation can be verified.']);
+            }
             // Preserve the old link and role for the audit trail before changing the account.
             $previousRole = $user->role_id;
             $previousAssociation = $user->association_id;
@@ -271,6 +279,19 @@ class AdminUserManagementService
         // Lock one stable row before any target user. Locking only the target allows
         // two administrators to change different accounts using the same old count.
         DB::table('roles')->where('id', $this->adminRoleId())->lockForUpdate()->first();
+    }
+
+    private function requireSeparateReviewCredential(?object $association, string $password): void
+    {
+        if (! $association || empty($association->representative_member_id)) {
+            return;
+        }
+        // The association is already locked, so appointment and secret changes wait.
+        $representative = \App\Models\Member::query()->whereKey($association->representative_member_id)
+            ->where('association_id', $association->id)->lockForUpdate()->first();
+        if ($representative?->review_passphrase_hash && Hash::check($password, $representative->review_passphrase_hash)) {
+            throw ValidationException::withMessages(['password' => 'Choose a shared password different from the representative review passphrase.']);
+        }
     }
 
     private function requireRemainingAdministrator(User $user, int $newRoleId, bool $newActive): void

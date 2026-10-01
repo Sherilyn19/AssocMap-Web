@@ -15,13 +15,15 @@ use Tests\TestCase;
  */
 abstract class MembershipDatabaseTestCase extends TestCase
 {
+    protected string $schema;
+
     protected function setUp(): void
     {
         parent::setUp();
         if (getenv('ASSOCMAP_MEMBERSHIP_TESTS') !== '1') {
             $this->markTestSkipped('Set ASSOCMAP_MEMBERSHIP_TESTS=1 to run isolated PostgreSQL membership tests.');
         }
-        $schema = 'assocmap_test_membership_'.bin2hex(random_bytes(8));
+        $schema = $this->schema = 'assocmap_test_membership_'.bin2hex(random_bytes(8));
         config(['database.default' => 'pgsql', 'database.connections.pgsql.search_path' => $schema]);
         DB::purge('pgsql');
         DB::beginTransaction();

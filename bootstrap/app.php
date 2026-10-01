@@ -70,6 +70,16 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
         $exceptions->render(function (Throwable $error, Request $request) {
+            if ($request->is('member/*') && $error instanceof \Illuminate\Validation\ValidationException && $request->isMethod('GET') && !$request->expectsJson()) {
+                return redirect($request->url())->withErrors($error->errors())
+                    ->with('error', 'Choose valid filters and try again.');
+            }
+            if (($request->is('member/*') || ($request->is('membership', 'membership/*') && $request->hasSession() && $request->session()->get('auth_user.role_name') === 'Association Member'))
+                && ($error instanceof QueryException || $error instanceof PDOException)) {
+                return $request->expectsJson()
+                    ? response()->json(['message' => 'Association records are temporarily unavailable. Please try again.'], 503)
+                    : response()->view('association-member-user.unavailable', [], 503);
+            }
             // Invalid GET filters must return to a clean register, not redirect in a loop
             // to the same invalid URL. JSON callers keep Laravel's normal 422 response.
             if ($error instanceof \Illuminate\Validation\ValidationException && $request->isMethod('GET') && ! $request->expectsJson()) {

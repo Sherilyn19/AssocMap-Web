@@ -1,81 +1,53 @@
-{{--
-    ============================================================
-    View    : association-member-user/dashboard.blade.php
-    Route   : GET /member/dashboard
-    Role    : Association Member only
-    ============================================================
---}}
-<x-dashboard-layout title="Member Dashboard">
-
-    {{-- ── Welcome Banner ─────────────────────────────────── --}}
-    <div class="bg-white rounded-2xl border border-assocmap-border shadow-card p-8 sm:p-10">
-
-        <div class="flex items-start gap-5">
-
-            {{-- Avatar --}}
-            <div class="w-16 h-16 rounded-full bg-assocmap-primary flex-shrink-0
-                        flex items-center justify-center shadow-sm">
-                <span class="text-white text-xl font-bold select-none">
-                    {{ strtoupper(substr($user['name'], 0, 1)) }}
-                </span>
-            </div>
-
-            <div class="flex flex-col gap-1">
-
-                {{-- Role badge --}}
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full
-                             text-xs font-semibold bg-amber-100 text-amber-700 w-fit">
-                    Association Member
-                </span>
-
-                {{-- Welcome heading --}}
-                <h1 class="text-2xl font-bold text-assocmap-text mt-1">
-                    Welcome, {{ $user['name'] }}!
-                </h1>
-
-                <p class="text-sm text-assocmap-secondary">
-                    You are logged in as an Association Member.
-                    You can view your association's information, active projects,
-                    trainings, and submit member registration requests.
-                </p>
-
-            </div>
-        </div>
-
-        <hr class="my-7 border-assocmap-border" />
-
-        {{-- Phase 2 placeholder --}}
-        <div class="rounded-xl border border-dashed border-assocmap-border
-                    bg-assocmap-bg px-6 py-5 text-center">
-            <p class="text-sm text-assocmap-secondary">
-                🌿 &nbsp;Your association details and program information will appear here
-                in <strong class="text-assocmap-text">Capstone 2</strong>.
-            </p>
-            <p class="text-xs text-assocmap-secondary mt-1">
-                Modules: Association Profile · Projects · Trainings ·
-                Production Records · Member Registration
-            </p>
-        </div>
-
-    </div>
-
-    {{-- ── Quick Info Cards ─────────────────────────────────── --}}
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-
-        @foreach ([
-            ['label' => 'My Association',   'icon' => '🏘️', 'note' => 'View your association profile and details'],
-            ['label' => 'Projects',         'icon' => '🌾', 'note' => 'View active livelihood projects'],
-            ['label' => 'Trainings',        'icon' => '📚', 'note' => 'View scheduled and completed trainings'],
-        ] as $card)
-            <div class="bg-white rounded-xl border border-assocmap-border shadow-card
-                        p-5 flex flex-col gap-2">
-                <span class="text-2xl">{{ $card['icon'] }}</span>
-                <span class="font-semibold text-assocmap-text text-sm">{{ $card['label'] }}</span>
-                <span class="text-xs text-assocmap-secondary">{{ $card['note'] }}</span>
-                <span class="text-[10px] text-assocmap-secondary/60 mt-1 italic">Available in Capstone 2</span>
-            </div>
+<x-dashboard-layout title="Association Dashboard" topbar-title="Association Dashboard">
+<div data-member-workspace class="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    @include('association-member-user.partials.header', ['heading' => 'Association Dashboard', 'description' => 'Welcome, '.session('auth_user.name').'. Keep track of your association’s members and livelihood activities.'])
+    @if ($association)
+    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Association summary">
+        @foreach ($counts as $label => $count)
+            <a class="am-user-summary" href="{{ [route('member.members'), route('member.applications', ['status' => 'Pending']), route('member.projects'), route('member.trainings')][$loop->index] }}">
+                <span class="text-sm font-medium text-slate-600">{{ $label }}</span><strong class="mt-2 block text-3xl tabular-nums">{{ number_format($count) }}</strong>
+                <span class="mt-2 block text-xs text-slate-500">{{ $label === 'Pending applications' ? 'Awaiting representative review' : 'Non-archived records' }}</span>
+            </a>
         @endforeach
-
+    </section>
+    @endif
+    <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="quick-links">
+        <h2 id="quick-links" class="text-lg font-semibold">Your workspace</h2>
+        <nav class="mt-4 flex flex-wrap gap-3" aria-label="Quick navigation">
+            @foreach (['information' => 'Association Profile', 'members' => 'Members', 'applications' => 'Applications', 'projects' => 'Projects', 'trainings' => 'Trainings', 'production' => 'Production Records'] as $route => $label)
+                <a class="am-user-button am-user-button-secondary" href="{{ route('member.'.$route) }}">{{ $label }} <span aria-hidden="true">→</span></a>
+            @endforeach
+        </nav>
+    </section>
+    @if ($association)
+    <div class="grid gap-6 xl:grid-cols-2">
+        @foreach ([['Recent applications', $applications, 'applications'], ['Current projects', $projects, 'projects'], ['Recent and scheduled trainings', $trainings, 'trainings'], ['Latest production records', $production, 'production']] as [$label, $records, $type])
+        <section class="min-w-0 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-3"><h2 class="text-lg font-semibold">{{ $label }}</h2><a class="text-sm font-semibold text-blue-800 underline underline-offset-4" href="{{ route('member.'.$type) }}">View all<span class="sr-only"> {{ strtolower($label) }}</span></a></div>
+            <ul class="mt-3 divide-y divide-slate-100">
+                @forelse ($records as $record)
+                    <li class="flex flex-wrap items-start justify-between gap-3 py-4">
+                        <div class="min-w-0 flex-1">
+                        @if ($type === 'applications')
+                            <a class="break-words font-semibold text-slate-800 hover:underline" href="{{ route('membership.applications.show', $record) }}">{{ $record->first_name }} {{ $record->last_name }}</a>
+                            <p class="mt-1 text-sm text-slate-500">Submitted {{ $record->created_at?->format('M j, Y') ?? 'date not recorded' }}</p>
+                        @elseif ($type === 'production')
+                            <p class="break-words font-semibold">{{ $record->project_title }}</p><p class="mt-1 text-sm text-slate-500">{{ $record->quarter_name }} · {{ $record->year }}</p>
+                            <p class="mt-2 text-sm">Target {{ $record->target_output !== null ? number_format($record->target_output, 2) : 'Not recorded' }} · Actual {{ $record->actual_output !== null ? number_format($record->actual_output, 2) : 'Not recorded' }}</p>
+                        @else
+                            <a class="break-words font-semibold text-slate-800 hover:underline" href="{{ route('member.'.$type.'.show', $record) }}">{{ $record->title }}</a>
+                            @if ($type === 'trainings')<p class="mt-1 text-sm text-slate-500">{{ $record->date_conducted?->format('M j, Y') ?? 'Date not recorded' }} · {{ $record->venue ?: 'Venue not recorded' }}</p>@endif
+                        @endif
+                        </div>
+                        @if (in_array($type, ['applications', 'projects'])) @include('shared.partials.badge', ['label' => $record->status?->status_name]) @endif
+                    </li>
+                @empty
+                    <li class="py-8 text-sm leading-6 text-slate-500">No {{ strtolower($label) }} have been recorded for this association yet.</li>
+                @endforelse
+            </ul>
+        </section>
+        @endforeach
     </div>
-
+    @endif
+</div>
 </x-dashboard-layout>

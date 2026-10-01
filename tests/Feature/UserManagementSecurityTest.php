@@ -6,11 +6,21 @@ use App\Exceptions\AssociationRuleException;
 use App\Services\AdminUserManagementService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Tests\Support\UserManagementDatabaseTestCase;
 use Tests\Support\UserManagementFixture;
 
 class UserManagementSecurityTest extends UserManagementDatabaseTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Account fixtures intentionally omit operational dashboard tables. Exercise
+        // the real session/role middleware here; FieldOfficerUserTest covers the page.
+        Route::middleware(['web', 'assocmap.auth:Field Officer'])
+            ->get('/test/officer-session', fn () => response('Session accepted.'));
+    }
+
     public function test_last_active_admin_cannot_be_demoted_or_deactivated_through_service(): void
     {
         DB::table('users')->where('id', 2)->update(['is_active' => false]);
@@ -68,7 +78,7 @@ class UserManagementSecurityTest extends UserManagementDatabaseTestCase
         }
         $this->post('/login', ['email' => 'officer@example.test', 'password' => UserManagementFixture::PASSWORD])->assertSessionMissing('auth_user');
         $this->post('/login', ['email' => 'officer@example.test', 'password' => 'Replacement-Password-2026'])->assertRedirect('/officer/dashboard');
-        $this->get('/officer/dashboard')->assertOk();
+        $this->get('/test/officer-session')->assertOk();
         $this->assertArrayNotHasKey('password', session('auth_user'));
         $this->assertNotSame(DB::table('users')->where('id', 3)->value('password'), session('auth_user.credential_fingerprint'));
     }
@@ -77,7 +87,7 @@ class UserManagementSecurityTest extends UserManagementDatabaseTestCase
     {
         $saved = $this->sessionFor(3);
         app(AdminUserManagementService::class)->update(3, $this->payload(3, ['password' => null]), 1);
-        $this->withSession($saved)->get('/officer/dashboard')->assertOk();
+        $this->withSession($saved)->get('/test/officer-session')->assertOk();
         app(AdminUserManagementService::class)->update(3, $this->payload(3, ['password' => UserManagementFixture::PASSWORD]), 1);
         $this->withSession($saved)->get('/officer/dashboard')->assertRedirect('/login');
     }
@@ -90,7 +100,7 @@ class UserManagementSecurityTest extends UserManagementDatabaseTestCase
             app(AdminUserManagementService::class)->update(3, $this->payload(3, ['password' => 'Must-Not-Be-Saved']), 1);
             $this->fail('The audit failure must roll back the reset.');
         } catch (QueryException $error) {
-            $this->withSession($saved)->get('/officer/dashboard')->assertOk();
+            $this->withSession($saved)->get('/test/officer-session')->assertOk();
         }
     }
 
@@ -99,7 +109,7 @@ class UserManagementSecurityTest extends UserManagementDatabaseTestCase
         $saved = $this->sessionFor(2);
         app(AdminUserManagementService::class)->update(2, $this->payload(2, ['role_id' => 2]), 1);
         $this->withSession($saved)->get('/admin/users')->assertRedirect('/officer/dashboard');
-        $this->get('/officer/dashboard')->assertOk();
+        $this->get('/test/officer-session')->assertOk();
         app(AdminUserManagementService::class)->setActive(2, false, 1);
         $this->get('/officer/dashboard')->assertRedirect('/login')->assertSessionMissing('auth_user');
         $this->post('/login', ['email' => 'admin2@example.test', 'password' => UserManagementFixture::PASSWORD])->assertSessionMissing('auth_user');
@@ -126,6 +136,9 @@ class UserManagementSecurityTest extends UserManagementDatabaseTestCase
             $this->patch('/admin/users/1/deactivate')->assertRedirect($destination);
             $this->patch('/admin/users/1/activate')->assertRedirect($destination);
         }
-        $this->assertSame(0, DB::table('audit_logs')->count());
+        $this->assertSame(10, DB::table('audit_logs')->where('action_type', 'UNAUTHORIZED_ACCESS')->count());
+        $this->assertSame(0, DB::table('audit_logs')->where('action_type', '<>', 'UNAUTHORIZED_ACCESS')->count());
+        $this->assertSame(4, DB::table('users')->count());
+        $this->assertTrue(DB::table('users')->where('id', 1)->value('is_active'));
     }
 }

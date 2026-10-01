@@ -134,6 +134,12 @@
 
     <div class="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
 
+        @if ($foundingMemberAvailable ?? false)
+            <p class="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">An association with no official members may register one verified founding member.
+                <a class="font-semibold text-blue-800 underline" href="{{ route('admin.founding-member.create', $association) }}">Register founding member</a>
+            </p>
+        @endif
+
         {{-- ============================================================
              PAGE HEADER
              Displays navigation, association name, location, and status.

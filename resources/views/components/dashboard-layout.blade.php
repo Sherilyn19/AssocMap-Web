@@ -15,13 +15,13 @@
     <title>{{ $title }} — AssocMap</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="am-body {{ session('auth_user.role_name') === 'Field Officer' ? 'am-officer' : '' }}">
+<body class="am-body {{ session('auth_user.role_name') === 'Field Officer' ? 'am-officer' : '' }} {{ session('auth_user.role_name') === 'Association Member' ? 'am-member' : '' }}">
 
     <x-sidebar />
 
     <div class="am-main">
         <x-topbar :title="$topbarTitle ?? $title" :contextual="$topbarTitle !== null"
-                  :workspace="(session('auth_user.role_name') === 'System Administrator' && in_array($title, ['Project Management', 'Training Management', 'Member Management', 'Association Management', 'Area Management', 'User Management'], true)) || (session('auth_user.role_name') === 'Field Officer' && in_array($title, ['My Associations', 'Projects', 'Training Records', 'Monitoring Module', 'My Reports', 'GIS Mapping', 'Members and Applications (read-only)'], true))" />
+                  :workspace="session('auth_user.role_name') === 'Association Member' || (session('auth_user.role_name') === 'System Administrator' && in_array($title, ['Project Management', 'Training Management', 'Member Management', 'Association Management', 'Area Management', 'User Management'], true)) || (session('auth_user.role_name') === 'Field Officer' && in_array($title, ['My Associations', 'Projects', 'Training Records', 'Monitoring Module', 'My Reports', 'GIS Mapping', 'Members and Applications (read-only)'], true))" />
 
         <main class="am-content">
             {{ $slot }}

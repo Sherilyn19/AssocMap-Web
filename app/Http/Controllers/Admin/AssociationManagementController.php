@@ -59,6 +59,8 @@ final class AssociationManagementController extends Controller
             $data = app(AssociationDatabase::class)->run(fn () => [
                 'association' => $this->service->findDetailed($association),
                 'eligibleRepresentatives' => $this->service->eligibleRepresentatives($association),
+                'foundingMemberAvailable' => !$association->is_archived
+                    && $association->representative_member_id === null && !$association->members()->exists(),
                 'relatedRecords' => $relatedKey ? $this->service->relatedRecords($association, $relatedKey)
                     ->appends([...$state, 'related' => $relatedKey])->fragment('association-card-details') : null,
             ]);

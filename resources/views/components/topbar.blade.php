@@ -21,7 +21,7 @@
             {{-- Keep workspace orientation visible while JS reveals only the module
                  trail on scroll. Both trail parts share one transition to avoid an orphan slash. --}}
             <div class="am-workspace-heading">
-                <span class="am-workspace-label">{{ session('auth_user.role_name') === 'Field Officer' ? 'Field Officer Workspace' : 'Admin Workspace' }}</span>
+                <span class="am-workspace-label">{{ match(session('auth_user.role_name')) { 'Association Member' => 'Member Workspace', 'Field Officer' => 'Field Officer Workspace', default => 'Admin Workspace' } }}</span>
                 <div data-management-title-trail class="management-context-title is-concealed am-workspace-trail" aria-hidden="true">
                     <span aria-hidden="true" class="am-workspace-divider">/</span>
                     <p class="am-topbar__title" title="{{ $title }}">{{ $title }}</p>
@@ -36,12 +36,21 @@
 
     <div class="am-topbar__right">
         @php $authUser = session('auth_user'); @endphp
+        @if(session('auth_user.role_name') === 'Association Member')
+        <a href="{{ route('member.information') }}" class="am-topbar__user am-member-profile-link" aria-label="View association profile: {{ $authUser['name'] ?? 'My association' }}" title="View association profile">
+            <div class="am-topbar__user-info">
+                <span data-profile-wave class="am-topbar__user-name" aria-hidden="true">{{ $authUser['name'] ?? 'My association' }}</span>
+            </div>
+            <div class="am-avatar" aria-hidden="true">{{ strtoupper(substr($authUser['name'] ?? 'MA', 0, 2)) }}</div>
+        </a>
+        @else
         <div class="am-topbar__user">
             <div class="am-topbar__user-info">
                 <span class="am-topbar__user-name">{{ $authUser['name'] ?? 'Program Administrator' }}</span>
             </div>
             <div class="am-avatar">{{ strtoupper(substr($authUser['name'] ?? 'PA', 0, 2)) }}</div>
         </div>
+        @endif
 
         <form method="POST" action="{{ route('logout') }}">
             @csrf

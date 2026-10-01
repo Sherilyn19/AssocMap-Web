@@ -33,10 +33,4 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function member(): View
-    {
-        $user = session('auth_user');
-
-        return view('association-member-user.dashboard', compact('user'));
-    }
 }

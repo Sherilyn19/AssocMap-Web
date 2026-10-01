@@ -82,9 +82,21 @@ Route::middleware('assocmap.auth:Field Officer')->prefix('officer')->name('offic
     });
 });
 
-Route::get('/member/dashboard', [DashboardController::class, 'member'])
+Route::get('/member/dashboard', [\App\Http\Controllers\MemberWorkspaceController::class, 'dashboard'])
     ->middleware('assocmap.auth:Association Member')
     ->name('dashboard.member');
+
+Route::middleware('assocmap.auth:Association Member')->prefix('member')->name('member.')
+    ->controller(\App\Http\Controllers\MemberWorkspaceController::class)->group(function (): void {
+        Route::get('/association', 'information')->name('information');
+        Route::get('/members', 'members')->name('members');
+        Route::get('/applications', 'applications')->name('applications');
+        Route::get('/projects', 'projects')->name('projects');
+        Route::get('/projects/{project}', 'project')->whereNumber('project')->name('projects.show');
+        Route::get('/trainings', 'trainings')->name('trainings');
+        Route::get('/trainings/{training}', 'training')->whereNumber('training')->name('trainings.show');
+        Route::get('/production', 'production')->name('production');
+    });
 
 // ============================================================
 // USER-MANAGEMENT-ROUTES
@@ -148,6 +160,13 @@ Route::prefix('admin/associations')
         Route::patch('/{association}/representative', 'representative')->name('representative');
     });
 // ASSOCMAP_ASSOCIATION_ROUTES_END
+// The approved bootstrap exception creates one initial member, never an approval decision.
+Route::middleware('assocmap.auth:System Administrator')->prefix('admin/associations/{association}/founding-member')
+    ->whereNumber('association')->name('admin.founding-member.')
+    ->controller(\App\Http\Controllers\Admin\FoundingMemberController::class)->group(function (): void {
+        Route::get('/', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+    });
 
 // ============================================================
 // MEMBER-MANAGEMENT-ROUTES
@@ -260,6 +279,8 @@ Route::middleware('assocmap.auth')->prefix('membership')->name('membership.')
         Route::get('/applications/create', 'create')->name('applications.create');
         Route::post('/applications', 'store')->middleware('throttle:membership-submit')->name('applications.store');
         Route::get('/applications/{application}', 'show')->whereNumber('application')->name('applications.show');
+        Route::post('/applications/{application}/review-access', 'unlockReview')->whereNumber('application')
+            ->middleware('throttle:membership-review')->name('applications.review-access');
         Route::patch('/applications/{application}/review', 'review')->whereNumber('application')
             ->middleware('throttle:membership-review')->name('applications.review');
         Route::get('/members/{member}', 'member')->whereNumber('member')->name('members.show');

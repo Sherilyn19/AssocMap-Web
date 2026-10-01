@@ -7,6 +7,41 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Member records become labeled cards on small screens, preserving table semantics. */
+@layer components {
+    .am-member [data-member-workspace] { overflow-wrap: anywhere; }
+    .am-member .am-content { padding: 0; max-width: 1600px; }
+    .am-member .am-workspace-label { color: #0e4379; font-weight: 600; }
+    .am-member .am-member-profile-link { border: 1px solid transparent; border-radius: .75rem; padding: .3rem .5rem; min-height: 44px; transition: background-color 200ms ease, border-color 200ms ease; }
+    .am-member .am-member-profile-link:hover { background: #edf5f1; border-color: #cce2d5; }
+    .am-member .am-member-profile-link:hover .am-topbar__user-name { color: #1f6e3d; }
+    /* Wrap the full association name instead of clipping it with an ellipsis. */
+    .am-member .am-member-profile-link .am-topbar__user-name { max-width: 28rem; font-size: .8125rem; line-height: 1.5; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+    .am-profile-word { display: inline-block; }
+    .am-profile-letter { display: inline-block; }
+    .am-member [data-member-workspace] > header { border-top: 3px solid #0e4379; }
+    .am-member [data-member-workspace] > header > span { background: #edf5f1; color: #1f6e3d; }
+    .am-member [data-member-workspace] .am-user-summary:hover { border-color: #87b49a; }
+    .am-member [data-member-workspace] .am-user-button-primary { background-color: #0e4379; }
+    .am-member [data-member-workspace] .am-user-button-primary:hover { background-color: #12355a; }
+    .am-member [data-member-workspace] :is(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid #64748b; outline-offset: 3px; }
+    .am-member-records table { table-layout: fixed; }
+    .am-member-records th, .am-member-records td { padding: 1.25rem; vertical-align: top; }
+    .am-member-records tbody tr { border-top: 1px solid #e2e8f0; }
+    .am-member-records th:first-child { width: 32%; }
+    .am-member-records th:last-child { width: 30%; }
+    [data-review-dialog] { width: min(32rem, calc(100% - 2rem)); border-radius: .75rem; padding: 1.5rem; }
+    [data-review-dialog]::backdrop { background: rgb(15 23 42 / .5); }
+    @media (max-width: 639px) {
+        .am-member-records table, .am-member-records tbody, .am-member-records tr, .am-member-records td { display: block; width: 100%; }
+        .am-member-records thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+        .am-member-records tbody tr { padding: .75rem 0; }
+        .am-member-records td { padding: .5rem 1.25rem; }
+        .am-member-records td[data-label]::before { content: attr(data-label); display: block; margin-bottom: .35rem; font-size: .75rem; font-weight: 600; color: #64748b; }
+        .am-member [data-member-workspace] .am-user-button { white-space: normal; }
+    }
+}
+
 @layer components {
     /* Keep account columns readable without letting long text widen the dashboard.
        Only this table scrolls; floating action menus are placed outside its clipping area. */

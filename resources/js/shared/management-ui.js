@@ -1,7 +1,7 @@
 /** Shared feedback for server-rendered management screens. No artificial loading delay. */
 document.addEventListener('DOMContentLoaded', () => {
-    const page = document.querySelector('[data-member-management-page], [data-pm-page], [data-training-page], [data-association-page], [data-area-management-page], [data-user-management-page]')
-        || document.querySelector('.am-officer .am-content > div');
+    const page = document.querySelector('[data-member-workspace], [data-member-management-page], [data-pm-page], [data-training-page], [data-association-page], [data-area-management-page], [data-user-management-page]')
+        || document.querySelector('.am-officer .am-content > div, .am-member .am-content > div');
     if (!page) return;
     const content = document.querySelector('.am-content');
     const heading = page.querySelector('h1');
@@ -11,8 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Observe the actual scrolling panel, not window: the dashboard body never scrolls.
     // Only replace duplicate titles on register pages; detail pages keep their context.
     const officerRegister = document.body.classList.contains('am-officer') && document.querySelector('[data-management-title-trail]');
-    if (heading && title && (page.hasAttribute('data-management-register') || officerRegister)) {
+    const memberWorkspace = document.body.classList.contains('am-member') && document.querySelector('[data-management-title-trail]');
+    if (heading && title && (page.hasAttribute('data-management-register') || officerRegister || memberWorkspace)) {
         title.textContent = heading.textContent.trim();
+        title.title = title.textContent;
         // Animate the separator with the module title; the workspace label stays
         // visible at the top and never participates in the scroll transition.
         const titleTrail = document.querySelector('[data-management-title-trail]') || title;
@@ -84,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 observer.unobserve(entry.target);
             });
         }, { root: content, threshold: 0.05 });
-        const sections = document.body.classList.contains('am-officer')
+        const sections = document.body.classList.contains('am-officer') || memberWorkspace
             ? ':scope > header, :scope > section, :scope > form, :scope > dl, :scope > [role="region"]'
             : ':scope > header, :scope > section';
         page.querySelectorAll(sections).forEach((section) => observer.observe(section));

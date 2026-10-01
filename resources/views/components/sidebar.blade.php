@@ -36,6 +36,21 @@
             ];
         }
     }
+    if (session('auth_user.role_name') === 'Association Member') {
+        $navItems = [];
+        foreach ([
+            'dashboard.member' => ['Dashboard', 'dashboard.admin'],
+            'member.information' => ['Association Profile', 'admin.associations.index'],
+            'member.members' => ['Members', 'members.index'],
+            'member.applications' => ['Applications', 'members.index'],
+            'member.projects' => ['Projects', 'projects.index'],
+            'member.trainings' => ['Trainings', 'trainings.index'],
+            'member.production' => ['Production Records', 'monitoring.index'],
+            'gis.viewer' => ['Association Map', 'gis.index'],
+        ] as $route => [$label, $icon]) {
+            $navItems[] = ['route' => $route, 'label' => $label, 'icon' => $moduleIcons[$icon]];
+        }
+    }
 @endphp
 
 <aside id="sidebar" aria-label="Primary navigation" class="am-sidebar">
@@ -69,6 +84,11 @@
                 $routeParts = explode('.', $item['route']);
                 array_pop($routeParts);
                 $isActive = $hasRoute && request()->routeIs(implode('.', $routeParts) . '.*');
+                if (session('auth_user.role_name') === 'Association Member') {
+                    $isActive = request()->routeIs($item['route'], $item['route'].'.*');
+                    if ($item['route'] === 'member.members') $isActive = $isActive || request()->routeIs('membership.members.*');
+                    if ($item['route'] === 'member.applications') $isActive = $isActive || request()->routeIs('membership.applications.*');
+                }
                 $href = $hasRoute ? route($item['route']) : '#';
             @endphp
             @continue(! $hasRoute)

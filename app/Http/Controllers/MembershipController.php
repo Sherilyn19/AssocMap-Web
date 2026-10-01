@@ -79,7 +79,8 @@ final class MembershipController extends Controller
         Gate::forUser($actor)->authorize('view', $application);
         return view('shared.membership.application', [
             'application' => $application->load(['association.representative', 'status', 'sex', 'reviewer', 'member']),
-            'canReview' => Gate::forUser($actor)->allows('review', $application),
+            'canReview' => app(\App\Services\RepresentativeReviewAccess::class)->allows($request, $actor, $application),
+            'canUnlockReview' => Gate::forUser($actor)->allows('review', $application),
         ]);
     }
 
@@ -90,11 +91,24 @@ final class MembershipController extends Controller
         return view('shared.membership.member', ['member' => $member->load(['association', 'sex'])]);
     }
 
+    public function unlockReview(Request $request, MemberApplication $application): RedirectResponse
+    {
+        $actor = $this->sessionUser->resolve($request);
+        Gate::forUser($actor)->authorize('review', $application);
+        $data = $request->validate(['review_passphrase' => ['required', 'string', 'max:72']]);
+        $allowed = app(\App\Services\RepresentativeReviewAccess::class)->unlock($request, $actor, $application, $data['review_passphrase']);
+        return redirect()->route('membership.applications.show', $application)
+            ->with($allowed ? 'success' : 'error', $allowed
+                ? 'Representative verified. Review access expires in 10 minutes. Confirm your private passphrase again when recording the decision.'
+                : 'Review access could not be verified. Use the current representative’s private passphrase.');
+    }
+
     public function review(ReviewMemberApplicationRequest $request, MemberApplication $application): RedirectResponse
     {
         $actor = $this->sessionUser->resolve($request);
         return $this->mutate($request, function () use ($request, $actor, $application): RedirectResponse {
             $this->workflow->review($actor, $application, $request->validated());
+            $request->session()->forget('representative_review');
             return redirect()->route('membership.applications.show', $application)->with('success', 'Review recorded successfully.');
         });
     }

@@ -15,8 +15,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Defense guide: the service owns transitions; controllers own HTTP responses.
- * Lock order is association -> representative/member -> application.
+ * The service owns transitions; controllers own HTTP responses.
+ * Lock order is association -> account -> representative/member -> application.
+ * Credential provisioning first takes the account-management role lock.
  * Exceptions escape DB::transaction so Laravel rolls back every dependent write.
  */
 final class MembershipWorkflowService
@@ -28,11 +29,11 @@ final class MembershipWorkflowService
     public function submit(User $actor, array $data): MemberApplication
     {
         return DB::transaction(function () use ($actor, $data): MemberApplication {
-            $actor = $actor->fresh('role');
             if (!$actor?->is_active || $actor->role?->role_name !== 'Association Member' || !$actor->association_id) {
                 throw new MembershipRuleException('Only the association account may submit its applications.');
             }
             $association = Association::query()->lockForUpdate()->findOrFail($actor->association_id);
+            $actor = $this->lockAssociationAccount($actor, $association);
             $this->requireCurrentAssociation($association);
             foreach (['members', 'member_applications'] as $table) {
                 if ($this->identity->exists($table, $association->id, $data)) {
@@ -55,11 +56,7 @@ final class MembershipWorkflowService
         return DB::transaction(function () use ($actor, $application, $data): MemberApplication {
             $association = Association::query()->lockForUpdate()->findOrFail($application->association_id);
             $this->requireCurrentAssociation($association);
-            $actor = $actor->fresh('role');
-            if (!$actor?->is_active || $actor->role?->role_name !== 'Association Member'
-                || (int) $actor->association_id !== (int) $association->id) {
-                throw new MembershipRuleException('Review is restricted to the application’s own association.');
-            }
+            $actor = $this->lockAssociationAccount($actor, $association);
 
             // Resolve reviewer from the locked association, never from a form selection.
             $representative = Member::query()->whereKey($association->representative_member_id)
@@ -109,18 +106,22 @@ final class MembershipWorkflowService
     public function setReviewPassphrase(User $actor, Member $member, string $passphrase): void
     {
         DB::transaction(function () use ($actor, $member, $passphrase): void {
+            // Account updates take this same lock before any association or user lock.
+            // It prevents deactivation and password/reassignment changes during provisioning.
+            DB::table('roles')->where('role_name', 'System Administrator')->lockForUpdate()->first();
             $association = Association::query()->lockForUpdate()->findOrFail($member->association_id);
             $this->requireCurrentAssociation($association);
-            $locked = Member::query()->lockForUpdate()->findOrFail($member->id);
-            $actor = $actor->fresh('role');
+            $actor = User::with('role')->lockForUpdate()->find($actor->id);
             if (!$actor?->is_active || $actor->role?->role_name !== 'System Administrator') {
                 throw new MembershipRuleException('Only an administrator can provision a review passphrase.');
             }
-            if ($locked->is_archived || (int) $association->representative_member_id !== (int) $locked->id) {
+            $sharedUsers = User::where('association_id', $association->id)->orderBy('id')->lockForUpdate()->get();
+            $locked = Member::query()->lockForUpdate()->findOrFail($member->id);
+            if ($locked->is_archived || (int) $locked->association_id !== (int) $association->id
+                || (int) $association->representative_member_id !== (int) $locked->id) {
                 throw new MembershipRuleException('Provision a passphrase only for the current designated representative.');
             }
             // The association login password must not double as its private review credential.
-            $sharedUsers = User::where('association_id', $association->id)->get();
             foreach ($sharedUsers as $sharedUser) {
                 if ($sharedUser->password && Hash::check($passphrase, $sharedUser->password)) {
                     throw new MembershipRuleException('Choose a review passphrase different from the association login password.');
@@ -129,6 +130,21 @@ final class MembershipWorkflowService
             $locked->forceFill(['review_passphrase_hash' => Hash::make($passphrase)])->save();
             $this->audit($actor->id, 'RESET_REVIEW_CREDENTIAL', 'Member', $locked->id, 'Provisioned/reset the designated representative review credential. Secret not recorded.');
         }, 3);
+    }
+
+    private function lockAssociationAccount(User $actor, Association $association): User
+    {
+        // Keep the account locked until the workflow commits. A stale request must
+        // fail after reassignment, role change, deactivation, or password reset.
+        $current = User::with('role')->lockForUpdate()->find($actor->id);
+        if (!$current?->is_active || $current->role?->role_name !== 'Association Member'
+            || (int) $current->association_id !== (int) $association->id
+            || (int) $actor->association_id !== (int) $association->id
+            || $current->password !== $actor->password) {
+            throw new MembershipRuleException('The association account changed or is unavailable. Sign in again before continuing.');
+        }
+
+        return $current;
     }
 
     private function requireCurrentAssociation(Association $association): void
