@@ -60,6 +60,8 @@ $project = $make(App\Models\Project::class, ['id' => 1, 'association_id' => 1, '
 $project->setRelations(['association' => $association, 'status' => $status, 'programComponent' => $component, 'materials' => collect($empty ? [] : [$material])]);
 $training = $make(App\Models\Training::class, ['id' => 1, 'association_id' => 1, 'title' => $long ? str_repeat('Training title ', 12) : 'Sample skills training', 'venue' => 'Sample hall', 'conducted_by' => 'BFAR', 'date_conducted' => now()->addDay(), 'end_date' => now()->addDays(2), 'stage' => 'accepted', 'is_archived' => false]);
 $training->setRelations(['association' => $association, 'programComponent' => $component]);
+$training->forceFill(['registered_count' => 1, 'recorded_count' => 0, 'present_count' => 0]);
+$trainings = collect($empty ? [] : [$training]);
 $member = $make(App\Models\Member::class, ['id' => 1, 'first_name' => 'Sample', 'last_name' => 'Participant', 'is_archived' => false]);
 $participant = $make(App\Models\TrainingParticipant::class, ['id' => 1, 'attendance_status_id' => 1]);
 $participant->setRelations(['member' => $member, 'attendanceStatus' => $make(App\Models\Status::class, ['status_name' => 'Pending'])]);
@@ -86,9 +88,9 @@ $data = match ($path) {
     '/officer/associations' => ['field-officer-user.associations.index', ['associations' => $paginate([$association]), 'filters' => [], 'areas' => collect([$area]), 'components' => collect([$component]), 'statuses' => collect([$status])]],
     '/officer/associations/1' => ['field-officer-user.associations.show', compact('association')],
     '/officer/projects' => ['field-officer-user.projects.index', ['projects' => $paginate([$project]), 'association' => $association]],
-    '/officer/projects/1' => ['field-officer-user.projects.show', compact('project')],
+    '/officer/projects/1' => [$request->boolean('details') ? 'shared.projects.details' : 'field-officer-user.projects.show', compact('project', 'trainings')],
     '/officer/trainings' => ['field-officer-user.trainings.index', ['trainings' => $paginate([$training]), 'association' => $association]],
-    '/officer/trainings/1' => ['field-officer-user.trainings.show', ['training' => $training, 'participants' => $paginate([$participant]), 'members' => collect(), 'statuses' => collect(['Pending', 'Present', 'Absent'])->map(fn ($name, $id) => $make(App\Models\Status::class, ['id' => $id + 1, 'status_name' => $name]))]],
+    '/officer/trainings/1' => [$request->boolean('details') ? 'field-officer-user.trainings.details' : 'field-officer-user.trainings.show', ['attendance' => collect($empty ? [] : ['Pending' => 1]), 'projects' => collect($empty ? [] : [$project]), 'training' => $training, 'participants' => $paginate([$participant]), 'members' => collect(), 'statuses' => collect(['Pending', 'Present', 'Absent'])->map(fn ($name, $id) => $make(App\Models\Status::class, ['id' => $id + 1, 'status_name' => $name]))]],
     '/monitoring' => ['shared.monitoring.index', ['type' => 'production', 'filters' => [], 'types' => App\Services\MonitoringService::TYPES, 'records' => $paginate([]), 'projects' => collect()]],
     '/monitoring/production/create' => ['shared.monitoring.form', ['record' => null, 'type' => 'production', 'label' => 'Production', 'projects' => collect([(object) ['id' => 1, 'title' => $project->title, 'association_name' => $name]]), 'materials' => collect(), 'quarters' => collect([1 => 'Q1']), 'conditions' => collect()]],
     '/officer/reports' => ['shared.reports.index', $reportData],

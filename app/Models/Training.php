@@ -56,6 +56,17 @@ final class Training extends Model
         return $this->hasMany(TrainingParticipant::class);
     }
 
+    /** Count the whole register, including participants outside the current page. */
+    public function scopeWithAttendanceSummary(\Illuminate\Database\Eloquent\Builder $query): void
+    {
+        $query->withCount([
+            'participants as registered_count' => fn ($q) => $q->whereHas('member', fn ($member) => $member->whereColumn('members.association_id', 'trainings.association_id')),
+            'participants as recorded_count' => fn ($q) => $q
+                ->whereHas('member', fn ($member) => $member->whereColumn('members.association_id', 'trainings.association_id'))
+                ->whereHas('attendanceStatus', fn ($status) => $status->whereIn('status_name', ['Present', 'Absent'])),
+        ]);
+    }
+
     public function canRecordAttendance(): bool
     {
         // Compare date strings so a UTC cast does not shift the local training day.

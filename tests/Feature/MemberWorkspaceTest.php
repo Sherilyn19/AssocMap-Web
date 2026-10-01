@@ -48,6 +48,32 @@ final class MemberWorkspaceTest extends MembershipDatabaseTestCase
         $this->get('/member/production')->assertSee('100.00')->assertSee('80.00');
     }
 
+    public function test_project_dialog_includes_scoped_training_details_without_write_controls(): void
+    {
+        $this->get('/member/projects/1?details=1')->assertOk()
+            ->assertSee('Coastal training')->assertSee('Municipal Hall')->assertSee('Accepted')
+            ->assertSee('1 of 1 participant attendance records finalized')
+            ->assertSee('Fishing nets')->assertSee('checkbox')
+            ->assertDontSee('Foreign workshop')->assertDontSee('Save')
+            ->assertDontSee('<form', false)->assertDontSee('<html', false);
+        $this->get('/member/projects/2?details=1')->assertNotFound();
+    }
+
+    public function test_training_dialog_keeps_attendance_aggregate_and_projects_scoped(): void
+    {
+        $this->get('/member/trainings')->assertOk()->assertSee('1 / 1 recorded');
+        $this->get('/member/trainings/1?details=1')->assertOk()
+            ->assertSee('Training purpose')->assertSee('After proposal acceptance')
+            ->assertSee('1 of 1 attendance records finalized')->assertSee('Coastal livelihood')
+            ->assertSee('Municipal Hall')->assertSee('Jan 01, 2026')->assertSee('Jan 02, 2026')
+            ->assertDontSee('Foreign project')->assertDontSee('Representative')
+            ->assertDontSee('<form', false)->assertDontSee('<html', false)->assertDontSee('Stage');
+        $this->get('/member/trainings/2?details=1')->assertNotFound();
+        DB::table('training_participants')->delete();
+        DB::table('trainings')->where('id', 1)->update(['stage' => null, 'end_date' => null]);
+        $this->get('/member/trainings/1?details=1')->assertOk()->assertSee('Not specified')->assertSee('No participants registered yet');
+    }
+
     public function test_foreign_ids_parameters_and_mutation_attempts_cannot_expand_access(): void
     {
         foreach (['projects', 'trainings'] as $type) {

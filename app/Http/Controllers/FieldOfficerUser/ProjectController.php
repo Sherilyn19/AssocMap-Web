@@ -5,6 +5,7 @@ namespace App\Http\Controllers\FieldOfficerUser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FieldOfficerUser\UpdateDeliveryRequest;
 use App\Models\Project;
+
 use App\Services\FieldOfficerUserAccess;
 use App\Services\ProjectManagementService;
 use App\Services\SessionUserResolver;
@@ -30,7 +31,11 @@ final class ProjectController extends Controller
 
     public function show(Request $request, int $project, SessionUserResolver $resolver, FieldOfficerUserAccess $access)
     {
-        return view('field-officer-user.projects.show', ['project' => $access->scope(Project::with(['association', 'status', 'programComponent', 'materials.status']), $resolver->resolve($request))->findOrFail($project)]);
+        $actor = $resolver->resolve($request);
+        $project = $access->scope(Project::with(['association', 'status', 'programComponent', 'materials.status']), $actor)->findOrFail($project);
+        $trainings = app(\App\Services\ProjectTrainingDetails::class)->forProject($project);
+
+        return view($request->boolean('details') ? 'shared.projects.details' : 'field-officer-user.projects.show', compact('project', 'trainings'));
     }
 
     public function delivery(UpdateDeliveryRequest $request, int $project, int $material, SessionUserResolver $resolver, ProjectManagementService $service)

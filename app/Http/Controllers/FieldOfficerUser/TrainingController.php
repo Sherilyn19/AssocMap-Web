@@ -21,7 +21,7 @@ final class TrainingController extends Controller
         $filters = $request->validate(['search' => ['nullable', 'string', 'max:255'], 'association_id' => ['nullable', 'integer', 'min:1'], 'page' => ['nullable', 'integer', 'min:1']]);
         $actor = $this->resolver->resolve($request);
         $association = empty($filters['association_id']) ? null : $this->access->associations($actor)->findOrFail($filters['association_id']);
-        $query = $this->access->scope(Training::with('association'), $actor);
+        $query = $this->access->scope(Training::with(['association', 'programComponent'])->withAttendanceSummary(), $actor);
         if ($filters['association_id'] ?? null) {
             $query->where('association_id', $filters['association_id']);
         }
@@ -36,15 +36,15 @@ final class TrainingController extends Controller
     {
         $training = $this->training($request, $training)->load(['association', 'programComponent']);
 
-        return view('field-officer-user.trainings.show', [
+        return view($request->boolean('details') ? 'field-officer-user.trainings.details' : 'field-officer-user.trainings.show', [
             'training' => $training,
             // The member relationship is checked even for historical participant rows.
             'participants' => $training->participants()->whereHas('member', fn ($q) => $q->where('association_id', $training->association_id))
-                ->with(['member', 'attendanceStatus'])->orderBy('id')->paginate(20)->withQueryString(),
+                ->with(['member', 'attendanceStatus'])->orderBy('id')->paginate(20)->appends($request->except('details')),
             'members' => Member::where('association_id', $training->association_id)->where('is_archived', false)
                 ->whereNotIn('id', $training->participants()->select('member_id'))->orderBy('last_name')->get(),
             'statuses' => Status::whereIn('status_name', TrainingManagementService::ATTENDANCE_STATUSES)->get(),
-        ]);
+        ] + app(\App\Services\TrainingWorkspaceDetails::class)->forTraining($training));
     }
 
     public function update(UpdateTrainingRequest $request, int $training)

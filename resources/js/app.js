@@ -102,3 +102,5 @@ if (document.querySelector('[data-gis-page]')) {
         if (message) message.textContent = 'The map could not load. Reload the page or use the location list.';
     });
 }
+
+import './shared/workspace-details.ts';

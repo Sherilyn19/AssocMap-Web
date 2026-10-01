@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.gis.json",
+  "include": ["resources/js/shared/workspace-details.ts"]
+}

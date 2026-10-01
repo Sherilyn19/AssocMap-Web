@@ -61,8 +61,28 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
         $this->get('/officer/projects/1')->assertOk()->assertSee('Assigned net')->assertDontSee('Foreign net');
         $this->get('/officer/projects/2')->assertNotFound();
         $this->get('/officer/trainings')->assertOk()->assertSee('Assigned workshop')->assertDontSee('Foreign workshop');
-        $this->get('/officer/trainings/1')->assertOk()->assertSee('Stage (read-only)');
+        $this->get('/officer/trainings/1')->assertOk()->assertSee('Training purpose');
         $this->get('/officer/trainings/2')->assertNotFound();
+    }
+
+    public function test_project_modal_reports_real_training_attendance_and_preserves_assignment_boundary(): void
+    {
+        DB::table('training_participants')->insert([
+            ['training_id' => 1, 'member_id' => 1, 'attendance_status_id' => 5],
+            // Historical mismatched members must not affect the association totals.
+            ['training_id' => 1, 'member_id' => 2, 'attendance_status_id' => 1],
+        ]);
+        $response = $this->get('/officer/projects/1?details=1');
+        $response->assertOk()->assertSee('Assigned workshop')->assertDontSee('Foreign workshop')
+            ->assertSee('1 of 1 participant attendance records finalized')
+            ->assertSee('Initiation / Proposal')->assertSee('Accepted')->assertSee('Termination')
+            ->assertSee('Project proposal acceptance date')->assertSee('Hall')->assertSee('BFAR')
+            ->assertSee('Assigned net')->assertDontSee('<html', false);
+        $this->get('/officer/projects/2?details=1')->assertNotFound();
+
+        DB::table('trainings')->where('id', 1)->update(['is_archived' => true]);
+        $this->get('/officer/projects/1?details=1')->assertOk()->assertSee('Assigned workshop')
+            ->assertSee('0 of 0 participant attendance records finalized')->assertSee('No attendance yet');
     }
 
     public function test_login_current_identity_invalid_password_and_inactive_account(): void
@@ -111,6 +131,25 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
         $this->patchJson('/officer/projects/2/materials/2/delivery', ['delivery_date' => null])->assertNotFound();
         $this->assertSame(1, DB::table('audit_logs')->where('module', 'Project Materials')->where('action_type', 'UPDATE')->count());
         $this->assertEquals(2, DB::table('project_materials')->where('id', 1)->value('quantity'));
+    }
+
+    public function test_training_dialog_shows_scoped_totals_projects_and_read_only_dates(): void
+    {
+        DB::table('training_participants')->insert([
+            ['training_id' => 1, 'member_id' => 1, 'attendance_status_id' => 5],
+            ['training_id' => 1, 'member_id' => 2, 'attendance_status_id' => 1],
+        ]);
+        $this->get('/officer/trainings')->assertOk()->assertSee('1 / 1 recorded');
+        $this->get('/officer/trainings/1?details=1')->assertOk()
+            ->assertSee('Training purpose')->assertSee('After proposal acceptance')
+            ->assertSee('1 of 1 attendance records finalized')->assertSee('Assigned project')
+            ->assertDontSee('Foreign project')->assertDontSee('Stage')->assertDontSee('<html', false)
+            ->assertDontSee('name="date_conducted"', false)->assertDontSee('name="end_date"', false);
+        $this->get('/officer/trainings/2?details=1')->assertNotFound();
+        DB::table('training_participants')->where('member_id', 1)->update(['attendance_status_id' => null]);
+        $this->get('/officer/trainings/1?details=1')->assertOk()->assertSee('0 of 1 attendance records finalized');
+        $this->putJson('/officer/trainings/1', ['venue' => 'Hall', 'conducted_by' => 'BFAR', 'date_conducted' => '2030-01-01'])
+            ->assertUnprocessable()->assertJsonValidationErrors('date_conducted');
     }
 
     public function test_training_fields_attendance_duplicates_and_relationships(): void

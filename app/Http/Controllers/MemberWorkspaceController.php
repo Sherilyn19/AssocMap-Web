@@ -85,15 +85,17 @@ final class MemberWorkspaceController extends Controller
     public function project(Request $request, int $project)
     {
         $association = $this->association($request);
-        $project = $this->access->scope(Project::with(['status', 'programComponent', 'materials.status']), $association)->findOrFail($project);
-        return view('association-member-user.project', compact('association', 'project'));
+        $project = $this->access->scope(Project::with(['association', 'status', 'programComponent', 'materials.status']), $association)->findOrFail($project);
+        $trainings = app(\App\Services\ProjectTrainingDetails::class)->forProject($project);
+        return view($request->boolean('details') ? 'shared.projects.details' : 'association-member-user.project',
+            compact('association', 'project', 'trainings') + ['readOnly' => true]);
     }
 
     public function trainings(Request $request)
     {
         $filters = $this->filters($request, ['Current', 'Archived', 'All'], 'Current');
         $association = $this->association($request);
-        $query = $this->access->scope(Training::with('programComponent'), $association)->where('title', 'ilike', '%'.$filters['search'].'%');
+        $query = $this->access->scope(Training::with('programComponent')->withAttendanceSummary(), $association)->where('title', 'ilike', '%'.$filters['search'].'%');
         if ($filters['status'] !== 'All') $query->where('is_archived', $filters['status'] === 'Archived');
         return view('association-member-user.trainings', compact('association', 'filters') + [
             'trainings' => $query->orderByDesc('date_conducted')->orderByDesc('id')->paginate(12)->withQueryString(),
@@ -103,12 +105,10 @@ final class MemberWorkspaceController extends Controller
     public function training(Request $request, int $training)
     {
         $association = $this->association($request);
-        $training = $this->access->scope(Training::with('programComponent'), $association)->findOrFail($training);
-        // Aggregate attendance without adding new personal participant disclosures.
-        $attendance = $training->participants()->whereHas('member', fn ($q) => $q->where('association_id', $association->id))
-            ->join('statuses', 'statuses.id', '=', 'training_participants.attendance_status_id')
-            ->selectRaw('statuses.status_name, count(*) as total')->groupBy('statuses.status_name')->pluck('total', 'status_name');
-        return view('association-member-user.training', compact('association', 'training', 'attendance'));
+        $training = $this->access->scope(Training::with(['association', 'programComponent']), $association)->findOrFail($training);
+        return view($request->boolean('details') ? 'shared.trainings.details' : 'association-member-user.training',
+            compact('association', 'training') + ['readOnly' => true]
+            + app(\App\Services\TrainingWorkspaceDetails::class)->forTraining($training));
     }
 
     public function production(Request $request)
