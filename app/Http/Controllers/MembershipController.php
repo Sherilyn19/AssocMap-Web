@@ -47,7 +47,7 @@ final class MembershipController extends Controller
                 $query->whereRaw("CONCAT_WS(' ', first_name, middle_name, last_name) ILIKE ?", ['%'.$request->input('search').'%']);
             }
         }
-        return view('membership.index', [
+        return view('shared.membership.index', [
             'applications' => $applications->orderByDesc('created_at')->orderByDesc('id')->paginate(15)->withQueryString(),
             'members' => $members->orderBy('last_name')->orderBy('first_name')->orderBy('id')->paginate(15, ['*'], 'members_page')->withQueryString(),
             'canSubmit' => Gate::forUser($actor)->allows('create', MemberApplication::class),
@@ -58,7 +58,7 @@ final class MembershipController extends Controller
     {
         $actor = $this->sessionUser->resolve($request);
         Gate::forUser($actor)->authorize('create', MemberApplication::class);
-        return view('membership.create', [
+        return view('shared.membership.create', [
             'association' => Association::findOrFail($actor->association_id),
             'sexOptions' => DB::table('sex')->orderBy('sex_name')->get(),
         ]);
@@ -77,7 +77,7 @@ final class MembershipController extends Controller
     {
         $actor = $this->sessionUser->resolve($request);
         Gate::forUser($actor)->authorize('view', $application);
-        return view('membership.application', [
+        return view('shared.membership.application', [
             'application' => $application->load(['association.representative', 'status', 'sex', 'reviewer', 'member']),
             'canReview' => Gate::forUser($actor)->allows('review', $application),
         ]);
@@ -87,7 +87,7 @@ final class MembershipController extends Controller
     {
         $actor = $this->sessionUser->resolve($request);
         Gate::forUser($actor)->authorize('view', $member);
-        return view('membership.member', ['member' => $member->load(['association', 'sex'])]);
+        return view('shared.membership.member', ['member' => $member->load(['association', 'sex'])]);
     }
 
     public function review(ReviewMemberApplicationRequest $request, MemberApplication $application): RedirectResponse

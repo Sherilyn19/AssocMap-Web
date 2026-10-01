@@ -48,7 +48,7 @@ final class MemberApplicationManagementController extends Controller
             'per_page',
         ]);
 
-        return view('admin-pages.admin-member-management.applications', [
+        return view('admin-user.admin-member-management.applications', [
             'applications' => $this->service->paginate($filters),
             'summary' => $this->service->summary(),
             'filters' => $filters,
@@ -61,7 +61,7 @@ final class MemberApplicationManagementController extends Controller
         $actor = $this->sessionUser->resolve($request);
         Gate::forUser($actor)->authorize('view', $application);
 
-        return view('admin-pages.admin-member-management.application-show', [
+        return view('admin-user.admin-member-management.application-show', [
             'application' => $this->service->findDetailed($application),
             'backToListUrl' => route('members.applications.index', $this->listState($request)),
         ]);

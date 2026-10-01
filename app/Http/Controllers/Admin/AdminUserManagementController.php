@@ -34,7 +34,7 @@ class AdminUserManagementController extends Controller
         $filters = $request->validated();
 
         try {
-            return view('admin-pages.admin-user-management.admin-user-index', [
+            return view('admin-user.admin-user-management.admin-user-index', [
                 'users' => $this->users->listForIndex($filters),
                 'roles' => $this->users->allRoles(),
                 'associations' => $this->users->associationOptions(),

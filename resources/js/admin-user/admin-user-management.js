@@ -1,4 +1,4 @@
-import { initConfirmModal, initRowDropdowns, initToast } from "./management-actions";
+import { initConfirmModal, initRowDropdowns, initToast } from "./admin-management-actions";
 /**
  * resources/js/admin-user/admin-user-management.js
  * Add/Edit modal, confirm-action modal, SVG password eye toggle,

@@ -39,13 +39,14 @@ final class MonitoringController extends Controller
             $query->where(fn ($q) => $q->where('p.title', 'ilike', '%'.$filters['search'].'%')->orWhere('a.name', 'ilike', '%'.$filters['search'].'%'));
         }
         if ($filters['project_id'] ?? null) {
+            abort_unless($this->service->projects($actor)->where('p.id', $filters['project_id'])->exists(), 404);
             $query->where('p.id', $filters['project_id']);
         }
         if ($type !== 'materials' && ($filters['year'] ?? null)) {
             $query->where('m.year', $filters['year']);
         }
 
-        return view('monitoring.index', [
+        return view('shared.monitoring.index', [
             'type' => $type, 'filters' => $filters, 'types' => MonitoringService::TYPES,
             'records' => $query->orderByDesc('m.updated_at')->orderByDesc('m.id')->paginate(10)->withQueryString(),
             'projects' => $this->service->projects($actor)->select('p.id', 'p.title', 'a.name as association_name')->orderBy('p.title')->get(),
@@ -73,7 +74,7 @@ final class MonitoringController extends Controller
             ->select('p.id', 'p.title', 'a.name as association_name')->orderBy('p.title')->get();
         $materials = DB::table('project_materials')->whereIn('project_id', $projects->pluck('id'))->orderBy('item_name')->get(['id', 'project_id', 'item_name']);
 
-        return view('monitoring.form', [
+        return view('shared.monitoring.form', [
             'record' => $record, 'type' => $type, 'label' => MonitoringService::TYPES[$type], 'projects' => $projects,
             'materials' => $materials, 'quarters' => DB::table('quarters')->orderBy('id')->pluck('quarter_name', 'id'),
             'conditions' => DB::table('statuses')->whereIn('status_name', MonitoringService::CONDITIONS)->pluck('status_name', 'id'),

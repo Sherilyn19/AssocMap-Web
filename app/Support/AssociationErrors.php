@@ -60,6 +60,6 @@ final class AssociationErrors
             return redirect()->to(AssociationFormState::returnUrl($request))->withInput(AssociationFormState::input($request))->with('error', $message);
         }
 
-        return response()->view('errors.association-unavailable', ['message' => $message], 503);
+        return response()->view('errors.admin-user.admin-user-association-unavailable', ['message' => $message], 503);
     }
 }

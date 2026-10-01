@@ -1,4 +1,4 @@
-/** Area interactions; shared confirmation/menu/toast behavior lives in management-actions.js. */
+/** Area interactions; shared confirmation/menu/toast behavior lives in admin-management-actions.js. */
 document.addEventListener("DOMContentLoaded", () => {
     const page = document.querySelector("[data-area-management-page]");
     if (!page) return;

@@ -22,6 +22,26 @@ use Throwable;
  */
 final class ProjectManagementService
 {
+    public function updateDelivery(\App\Models\User $actor, int $projectId, int $materialId, array $data): void
+    {
+        DB::transaction(function () use ($actor, $projectId, $materialId, $data): void {
+            $access = app(FieldOfficerUserAccess::class);
+            $project = $access->scope(Project::query(), $actor)->findOrFail($projectId);
+            $association = $access->lockAssociation($actor, (int) $project->association_id);
+            $project = $association->projects()->lockForUpdate()->findOrFail($projectId);
+            abort_if($project->is_archived, 403, 'Archived projects cannot be changed.');
+            $material = $project->materials()->lockForUpdate()->findOrFail($materialId);
+            $data = validator($data, ['delivery_date' => ['present', 'nullable', 'date_format:Y-m-d']])->validate();
+            $before = $material->delivery_date?->toDateString();
+            $material->update(['delivery_date' => $data['delivery_date']]);
+            DB::table('audit_logs')->insert([
+                'user_id' => $actor->id, 'action_type' => 'UPDATE', 'module' => 'Project Materials',
+                'record_id' => $material->id, 'performed_at' => now(),
+                'details' => json_encode(['project_id' => $project->id, 'delivery_date_before' => $before, 'delivery_date_after' => $data['delivery_date']], JSON_THROW_ON_ERROR),
+            ]);
+        }, 3);
+    }
+
     /**
      * Project statuses allowed by the corrected Capstone 2 business rules.
      */

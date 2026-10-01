@@ -10,7 +10,7 @@
 <header class="am-topbar">
     <div class="am-topbar__left">
         {{-- Hamburger button - MOBILE ONLY --}}
-        <button type="button" id="sidebarMenuBtn" aria-label="Toggle sidebar" aria-expanded="false" class="am-icon-btn lg:hidden">
+        <button type="button" id="sidebarMenuBtn" aria-label="Toggle sidebar" aria-expanded="false" aria-controls="sidebar" class="am-icon-btn">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <path d="M3 6h18M3 12h18M3 18h18"/>
             </svg>
@@ -21,10 +21,10 @@
             {{-- Keep workspace orientation visible while JS reveals only the module
                  trail on scroll. Both trail parts share one transition to avoid an orphan slash. --}}
             <div class="am-workspace-heading">
-                <span class="am-workspace-label">Admin Workspace</span>
+                <span class="am-workspace-label">{{ session('auth_user.role_name') === 'Field Officer' ? 'Field Officer Workspace' : 'Admin Workspace' }}</span>
                 <div data-management-title-trail class="management-context-title is-concealed am-workspace-trail" aria-hidden="true">
                     <span aria-hidden="true" class="am-workspace-divider">/</span>
-                    <p class="am-topbar__title">{{ $title }}</p>
+                    <p class="am-topbar__title" title="{{ $title }}">{{ $title }}</p>
                 </div>
             </div>
         @elseif($contextual)

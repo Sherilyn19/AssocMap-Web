@@ -34,13 +34,13 @@ final class GisMapController extends Controller
 
             return $request->expectsJson() || $request->routeIs('*.data')
                 ? response()->json(['message' => 'Locations could not be loaded. Please try again.'], 503)->header('Cache-Control', 'no-store')
-                : response()->view('gis.viewer', ['data' => null, 'filters' => $filters, 'internal' => $internal], 503)->header('Cache-Control', 'no-store');
+                : response()->view('shared.gis.viewer', ['data' => null, 'filters' => $filters, 'internal' => $internal], 503)->header('Cache-Control', 'no-store');
         }
 
         if ($request->expectsJson() || $request->routeIs('*.data')) {
             return response()->json($data)->header('Cache-Control', 'no-store');
         }
 
-        return response()->view('gis.viewer', compact('data', 'filters', 'internal'))->header('Cache-Control', 'no-store');
+        return response()->view('shared.gis.viewer', compact('data', 'filters', 'internal'))->header('Cache-Control', 'no-store');
     }
 }

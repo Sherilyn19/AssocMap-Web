@@ -1,5 +1,4 @@
 /* Keep GIS sizing inside its own page so other modules retain their layout. */
-body:has([data-gis-page]) .am-main { padding-top: 80px; }
 body:has([data-gis-page]) .am-content { max-width: none; padding: 1rem 1.5rem; }
 .gis-page { --gis-published: #1f6e3d; --gis-unpublished: #92400e; }
 .gis-page [hidden] { display: none !important; }
@@ -23,6 +22,14 @@ body:has([data-gis-page]) .am-content { max-width: none; padding: 1rem 1.5rem; }
 .gis-button { min-height: 36px; padding: .4rem .7rem; border: 1px solid #cbd5e1; border-radius: .5rem; background: white; color: #334155; font-size: .75rem; font-weight: 600; }
 .gis-button:hover { background: #f1f5f9; }
 .gis-button:disabled { opacity: .5; cursor: not-allowed; }
+/* Officer GIS uses the same action sizes and motion as its other registers.
+   Publication badges and map markers retain their semantic colors. */
+.am-officer .gis-page .gis-save-button { background: #1e293b; border-color: #1e293b; }
+.am-officer .gis-page .gis-save-button:hover { background: #334155; }
+.am-officer .gis-page :is(.gis-button, .gis-input, .gis-record-button) { min-height: 44px; font-size: .875rem; }
+.am-officer .gis-page :is(button, a, input, select, summary, [tabindex]):focus-visible { outline: 2px solid #64748b; outline-offset: 2px; }
+.am-officer .gis-dialog[open] { animation: management-enter 180ms ease-out; }
+@media (prefers-reduced-motion: reduce) { .am-officer .gis-dialog[open] { animation: none; } }
 .gis-record-button { min-height: 36px; }
 @media (pointer: coarse) { .gis-button, .gis-record-button, .gis-input { min-height: 44px; } }
 .gis-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 1rem; align-items: stretch; }

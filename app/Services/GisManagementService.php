@@ -147,9 +147,12 @@ final class GisManagementService
 
     private function authorize(int $actorId): void
     {
-        $allowed = User::query()->whereKey($actorId)->where('is_active', true)
-            ->whereHas('role', fn ($query) => $query->whereIn('role_name', ['System Administrator', 'Field Officer']))->exists();
-        abort_unless($allowed, 403, 'You do not have permission to save GIS locations.');
+        // Hold the account before locking associations. Deactivation and role changes
+        // must commit before this check or wait until the GIS transaction finishes.
+        $actor = User::with('role')->sharedLock()->find($actorId);
+        abort_unless($actor && $actor->is_active
+            && in_array($actor->role?->role_name, ['System Administrator', 'Field Officer'], true),
+            403, 'You do not have permission to save GIS locations.');
     }
 
     public function archive(int $id, string $revision, int $actorId): int

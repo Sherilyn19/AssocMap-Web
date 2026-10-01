@@ -70,13 +70,42 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
         $exceptions->render(function (Throwable $error, Request $request) {
+            // Invalid GET filters must return to a clean register, not redirect in a loop
+            // to the same invalid URL. JSON callers keep Laravel's normal 422 response.
+            if ($error instanceof \Illuminate\Validation\ValidationException && $request->isMethod('GET') && ! $request->expectsJson()) {
+                $registers = [
+                    'officer.associations.index' => 'officer.associations.index',
+                    'officer.projects.index' => 'officer.projects.index',
+                    'officer.trainings.index' => 'officer.trainings.index',
+                    'officer.reports.index' => 'officer.reports.index',
+                    'officer.reports.export' => 'officer.reports.index',
+                    'reports.index' => 'reports.index',
+                    'reports.export' => 'reports.index',
+                    'monitoring.index' => 'monitoring.index',
+                ];
+                $register = $registers[$request->route()?->getName()] ?? null;
+                if ($register !== null) {
+                    return redirect()->route($register)->withErrors($error->errors())
+                        ->with('error', 'The filters could not be applied. Choose valid filters and try again.');
+                }
+            }
+            if ($error instanceof \Illuminate\Auth\Access\AuthorizationException
+                || $error instanceof \Illuminate\Database\Eloquent\ModelNotFoundException
+                || ($error instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface && in_array($error->getStatusCode(), [403, 404, 405], true))) {
+                app(\App\Services\AuditLogService::class)->denied($request);
+            }
+            if ($request->is('officer/*') && ($error instanceof QueryException || $error instanceof PDOException)) {
+                return $request->expectsJson()
+                    ? response()->json(['message' => 'Officer records are temporarily unavailable. Please try again.'], 503)
+                    : response()->view('errors.field-officer-user.field-officer-user-unavailable', [], 503);
+            }
             if (GisErrors::handles($request, $error)) {
                 return GisErrors::render($error, $request);
             }
             if ($request->is('admin/audit-logs') && ($error instanceof QueryException || $error instanceof PDOException)) {
                 return $request->expectsJson()
                     ? response()->json(['message' => 'Audit Logs temporarily unavailable. Please try again.'], 503)
-                    : response()->view('errors.audit-logs-unavailable', [], 503);
+                    : response()->view('errors.admin-user.admin-user-audit-logs-unavailable', [], 503);
             }
             if (MonitoringErrors::handles($request, $error)) {
                 return MonitoringErrors::render($error, $request);
@@ -106,7 +135,7 @@ return Application::configure(basePath: dirname(__DIR__))
                         ->with('error', 'The request could not be confirmed. Check the record before retrying.');
                 }
 
-                return response()->view('admin-pages.admin-area-management.unavailable', [], 503);
+                return response()->view('admin-user.admin-area-management.unavailable', [], 503);
             }
             if (AssociationErrors::handles($request, $error)) {
                 return AssociationErrors::render($error, $request);

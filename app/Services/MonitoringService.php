@@ -64,6 +64,10 @@ final class MonitoringService
         abort_unless(isset(self::TYPES[$type]), 404);
 
         return DB::transaction(function () use ($type, $data, $actor, $id): int {
+            // Derive identity and ownership again inside the save transaction.
+            $actor = User::with('role')->sharedLock()->findOrFail($actor->id);
+            $this->authorize($actor);
+            unset($data['created_by'], $data['association_id']);
             // Serialize saves for a project so simultaneous submissions cannot create duplicate periods.
             $project = $this->projects($actor)->where('p.id', $data['project_id'])
                 ->select('p.*', 'a.is_archived as association_archived')->lockForUpdate()->first();
@@ -76,6 +80,9 @@ final class MonitoringService
                 abort_unless($record, 404);
                 if ((int) $record->project_id !== (int) $project->id) {
                     throw ValidationException::withMessages(['project_id' => 'The project cannot be changed for an existing record.']);
+                }
+                if ($type === 'materials' && (int) $record->project_material_id !== (int) $data['project_material_id']) {
+                    throw ValidationException::withMessages(['project_material_id' => 'The material cannot be changed for an existing record.']);
                 }
             }
             $table = DB::table('monitoring_'.$type);

@@ -100,9 +100,9 @@ class GisController extends Controller
             ]);
 
             // Show a clear error instead of making a failed query look like an empty map.
-            return response()->view('admin-pages.admin-gis-mapping.unavailable', [], 503);
+            return response()->view('shared.gis.unavailable', [], 503);
         }
 
-        return view('admin-pages.admin-gis-mapping.index', $data);
+        return view('shared.gis.index', $data);
     }
 }

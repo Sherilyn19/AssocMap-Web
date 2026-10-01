@@ -1,21 +1,4 @@
-{{--
-    resources/views/components/sidebar.blade.php
-
-    Data-driven nav list: one array, one @foreach — not 11 hand-copied
-    <li> blocks. Adding a module later means adding one row here, nowhere
-    else (avoids the Duplicated Code / Shotgun Surgery smells).
-
-    Each item's route is guarded with Route::has() so this never throws
-    a RouteNotFoundException while a module's routes haven't been built
-    yet — it renders as an inert "#" link until the real
-    route is added, then activates automatically.
-
-    Collapse/mobile-drawer state is plain CSS classes (.is-collapsed /
-    .is-open) defined in resources/css/app.css via @layer components,
-    toggled by resources/js/sidebar.js. Deliberately not using nested
-    Tailwind arbitrary-value variants here — they're fragile against the
-    JIT class scanner and not worth the risk on a real submission.
---}}
+{{-- Shared navigation uses existing module routes and shell state classes. --}}
 
 @php
     $navItems = [
@@ -31,6 +14,7 @@
         ['route' => 'reports.index',      'label' => 'Reports & Analytics',    'icon' => 'M4 10h4v10H4V10Zm6-4h4v14h-4V6Zm6 7h4v7h-4v-7Z'],
         ['route' => 'admin.audit-logs.index', 'label' => 'Audit Log',           'icon' => 'M7 3h10a1 1 0 0 1 1 1v16l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1ZM9 8h6M9 11.5h6'],
     ];
+    $moduleIcons = array_column($navItems, 'icon', 'route');
     // These roles use scoped membership routes; admin links must not be their navigation.
     if (session('auth_user.role_name') !== 'System Administrator') {
         $dashboard = session('auth_user.role_name') === 'Field Officer' ? 'dashboard.officer' : 'dashboard.member';
@@ -40,7 +24,16 @@
             ['route' => session('auth_user.role_name') === 'Field Officer' ? 'gis.officer.index' : 'gis.viewer', 'label' => 'GIS Mapping', 'icon' => $navItems[6]['icon']],
         ];
         if (session('auth_user.role_name') === 'Field Officer') {
-            $navItems[] = ['route' => 'monitoring.index', 'label' => 'Monitoring Module', 'icon' => 'M3 17l5-6 4 4 8-9M15 6h5v5'];
+            $navItems = [
+                $navItems[0],
+                ['route' => 'officer.associations.index', 'label' => 'My Associations', 'icon' => $moduleIcons['admin.associations.index']],
+                ['route' => 'membership.index', 'label' => 'Members and Applications (read-only)', 'icon' => $navItems[1]['icon']],
+                ['route' => 'officer.projects.index', 'label' => 'Projects and Delivery', 'icon' => $moduleIcons['projects.index']],
+                ['route' => 'officer.trainings.index', 'label' => 'Training Records', 'icon' => $moduleIcons['trainings.index']],
+                ['route' => 'monitoring.index', 'label' => 'Monitoring', 'icon' => 'M3 17l5-6 4 4 8-9M15 6h5v5'],
+                $navItems[2],
+                ['route' => 'officer.reports.index', 'label' => 'My Reports', 'icon' => $moduleIcons['reports.index']],
+            ];
         }
     }
 @endphp
@@ -63,6 +56,9 @@
                 <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </button>
+        <button type="button" id="sidebarCloseBtn" aria-label="Close navigation" class="am-sidebar__close-btn">
+            <span aria-hidden="true">✕</span>
+        </button>
     </div>
 
     {{-- Nav --}}
@@ -75,8 +71,9 @@
                 $isActive = $hasRoute && request()->routeIs(implode('.', $routeParts) . '.*');
                 $href = $hasRoute ? route($item['route']) : '#';
             @endphp
-            <a href="{{ $href }}" data-tip="{{ $item['label'] }}" class="am-nav-link {{ $isActive ? 'is-active' : '' }}">
-                <svg class="am-nav-link__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            @continue(! $hasRoute)
+            <a href="{{ $href }}" aria-label="{{ $item['label'] }}" title="{{ $item['label'] }}" @if($isActive) aria-current="page" @endif class="am-nav-link {{ $isActive ? 'is-active' : '' }}">
+                <svg aria-hidden="true" class="am-nav-link__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="{{ $item['icon'] }}" />
                 </svg>
                 <span class="am-nav-link__label">{{ $item['label'] }}</span>

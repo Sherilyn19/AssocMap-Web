@@ -25,6 +25,6 @@ final class GisErrors
             return response()->json(['message' => 'The save could not be confirmed. Refresh and check the location before trying again.', 'uncertain' => true], 503);
         }
 
-        return response()->view('admin-pages.admin-gis-mapping.unavailable', [], 503);
+        return response()->view('shared.gis.unavailable', [], 503);
     }
 }

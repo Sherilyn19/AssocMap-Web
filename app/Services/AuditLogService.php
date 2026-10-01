@@ -9,6 +9,34 @@ class AuditLogService
 {
     public const DISPLAY_TIMEZONE = 'Asia/Manila';
 
+    public function denied(\Illuminate\Http\Request $request): void
+    {
+        $actor = $request->attributes->get('assocmap.actor');
+        if (! $actor instanceof \App\Models\User || $request->attributes->get('assocmap.denial_logged')) {
+            return;
+        }
+        $request->attributes->set('assocmap.denial_logged', true);
+        // Record only a server-defined route and numeric resource IDs. Never copy
+        // URLs, query strings, request bodies or review credentials into the audit.
+        $ids = [];
+        foreach ($request->route()?->parameters() ?? [] as $key => $value) {
+            $value = $value instanceof \Illuminate\Database\Eloquent\Model ? $value->getKey() : $value;
+            if (is_scalar($value) && ctype_digit((string) $value)) {
+                $ids[$key] = (int) $value;
+            }
+        }
+        try {
+            \Illuminate\Support\Facades\DB::transaction(fn () => \Illuminate\Support\Facades\DB::table('audit_logs')->insert([
+                'user_id' => $actor->id, 'action_type' => 'UNAUTHORIZED_ACCESS', 'module' => 'Access Control',
+                'record_id' => null, 'performed_at' => now(),
+                'details' => json_encode(['method' => $request->method(), 'route' => $request->route()?->getName(), 'resources' => $ids], JSON_THROW_ON_ERROR),
+            ]));
+        } catch (\Throwable) {
+            // A logging outage must not turn a denied request into an allowed one.
+            logger()->error('Unauthorized-access audit could not be recorded.', ['actor_id' => $actor->id]);
+        }
+    }
+
     public function listing(array $filters): array
     {
         $query = AuditLog::with('user.role')->orderByDesc('performed_at')->orderByDesc('id');

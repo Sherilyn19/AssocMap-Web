@@ -34,7 +34,7 @@ final class UserManagementErrors
 
             return $request->expectsJson()
                 ? response()->json(['message' => $message], 404)
-                : response()->view('errors.user-management-unavailable', ['heading' => 'Account unavailable', 'message' => $message], 404);
+                : response()->view('errors.admin-user.admin-user-user-management-unavailable', ['heading' => 'Account unavailable', 'message' => $message], 404);
         }
         $state = $error instanceof PDOException ? (string) ($error->errorInfo[0] ?? $error->getCode()) : '';
         // A competing save may pass form validation first. Convert only email conflicts
@@ -74,7 +74,7 @@ final class UserManagementErrors
         }
         if ($request->isMethod('GET') || ! $request->hasSession() || ! $request->session()->isStarted()) {
             // Avoid a redirect loop or another database-dependent layout during an outage.
-            return response()->view('errors.user-management-unavailable', [], 503);
+            return response()->view('errors.admin-user.admin-user-user-management-unavailable', [], 503);
         }
         $input = [];
         // Explicitly allow safe form fields instead of copying passwords or unexpected input.

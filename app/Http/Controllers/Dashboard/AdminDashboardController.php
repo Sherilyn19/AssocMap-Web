@@ -14,12 +14,12 @@ class AdminDashboardController extends Controller
         $user = session('auth_user');
 
         try {
-            return response()->view('admin-pages.dashboard', ['user' => $user, ...$dashboard->overview()]);
+            return response()->view('admin-user.dashboard', ['user' => $user, ...$dashboard->overview()]);
         } catch (QueryException $exception) {
             report($exception);
 
             // Unavailable data must never be presented as zero records.
-            return response()->view('admin-pages.dashboard', ['user' => $user, 'unavailable' => true], 503);
+            return response()->view('admin-user.dashboard', ['user' => $user, 'unavailable' => true], 503);
         }
     }
 }

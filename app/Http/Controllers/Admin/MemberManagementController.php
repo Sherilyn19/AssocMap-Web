@@ -63,7 +63,7 @@ final class MemberManagementController extends Controller
             'per_page',
         ]);
 
-        return view('admin-pages.admin-member-management.index', [
+        return view('admin-user.admin-member-management.index', [
             'members' => $this->service->paginate($filters),
             'editingMember' => $request->session()->hasOldInput() && $request->session()->get('edit_member_id')
                 ? Member::find($request->session()->get('edit_member_id')) : null,
@@ -80,7 +80,7 @@ final class MemberManagementController extends Controller
         $actor = $this->sessionUser->resolve($request);
         Gate::forUser($actor)->authorize('view', $member);
 
-        return view('admin-pages.admin-member-management.show', [
+        return view('admin-user.admin-member-management.show', [
             'member' => $this->service->findDetailed($member),
             'backToListUrl' => route('members.index', $this->listState($request)),
         ]);

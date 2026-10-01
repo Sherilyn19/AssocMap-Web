@@ -9,10 +9,14 @@ use Illuminate\Support\Facades\DB;
 
 final class ReportsService
 {
-    public function overview(array $filters): array
+    public function overview(array $filters, ?\App\Models\User $officer = null): array
     {
         $year = (int) $filters['year'];
         $associations = DB::table('associations')->where('associations.is_archived', false);
+        if ($officer !== null) {
+            abort_unless($officer->is_active && $officer->role?->role_name === 'Field Officer', 403);
+            $associations->where('associations.field_officer_id', $officer->id);
+        }
         if (! empty($filters['area_unit_id'])) {
             $associations->where('associations.area_unit_id', $filters['area_unit_id']);
         }
@@ -47,7 +51,7 @@ final class ReportsService
             'records' => (int) ($monthly->get($month)?->records ?? 0),
         ]);
 
-        return [
+        $data = [
             'rows' => $rows,
             'counts' => ['associations' => $rows->count(), 'members' => $members->count(),
                 'projects' => $projects->count(), 'trainings' => $trainings->count()],
@@ -63,6 +67,20 @@ final class ReportsService
                 ->orderBy('a.name')->orderBy('p.id')->orderBy('q.id')->orderBy('m.id')->get(),
             'generatedAt' => now('Asia/Manila'),
         ];
+        if ($officer !== null) {
+            // Count distinct members who attended, not registrations or repeated attendance.
+            $data['trainedMembers'] = DB::table('training_participants as tp')
+                ->join('trainings as t', 't.id', '=', 'tp.training_id')
+                ->join('members as member', function ($join): void {
+                    $join->on('member.id', '=', 'tp.member_id')->on('member.association_id', '=', 't.association_id');
+                })->join('statuses as attendance', 'attendance.id', '=', 'tp.attendance_status_id')
+                ->leftJoin('program_components as component', 'component.id', '=', 't.program_component_id')
+                ->whereIn('t.id', (clone $trainings)->select('trainings.id'))->where('attendance.status_name', 'Present')
+                ->select('component.name')->selectRaw('COUNT(DISTINCT member.id) as members')
+                ->groupBy('component.id', 'component.name')->orderBy('component.name')->get();
+        }
+
+        return $data;
     }
 
     private function monitoring(string $type, Builder $projects, int $year): Builder

@@ -27,7 +27,7 @@ class AreaManagementController extends Controller
     {
         $filters = $request->validated();
         try {
-            return view('admin-pages.admin-area-management.admin-area-index', [
+            return view('admin-user.admin-area-management.admin-area-index', [
                 'municipalities' => $this->areas->listMunicipalities($filters),
                 'barangays' => $this->areas->listBarangays($filters),
                 'summary' => $this->areas->summaryCounts(),
@@ -38,7 +38,7 @@ class AreaManagementController extends Controller
         } catch (Throwable $exception) {
             report($exception);
 
-            return response()->view('admin-pages.admin-area-management.unavailable', [], 503);
+            return response()->view('admin-user.admin-area-management.unavailable', [], 503);
         }
     }
 

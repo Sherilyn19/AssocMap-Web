@@ -94,6 +94,7 @@ class AssocMapAuth
             $userRole = session('auth_user.role_name');
 
             if ($userRole !== $requiredRole) {
+                app(\App\Services\AuditLogService::class)->denied($request);
                 /*
                  * Role mismatch: the user is logged in but trying to
                  * access a dashboard that does not belong to their role.

@@ -30,7 +30,7 @@ final class TrainingManagementErrors
         }
         if ($request->isMethod('GET') || ! $request->hasSession() || ! $request->session()->isStarted()) {
             // This standalone view needs neither database queries nor a working dashboard session.
-            return response()->view('errors.training-management-unavailable', [], 503);
+            return response()->view('errors.admin-user.admin-user-training-management-unavailable', [], 503);
         }
 
         $input = [];

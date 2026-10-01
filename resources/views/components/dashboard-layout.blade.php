@@ -1,15 +1,7 @@
 {{--
-    resources/views/components/dashboard-layout.blade.php
-
-    Shell used by every authenticated page:
-        <x-dashboard-layout title="Admin Dashboard">
-            ... page content ...
-        </x-dashboard-layout>
-
-    Only this file owns the <html>/<head>/sidebar/topbar markup — page
-    views (resources/views/admin-pages/*.blade.php) only ever supply
-    their own content through the default slot. This is the "Extract
-    Class" boundary: page content and page chrome are separate concerns.
+    Shared page shell for authenticated users.
+    Loads the application assets and renders navigation around the page content.
+    Each page supplies its content through the default slot.
 --}}
 
 
@@ -23,13 +15,13 @@
     <title>{{ $title }} — AssocMap</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="am-body">
+<body class="am-body {{ session('auth_user.role_name') === 'Field Officer' ? 'am-officer' : '' }}">
 
     <x-sidebar />
 
     <div class="am-main">
         <x-topbar :title="$topbarTitle ?? $title" :contextual="$topbarTitle !== null"
-                  :workspace="in_array($title, ['Project Management', 'Training Management', 'Member Management', 'Association Management', 'Area Management', 'User Management'], true)" />
+                  :workspace="(session('auth_user.role_name') === 'System Administrator' && in_array($title, ['Project Management', 'Training Management', 'Member Management', 'Association Management', 'Area Management', 'User Management'], true)) || (session('auth_user.role_name') === 'Field Officer' && in_array($title, ['My Associations', 'Projects', 'Training Records', 'Monitoring Module', 'My Reports', 'GIS Mapping', 'Members and Applications (read-only)'], true))" />
 
         <main class="am-content">
             {{ $slot }}

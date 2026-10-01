@@ -41,7 +41,7 @@ final class AssociationManagementController extends Controller
                 ...$this->service->formOptions(),
             ]);
 
-            return view('admin-pages.admin-association-management.index', [
+            return view('admin-user.admin-association-management.index', [
                 ...$data, 'filters' => $filters, 'listState' => $state, 'summaryKey' => $summaryKey,
                 'cardLabels' => AssociationManagementService::REGISTER_CARDS,
                 'cardCloseUrl' => route('admin.associations.index', $state),
@@ -63,7 +63,7 @@ final class AssociationManagementController extends Controller
                     ->appends([...$state, 'related' => $relatedKey])->fragment('association-card-details') : null,
             ]);
 
-            return view('admin-pages.admin-association-management.show', [
+            return view('admin-user.admin-association-management.show', [
                 ...$data, 'listState' => $state, 'relatedKey' => $relatedKey,
                 'cardLabels' => AssociationManagementService::DETAIL_CARDS,
                 'cardCloseUrl' => route('admin.associations.show', ['association' => $association, ...$state]),

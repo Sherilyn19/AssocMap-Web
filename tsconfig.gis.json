@@ -9,5 +9,5 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["resources/js/gis/**/*.ts"]
+  "include": ["resources/js/shared/gis/**/*.ts"]
 }

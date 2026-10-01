@@ -59,7 +59,7 @@ final class ProjectManagementController extends Controller
                 ->appends(array_merge($filters, ['summary' => $summaryKey, 'page' => $projects->currentPage()]))
             : null;
 
-        return view('admin-pages.admin-project-management.index', [
+        return view('admin-user.admin-project-management.index', [
             'projects' => $projects,
             'filters' => $filters,
             'projectStatuses' => $formData['projectStatuses'],
@@ -73,7 +73,7 @@ final class ProjectManagementController extends Controller
     public function create(): View
     {
         return view(
-            'admin-pages.admin-project-management.create',
+            'admin-user.admin-project-management.create',
             $this->projectManagementService->formData()
         );
     }
@@ -108,7 +108,7 @@ final class ProjectManagementController extends Controller
             'materials.status',
         ]);
 
-        return view('admin-pages.admin-project-management.show', [
+        return view('admin-user.admin-project-management.show', [
             'project' => $project,
             // Trainings share association and component scope; they are not directly owned by a project.
             'relatedTrainings' => \App\Models\Training::query()
@@ -127,7 +127,7 @@ final class ProjectManagementController extends Controller
         }
 
         return view(
-            'admin-pages.admin-project-management.edit',
+            'admin-user.admin-project-management.edit',
             array_merge(
                 ['project' => $project->load(['association', 'programComponent', 'status'])],
                 $this->projectManagementService->formData()

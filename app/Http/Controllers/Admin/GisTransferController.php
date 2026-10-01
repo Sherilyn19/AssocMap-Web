@@ -16,7 +16,7 @@ final class GisTransferController extends Controller
 {
     public function index(Request $request, GisTransferService $imports): mixed
     {
-        return view('admin-pages.admin-gis-mapping.transfer', ['preview' => $imports->savedPreview((int) $request->attributes->get('assocmap.actor')->id)]);
+        return view('admin-user.admin-gis-mapping.transfer', ['preview' => $imports->savedPreview((int) $request->attributes->get('assocmap.actor')->id)]);
     }
 
     public function preview(Request $request, GisTransferService $imports): mixed

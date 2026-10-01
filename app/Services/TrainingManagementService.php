@@ -15,6 +15,30 @@ final class TrainingManagementService
 {
     public const ATTENDANCE_STATUSES = ['Pending', 'Present', 'Absent'];
 
+    public function updateOfficerInformation(Training $training, array $data, \App\Models\User $actor): void
+    {
+        DB::transaction(function () use ($training, $data, $actor): void {
+            $association = app(FieldOfficerUserAccess::class)->lockAssociation($actor, (int) $training->association_id);
+            $training = $this->lockedTraining($training);
+            abort_unless((int) $training->association_id === (int) $association->id, 404);
+            $data = validator($data, [
+                'venue' => ['required', 'string', 'max:255'], 'conducted_by' => ['required', 'string', 'max:255'],
+                'remarks' => ['nullable', 'string', 'max:5000'],
+            ])->validate();
+            $training->update($data);
+            $this->audit((int) $actor->id, 'UPDATE', $training, 'Updated venue, facilitator and remarks. Schedule and stage retained.');
+        }, 3);
+    }
+
+    private function authorizeAttendance(Training $training, int $actorId): void
+    {
+        $actor = \App\Models\User::with('role')->sharedLock()->findOrFail($actorId);
+        abort_unless($actor->is_active && in_array($actor->role?->role_name, ['System Administrator', 'Field Officer'], true), 403);
+        if ($actor->role->role_name === 'Field Officer') {
+            app(FieldOfficerUserAccess::class)->lockAssociation($actor, (int) $training->association_id);
+        }
+    }
+
     public function save(array $data, int $actorId, ?Training $training = null): Training
     {
         return DB::transaction(function () use ($data, $actorId, $training): Training {
@@ -68,6 +92,7 @@ final class TrainingManagementService
     {
         DB::transaction(function () use ($training, $memberId, $actorId): void {
             $training = $this->lockedTraining($training);
+            $this->authorizeAttendance($training, $actorId);
             $this->activeAssociation((int) $training->association_id);
             $member = Member::query()->lockForUpdate()->find($memberId);
             if (! $member || $member->is_archived || (int) $member->association_id !== (int) $training->association_id) {
@@ -90,8 +115,11 @@ final class TrainingManagementService
     {
         DB::transaction(function () use ($training, $participantId, $statusId, $actorId): void {
             $training = $this->lockedTraining($training);
+            $this->authorizeAttendance($training, $actorId);
             $this->activeAssociation((int) $training->association_id);
             $participant = $training->participants()->lockForUpdate()->findOrFail($participantId);
+            $member = Member::query()->lockForUpdate()->find($participant->member_id);
+            abort_unless($member && ! $member->is_archived && (int) $member->association_id === (int) $training->association_id, 404);
             $status = Status::query()->whereKey($statusId)->whereIn('status_name', self::ATTENDANCE_STATUSES)->first();
             if (! $status) {
                 $this->invalid('attendance_status_id', 'Choose Pending, Present, or Absent.');

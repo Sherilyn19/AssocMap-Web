@@ -54,7 +54,7 @@ final class TrainingManagementController extends Controller
             $query->whereNull('date_conducted');
         }
 
-        return view('admin-pages.admin-training-management.index', [
+        return view('admin-user.admin-training-management.index', [
             'trainings' => $query->orderByDesc('updated_at')->orderByDesc('id')->paginate(10)->withQueryString(),
             'filters' => $filters,
             'scope' => $scope,
@@ -65,14 +65,14 @@ final class TrainingManagementController extends Controller
 
     public function create()
     {
-        return view('admin-pages.admin-training-management.form', $this->formData());
+        return view('admin-user.admin-training-management.form', $this->formData());
     }
 
     public function edit(Training $training)
     {
         abort_if($training->is_archived, 404);
 
-        return view('admin-pages.admin-training-management.form', $this->formData($training));
+        return view('admin-user.admin-training-management.form', $this->formData($training));
     }
 
     public function show(Request $request, Training $training)
@@ -82,7 +82,7 @@ final class TrainingManagementController extends Controller
         $counts = $training->participants()->join('statuses', 'statuses.id', '=', 'training_participants.attendance_status_id')
             ->selectRaw('statuses.status_name, COUNT(*) AS total')->groupBy('statuses.status_name')->pluck('total', 'status_name');
 
-        return view('admin-pages.admin-training-management.show', [
+        return view('admin-user.admin-training-management.show', [
             'training' => $training,
             'participants' => $training->participants()->with(['member:id,first_name,middle_name,last_name,is_archived', 'attendanceStatus:id,status_name'])
                 ->orderBy('id')->paginate(10),

@@ -65,6 +65,23 @@ Route::get('/officer/dashboard', [DashboardController::class, 'officer'])
     ->middleware('assocmap.auth:Field Officer')
     ->name('dashboard.officer');
 
+Route::middleware('assocmap.auth:Field Officer')->prefix('officer')->name('officer.')->group(function (): void {
+    Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
+    Route::get('/reports/export', [ReportsController::class, 'export'])->name('reports.export');
+    Route::get('/associations', [\App\Http\Controllers\FieldOfficerUser\AssociationController::class, 'index'])->name('associations.index');
+    Route::get('/associations/{association}', [\App\Http\Controllers\FieldOfficerUser\AssociationController::class, 'show'])->whereNumber('association')->name('associations.show');
+    Route::get('/projects', [\App\Http\Controllers\FieldOfficerUser\ProjectController::class, 'index'])->name('projects.index');
+    Route::get('/projects/{project}', [\App\Http\Controllers\FieldOfficerUser\ProjectController::class, 'show'])->whereNumber('project')->name('projects.show');
+    Route::patch('/projects/{project}/materials/{material}/delivery', [\App\Http\Controllers\FieldOfficerUser\ProjectController::class, 'delivery'])->whereNumber(['project', 'material'])->name('projects.delivery');
+    Route::controller(\App\Http\Controllers\FieldOfficerUser\TrainingController::class)->prefix('trainings')->name('trainings.')->group(function (): void {
+        Route::get('/', 'index')->name('index');
+        Route::get('/{training}', 'show')->whereNumber('training')->name('show');
+        Route::put('/{training}', 'update')->whereNumber('training')->name('update');
+        Route::post('/{training}/participants', 'addParticipant')->whereNumber('training')->name('participants.store');
+        Route::patch('/{training}/participants/{participant}', 'attendance')->whereNumber(['training', 'participant'])->name('participants.attendance');
+    });
+});
+
 Route::get('/member/dashboard', [DashboardController::class, 'member'])
     ->middleware('assocmap.auth:Association Member')
     ->name('dashboard.member');
