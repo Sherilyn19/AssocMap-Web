@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { filterRecords, optionsFor, summarize, validPosition } from '../../resources/js/gis/data.js';
+import { filterRecords, optionsFor, summarize, validPosition } from '../../resources/js/shared/gis/data.js';
 
 const records = [
     { id: 1, name: 'Landing site', association: 'Coastal Association', municipality_id: 1, municipality: 'North', barangay_id: 10, barangay: 'Bay', component_id: 1, component: 'Capture', published: true, valid: true, latitude: 0, longitude: 0 },

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { saveLocation } from '../../resources/js/gis/request.js';
+import { saveLocation } from '../../resources/js/shared/gis/request.js';
 
 test('writes send CSRF and submission token once and parse a confirmed result', async t => {
     let calls = 0;

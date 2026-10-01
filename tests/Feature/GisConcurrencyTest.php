@@ -15,6 +15,49 @@ use Tests\Support\GisDatabaseTestCase;
 
 final class GisConcurrencyTest extends GisDatabaseTestCase
 {
+    public function test_officer_revocation_while_waiting_for_parent_prevents_a_gis_write(): void
+    {
+        DB::unprepared('ALTER TABLE gis_locations ADD COLUMN location_name varchar, ADD COLUMN latitude numeric, ADD COLUMN longitude numeric, ADD COLUMN created_at timestamp');
+        $schema = DB::selectOne('SELECT current_schema() AS name')->name;
+        DB::commit();
+        $worker = null;
+        try {
+            DB::statement('SET search_path TO "'.$schema.'"');
+            DB::beginTransaction();
+            DB::table('associations')->where('id', 1)->lockForUpdate()->first();
+            DB::table('users')->where('id', 2)->update(['is_active' => false]);
+            $worker = new Process([PHP_BINARY, base_path('tests/Support/gis-race-worker.php'), 'create'], base_path(), [
+                'ASSOCMAP_GIS_RACE_SCHEMA' => $schema, 'ASSOCMAP_GIS_RACE_OFFICER' => '1',
+            ]);
+            $worker->setTimeout(45);
+            $worker->start();
+            $blocked = false;
+            $deadline = microtime(true) + 20;
+            while ($worker->isRunning() && microtime(true) < $deadline) {
+                if (preg_match('/PID:(\d+)/', $worker->getOutput(), $match)) {
+                    $blocked = (bool) DB::selectOne('SELECT cardinality(pg_blocking_pids(?)) > 0 AS blocked', [(int) $match[1]])->blocked;
+                    if ($blocked) {
+                        break;
+                    }
+                }
+                usleep(100000);
+            }
+            $this->assertTrue($blocked, 'The GIS request must wait for the concurrent transaction.');
+            DB::commit();
+            $worker->wait();
+            $this->assertSame(0, $worker->getExitCode(), $worker->getOutput());
+            $this->assertStringContainsString('RESULT:rejected', $worker->getOutput());
+            $this->assertSame(1, DB::table('gis_locations')->count());
+            $this->assertSame(0, DB::table('audit_logs')->where('module', 'GIS')->count());
+        } finally {
+            $worker?->stop();
+            while (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            DB::statement('DROP SCHEMA "'.$schema.'" CASCADE');
+        }
+    }
+
     public function test_saves_and_archival_wait_and_recheck_after_the_first_commit(): void
     {
         $schema = DB::selectOne('SELECT current_schema() AS name')->name;

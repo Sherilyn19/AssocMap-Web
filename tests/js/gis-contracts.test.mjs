@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { coordinateError, parseSaveReply, parseMapRecords, submissionToken } from '../../resources/js/gis/contracts.ts';
+import { coordinateError, parseSaveReply, parseMapRecords, submissionToken } from '../../resources/js/shared/gis/contracts.ts';
 
 test('submission receipts use secure UUIDs with or without randomUUID', () => {
     assert.match(submissionToken(), /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/);

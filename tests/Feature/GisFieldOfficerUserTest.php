@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\Support\GisDatabaseTestCase;
 
-final class GisOfficerTest extends GisDatabaseTestCase
+final class GisFieldOfficerUserTest extends GisDatabaseTestCase
 {
     public function test_assigned_management_and_cross_association_denial(): void
     {

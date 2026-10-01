@@ -23,13 +23,14 @@ DB::purge('pgsql');
 echo 'PID:'.DB::selectOne('SELECT pg_backend_pid() AS id')->id.PHP_EOL;
 flush();
 try {
+    $actorId = getenv('ASSOCMAP_GIS_RACE_OFFICER') === '1' ? 2 : 1;
     $data = ['association_id' => 1, 'location_name' => 'Second edit', 'latitude' => 11, 'longitude' => 124, 'revision' => getenv('ASSOCMAP_GIS_RACE_REVISION'), 'submission_token' => (string) Str::uuid()];
     if (getenv('ASSOCMAP_GIS_RACE_DUPLICATE')) {
         $data = json_decode(getenv('ASSOCMAP_GIS_RACE_DUPLICATE'), true, flags: JSON_THROW_ON_ERROR);
     }
     match ($argv[1]) {
         'archive' => app(AssociationManagementService::class)->archive(Association::findOrFail(1), 1),
-        'create' => app(GisManagementService::class)->create($data, 1),
+        'create' => app(GisManagementService::class)->create($data, $actorId),
         'update' => app(GisManagementService::class)->update(1, $data, 1),
         'publish' => app(GisManagementService::class)->publication(1, $data['revision'], true, 1),
         'unpublish' => app(GisManagementService::class)->publication(1, $data['revision'], false, 1),
@@ -39,7 +40,8 @@ try {
 } catch (ValidationException $error) {
     echo 'RESULT:rejected';
 } catch (HttpException $error) {
-    if ($error->getStatusCode() !== 409) {
+    $expectedStatuses = $actorId === 2 ? [403, 404, 409] : [409];
+    if (! in_array($error->getStatusCode(), $expectedStatuses, true)) {
         exit(3);
     }
     echo 'RESULT:rejected';

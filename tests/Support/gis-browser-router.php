@@ -45,4 +45,4 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     echo json_encode(['message' => 'Preview has no database writes.', 'uncertain' => true]);
     exit;
 }
-echo view('admin-pages.admin-gis-mapping.index', ['records' => $records, 'unmapped' => collect(), 'associations' => collect([(object) ['id' => 1, 'name' => 'Coastal Association']])])->render();
+echo view('shared.gis.index', ['records' => $records, 'unmapped' => collect(), 'associations' => collect([(object) ['id' => 1, 'name' => 'Coastal Association']])])->render();
