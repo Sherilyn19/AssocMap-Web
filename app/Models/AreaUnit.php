@@ -29,4 +29,9 @@ class AreaUnit extends Model
     {
         return $this->hasMany(SubUnit::class);
     }
+    /** Associations assigned within this municipality. */
+    public function associations()
+    {
+        return $this->hasMany(Association::class);
+    }
 }

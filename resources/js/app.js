@@ -1,10 +1,11 @@
-/**
+﻿/**
  * resources/js/app.js
  * Main Vite JavaScript entry point for AssocMap Web.
  */
 import './bootstrap';
 import './shared/monitoring';
 import './shared/sidebar';
+import './field-officer-user/field-officer-area-management.ts';
 import './admin-user/admin-user-management';
 import './admin-user/admin-area-management';
 import './admin-user/admin-association-management';
@@ -104,3 +105,4 @@ if (document.querySelector('[data-gis-page]')) {
 }
 
 import './shared/workspace-details.ts';
+

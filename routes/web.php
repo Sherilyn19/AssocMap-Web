@@ -68,7 +68,14 @@ Route::get('/officer/dashboard', [DashboardController::class, 'officer'])
 Route::middleware('assocmap.auth:Field Officer')->prefix('officer')->name('officer.')->group(function (): void {
     Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
     Route::get('/reports/export', [ReportsController::class, 'export'])->name('reports.export');
-    Route::get('/associations', [\App\Http\Controllers\FieldOfficerUser\AssociationController::class, 'index'])->name('associations.index');
+    
+    Route::get('/areas',
+        [\App\Http\Controllers\FieldOfficerUser\AreaController::class, 'index']
+    )->name('areas.index');
+
+    Route::get('/areas/{areaUnit}', [\App\Http\Controllers\FieldOfficerUser\AreaController::class, 'show'])->whereNumber('areaUnit')->name('areas.show');
+
+Route::get('/associations', [\App\Http\Controllers\FieldOfficerUser\AssociationController::class, 'index'])->name('associations.index');
     Route::get('/associations/{association}', [\App\Http\Controllers\FieldOfficerUser\AssociationController::class, 'show'])->whereNumber('association')->name('associations.show');
     Route::get('/projects', [\App\Http\Controllers\FieldOfficerUser\ProjectController::class, 'index'])->name('projects.index');
     Route::get('/projects/{project}', [\App\Http\Controllers\FieldOfficerUser\ProjectController::class, 'show'])->whereNumber('project')->name('projects.show');
@@ -324,3 +331,4 @@ Route::patch('/admin/gis/{location}/unpublish', [GisController::class, 'unpublis
     ->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.unpublish');
 Route::patch('/admin/gis/{location}/archive', [GisController::class, 'archive'])
     ->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.archive');
+
