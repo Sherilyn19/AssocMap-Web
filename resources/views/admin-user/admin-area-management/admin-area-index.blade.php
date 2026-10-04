@@ -78,7 +78,7 @@
                aria-describedby="area-summary-note-{{ $card['key'] }}"
                class="min-w-0 rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2">
                 <p class="text-sm font-medium text-slate-600">{{ $card['label'] }}</p>
-                <p class="mt-2 break-words text-3xl font-bold tabular-nums text-slate-900">{{ $card['value'] }}</p>
+                <p data-count-up class="mt-2 break-words text-3xl font-bold tabular-nums text-slate-900">{{ $card['value'] }}</p>
                 <p id="area-summary-note-{{ $card['key'] }}" class="mt-1 text-xs text-slate-500">{{ $card['note'] }}</p>
             </a>
         @endforeach

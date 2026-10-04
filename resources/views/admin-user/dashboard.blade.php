@@ -35,7 +35,7 @@
                             <span class="text-sm font-semibold text-slate-600">{{ $card['label'] }}</span>
                             <svg aria-hidden="true" class="h-9 w-9 shrink-0 rounded-lg bg-assocmap-bg p-2 text-assocmap-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $card['icon'] }}"/></svg>
                         </div>
-                        <p class="mt-4 text-3xl font-bold tabular-nums tracking-tight text-slate-900">{{ number_format($card['value']) }}</p>
+                        <p data-count-up class="mt-4 text-3xl font-bold tabular-nums tracking-tight text-slate-900">{{ number_format($card['value']) }}</p>
                         <p class="mt-2 text-xs leading-5 text-slate-500">{{ $card['note'] }}</p>
                         <p class="mt-4 text-xs font-semibold text-assocmap-primary">View records <span aria-hidden="true">&rarr;</span></p>
                     </a>

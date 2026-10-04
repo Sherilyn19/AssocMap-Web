@@ -18,7 +18,7 @@
                href="{{ route('projects.index', array_merge($filters, ['summary' => $key, 'page' => $projects->currentPage()])) }}#project-summary"
                aria-haspopup="dialog" aria-label="{{ $label }}: {{ $summary[$key] }}. View detailed records.">
                 <span class="block text-sm font-medium text-slate-600">{{ $label }}</span>
-                <span class="mt-2 block text-3xl font-bold tabular-nums">{{ $summary[$key] }}</span>
+                <span data-count-up class="mt-2 block text-3xl font-bold tabular-nums">{{ $summary[$key] }}</span>
                 <span class="block text-xs text-slate-600">{{ $key === 'total' ? 'Active + archived' : ($key === 'archived' ? 'Historical records' : 'Active records only') }}</span>
 
             </a>

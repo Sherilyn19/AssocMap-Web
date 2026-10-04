@@ -18,7 +18,7 @@
     </section>
     <div class="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Attendance summary">
         @foreach(['Participants' => $participants->total(), 'Present' => $counts->get('Present', 0), 'Absent' => $counts->get('Absent', 0), 'Pending' => $counts->get('Pending', 0)] as $label => $value)
-        <div class="rounded-xl border border-slate-200 bg-white p-4"><p class="text-sm text-slate-600">{{ $label }}</p><p class="mt-1 text-2xl font-bold">{{ $value }}</p></div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4"><p class="text-sm text-slate-600">{{ $label }}</p><p data-count-up class="mt-1 text-2xl font-bold">{{ $value }}</p></div>
         @endforeach
     </div>
     @if($writable)

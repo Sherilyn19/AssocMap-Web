@@ -61,7 +61,7 @@
         @foreach ($summaryCards as [$label, $count, $query])
             <a href="{{ route('users.index', $query) }}" class="am-user-summary">
                 <p class="text-sm font-medium text-slate-600">{{ $label }}</p>
-                <p class="mt-2 text-3xl font-bold tabular-nums text-slate-900">{{ number_format($count) }}</p>
+                <p data-count-up class="mt-2 text-3xl font-bold tabular-nums text-slate-900">{{ number_format($count) }}</p>
                 <p class="mt-1 text-xs text-slate-500">View matching accounts</p>
             </a>
         @endforeach

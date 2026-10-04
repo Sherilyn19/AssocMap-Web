@@ -7,7 +7,7 @@
     @include('shared.partials.feedback')
     <div class="grid gap-3 sm:grid-cols-3" aria-label="Training summary">
         @foreach(['total' => 'All training records', 'active' => 'Active records', 'archived' => 'Archived records'] as $key => $label)
-        <div class="rounded-xl border border-slate-200 bg-white p-5"><p class="text-sm text-slate-600">{{ $label }}</p><p class="mt-2 text-3xl font-bold text-slate-900">{{ $summary->$key }}</p></div>
+        <div class="rounded-xl border border-slate-200 bg-white p-5"><p class="text-sm text-slate-600">{{ $label }}</p><p data-count-up class="mt-2 text-3xl font-bold text-slate-900">{{ $summary->$key }}</p></div>
         @endforeach
     </div>
     <section class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5" aria-label="Filter trainings">

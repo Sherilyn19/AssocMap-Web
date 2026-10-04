@@ -21,7 +21,7 @@
 
     <div class="am-main">
         <x-topbar :title="$topbarTitle ?? $title" :contextual="$topbarTitle !== null"
-                  :workspace="session('auth_user.role_name') === 'Association Member' || (session('auth_user.role_name') === 'System Administrator' && in_array($title, ['Project Management', 'Training Management', 'Member Management', 'Association Management', 'Area Management', 'User Management'], true)) || (session('auth_user.role_name') === 'Field Officer' && in_array($title, ['My Associations', 'My Areas', 'Projects', 'Training Records', 'Monitoring Module', 'My Reports', 'GIS Mapping', 'Members and Applications (read-only)'], true))" />
+                  :workspace="session('auth_user.role_name') === 'Association Member' || (session('auth_user.role_name') === 'System Administrator' && in_array($title, ['Project Management', 'Training Management', 'Member Management', 'Association Management', 'Area Management', 'User Management'], true)) || (session('auth_user.role_name') === 'Field Officer' && in_array($title, ['My Associations', 'Assigned Areas', 'Projects', 'Training Records', 'Monitoring Module', 'My Reports', 'GIS Mapping', 'Members and Applications (read-only)'], true))" />
 
         <main class="am-content">
             {{ $slot }}

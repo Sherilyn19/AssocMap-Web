@@ -131,7 +131,7 @@
                 aria-label="View details for {{ $card['label'] }}"
             >
                 <p class="text-sm font-medium text-slate-600">{{ $card['label'] }}</p>
-                <p class="mt-2 text-3xl font-bold tabular-nums text-slate-900">{{ $card['value'] }}</p>
+                <p data-count-up class="mt-2 text-3xl font-bold tabular-nums text-slate-900">{{ $card['value'] }}</p>
                 <p class="mt-1 text-xs text-slate-500">{{ $card['hint'] }}</p>
             </button>
         @endforeach
@@ -441,15 +441,15 @@
         <div class="grid gap-4 sm:grid-cols-3">
             <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Total</p>
-                <p class="mt-2 text-2xl font-bold text-slate-900">{{ $summary['total'] }}</p>
+                <p data-count-up class="mt-2 text-2xl font-bold text-slate-900">{{ $summary['total'] }}</p>
             </div>
             <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                 <p class="text-xs font-medium uppercase tracking-wide text-emerald-700">Current</p>
-                <p class="mt-2 text-2xl font-bold text-emerald-900">{{ $summary['current'] }}</p>
+                <p data-count-up class="mt-2 text-2xl font-bold text-emerald-900">{{ $summary['current'] }}</p>
             </div>
             <div class="rounded-xl border border-slate-200 bg-slate-100 p-4">
                 <p class="text-xs font-medium uppercase tracking-wide text-slate-600">Archived</p>
-                <p class="mt-2 text-2xl font-bold text-slate-900">{{ $summary['archived'] }}</p>
+                <p data-count-up class="mt-2 text-2xl font-bold text-slate-900">{{ $summary['archived'] }}</p>
             </div>
         </div>
 
@@ -521,7 +521,7 @@
     </x-admin-user.modal>
 
     <x-admin-user.modal id="archived-members-modal" title="Archived Members" description="Archived records remain stored for history, reporting, and audit." size="lg">
-        <p class="text-3xl font-bold text-slate-900">{{ $summary['archived'] }}</p>
+        <p data-count-up class="text-3xl font-bold text-slate-900">{{ $summary['archived'] }}</p>
         <p class="mt-1 text-sm text-slate-500">Archived official member records</p>
 
         <div class="mt-6 space-y-2">

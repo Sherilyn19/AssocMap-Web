@@ -21,11 +21,11 @@
         <p class="mt-3 text-xs text-slate-500">Dates are read-only. A schedule ending does not confirm training completion.</p>
     </section>
     <section class="am-training-panel" aria-label="Attendance progress">
-        <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-semibold">Attendance progress</h3><p class="mt-1 text-sm text-slate-500">{{ $recorded }} of {{ $total }} attendance records finalized</p></div><strong class="text-2xl tabular-nums text-emerald-700">{{ $total ? $percentage.'%' : '—' }}</strong></div>
+        <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-semibold">Attendance progress</h3><p class="mt-1 text-sm text-slate-500">{{ $recorded }} of {{ $total }} attendance records finalized</p></div><strong data-count-up class="text-2xl tabular-nums text-emerald-700">{{ $total ? $percentage.'%' : '—' }}</strong></div>
         <progress class="am-project-progress mt-4" value="{{ $percentage }}" max="100" aria-label="Attendance recorded">{{ $percentage }}%</progress>
         <dl class="am-training-metrics">
             @foreach (['Registered' => $total, 'Present' => $present, 'Absent' => $absent, 'Pending' => $pending] as $label => $number)
-            <div><dt>{{ $label }}</dt><dd>{{ $number }}</dd></div>
+            <div><dt>{{ $label }}</dt><dd data-count-up>{{ $number }}</dd></div>
             @endforeach
         </dl>
         <p class="mt-3 text-xs leading-5 text-slate-500">{{ $total ? 'Progress counts participants marked Present or Absent. It does not measure training completion.' : 'No participants registered yet. Progress will appear when attendance is recorded.' }}</p>

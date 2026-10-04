@@ -266,7 +266,7 @@
                         {{ $card['label'] }}
                     </p>
 
-                    <p class="mt-2 text-2xl font-bold tabular-nums text-slate-900">
+                    <p data-count-up class="mt-2 text-2xl font-bold tabular-nums text-slate-900">
                         {{ $card['value'] }}
                     </p>
                 <span class="mt-2 block text-xs text-slate-500">View records</span>

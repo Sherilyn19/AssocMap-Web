@@ -26,7 +26,7 @@
         if (session('auth_user.role_name') === 'Field Officer') {
             $navItems = [
                 $navItems[0],
-                ['route' => 'officer.areas.index', 'label' => 'My Areas', 'icon' => $moduleIcons['admin.associations.index']],
+                ['route' => 'officer.areas.index', 'label' => 'Assigned Areas', 'icon' => $moduleIcons['admin.associations.index']],
                 ['route' => 'officer.associations.index', 'label' => 'My Associations', 'icon' => $moduleIcons['admin.associations.index']],
                 ['route' => 'membership.index', 'label' => 'Members and Applications (read-only)', 'icon' => $navItems[1]['icon']],
                 ['route' => 'officer.projects.index', 'label' => 'Projects and Delivery', 'icon' => $moduleIcons['projects.index']],

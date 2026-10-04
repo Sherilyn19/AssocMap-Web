@@ -78,7 +78,7 @@
                            hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md
                            focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2">
                 <p class="text-sm font-medium text-slate-600">{{ $card['label'] }}</p>
-                <p class="mt-2 text-3xl font-bold tabular-nums text-slate-900">{{ $summary[$card['key']] }}</p>
+                <p data-count-up class="mt-2 text-3xl font-bold tabular-nums text-slate-900">{{ $summary[$card['key']] }}</p>
                 <p class="mt-1 text-xs text-slate-500">{{ $card['hint'] }}</p>
             </button>
         @endforeach
@@ -333,11 +333,11 @@
             <div class="grid gap-4 sm:grid-cols-2">
                 <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $card['label'] }}</p>
-                    <p class="mt-2 text-3xl font-bold tabular-nums text-slate-900">{{ $count }}</p>
+                    <p data-count-up class="mt-2 text-3xl font-bold tabular-nums text-slate-900">{{ $count }}</p>
                 </div>
                 <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $card['key'] === 'total' ? 'Reviewed Applications' : 'Share of All Applications' }}</p>
-                    <p class="mt-2 text-3xl font-bold tabular-nums text-slate-900">{{ $card['key'] === 'total' ? $summary['approved'] + $summary['rejected'] : $share.'%' }}</p>
+                    <p data-count-up class="mt-2 text-3xl font-bold tabular-nums text-slate-900">{{ $card['key'] === 'total' ? $summary['approved'] + $summary['rejected'] : $share.'%' }}</p>
                 </div>
             </div>
             <p class="mt-5 text-sm leading-6 text-slate-600">{{ $card['explanation'] }}</p>

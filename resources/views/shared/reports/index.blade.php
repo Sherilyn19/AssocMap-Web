@@ -59,7 +59,7 @@
                 @foreach (['associations' => 'Current associations', 'members' => 'Current members', 'projects' => 'Current projects', 'trainings' => 'Trainings in selected year'] as $key => $label)
                     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                         <h2 class="text-sm font-semibold text-slate-600">{{ $label }}</h2>
-                        <p class="mt-3 text-3xl font-bold tabular-nums text-slate-900">{{ number_format($counts[$key]) }}</p>
+                        <p data-count-up class="mt-3 text-3xl font-bold tabular-nums text-slate-900">{{ number_format($counts[$key]) }}</p>
                     </div>
                 @endforeach
             </section>

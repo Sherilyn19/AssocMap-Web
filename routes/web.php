@@ -74,6 +74,25 @@ Route::middleware('assocmap.auth:Field Officer')->prefix('officer')->name('offic
     )->name('areas.index');
 
     Route::get('/areas/{areaUnit}', [\App\Http\Controllers\FieldOfficerUser\AreaController::class, 'show'])->whereNumber('areaUnit')->name('areas.show');
+    
+    // Load association details within the Field Officer's assigned coverage.
+    Route::get(
+        '/areas/{areaUnit}/associations/{association}/{section}',
+        [\App\Http\Controllers\FieldOfficerUser\AreaController::class, 'drawer']
+    )
+        ->whereNumber(['areaUnit', 'association'])
+        ->whereIn('section', ['overview', 'members', 'projects', 'gis'])
+        ->name('areas.drawer');
+
+// Recheck the officer's assignment whenever drawer information is requested.
+Route::get('/areas/{areaUnit}/associations/{association}/{section}', [
+    \App\Http\Controllers\FieldOfficerUser\AreaController::class,
+    'details',
+])
+    ->whereNumber('areaUnit')
+    ->whereNumber('association')
+    ->whereIn('section', ['association', 'members', 'projects', 'gis'])
+    ->name('areas.details');
 
 Route::get('/associations', [\App\Http\Controllers\FieldOfficerUser\AssociationController::class, 'index'])->name('associations.index');
     Route::get('/associations/{association}', [\App\Http\Controllers\FieldOfficerUser\AssociationController::class, 'show'])->whereNumber('association')->name('associations.show');
@@ -331,4 +350,3 @@ Route::patch('/admin/gis/{location}/unpublish', [GisController::class, 'unpublis
     ->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.unpublish');
 Route::patch('/admin/gis/{location}/archive', [GisController::class, 'archive'])
     ->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.archive');
-

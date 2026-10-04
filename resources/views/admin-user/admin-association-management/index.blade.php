@@ -86,7 +86,7 @@
                class="am-association-card rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
                aria-haspopup="dialog" aria-label="{{ $label }}: {{ $summary[$key] }}. View matching records.">
                 <span class="block text-sm font-medium text-slate-600">{{ $label }}</span>
-                <span class="mt-2 block text-3xl font-bold tabular-nums text-slate-900">{{ $summary[$key] }}</span>
+                <span data-count-up class="mt-2 block text-3xl font-bold tabular-nums text-slate-900">{{ $summary[$key] }}</span>
                 <span class="mt-1 block text-xs text-slate-500">{{ $key === 'total' ? 'Current and archived records' : ($key === 'archived' ? 'Historical records' : 'Current records only') }}</span>
             </a>
         @endforeach
