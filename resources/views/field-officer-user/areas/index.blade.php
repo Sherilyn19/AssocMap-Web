@@ -78,27 +78,22 @@
                     </svg>
                     Filter assigned coverage
                 </h2>
-
-                <p class="mt-1 text-sm text-slate-500">
-                    Search your associations and review their geographic information.
-                </p>
             </div>
 
             <span class="fo-pill fo-pill-teal">Your assignments only</span>
         </div>
 
-        <div class="grid gap-4 p-5 lg:grid-cols-3">
-            <label class="fo-filter-field">
+        <div class="grid gap-4 px-5 py-3 lg:grid-cols-3">
+            <label class="flex min-w-0 flex-col gap-2">
                 <span>Search</span>
                 <input type="search"
                     name="search"
                     maxlength="150"
                     value="{{ $search }}"
                     placeholder="Association, municipality, barangay">
-                <small>Matches names within your assigned records.</small>
             </label>
 
-            <label class="fo-filter-field">
+            <label class="flex min-w-0 flex-col gap-2">
                 <span>Association archive state</span>
                 <select name="archive">
                     <option value="current" @selected($archive === 'current')>
@@ -111,10 +106,9 @@
                         All assigned associations
                     </option>
                 </select>
-                <small>Archive state is separate from operational status.</small>
             </label>
 
-            <label class="fo-filter-field fo-filter-warning">
+            <label class="flex min-w-0 flex-col gap-2">
                 <span>Geographic information</span>
                 <select name="quality">
                     <option value="all" @selected($quality === 'all')>
@@ -124,9 +118,6 @@
                         Needs review
                     </option>
                 </select>
-                <small>
-                    Find missing municipality, barangay, or mismatched records.
-                </small>
             </label>
         </div>
 
