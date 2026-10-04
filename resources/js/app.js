@@ -5,7 +5,11 @@
 import './bootstrap';
 import './shared/monitoring';
 import './shared/sidebar';
-import './field-officer-user/field-officer-area-management.ts';
+import './shared/count-up';
+// Reuse scrolling context headings in drawers across user roles.
+import './shared/drawer-context';
+// Initialize the coverage dialog only on the Field Officer Assigned Areas page.
+import './field-officer-user/assigned-areas';
 import './admin-user/admin-user-management';
 import './admin-user/admin-area-management';
 import './admin-user/admin-association-management';

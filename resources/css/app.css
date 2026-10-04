@@ -7,6 +7,45 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Two clipped halves share a center hinge, like stacked calendar pages. */
+.am-count-flip {
+    display: inline-flex;
+    vertical-align: bottom;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.am-count-digit {
+    position: relative;
+    display: inline-block;
+    width: .65em;
+    height: 1.2em;
+    perspective: 5em;
+}
+.am-count-half {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    overflow: hidden;
+    background: var(--count-surface, white);
+    backface-visibility: hidden;
+    text-align: center;
+}
+.am-count-half > span {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 1.2em;
+    line-height: 1.2;
+}
+.am-count-top { top: 0; transform-origin: center bottom; }
+.am-count-top > span { top: 0; }
+.am-count-bottom { bottom: 0; transform-origin: center top; }
+.am-count-bottom > span { bottom: 0; }
+.am-count-turn { z-index: 1; }
+.am-count-bottom.am-count-turn { z-index: 2; }
+
 /* Member records become labeled cards on small screens, preserving table semantics. */
 @layer components {
     .am-member [data-member-workspace] { overflow-wrap: anywhere; }
@@ -693,4 +732,108 @@
 @media (prefers-reduced-motion: reduce) {
     .od-metric { transition: none; }
     .od-metric:hover { transform: none; }
+}
+
+/* Shared button colors and logo-inspired drawer accents. */
+:root {
+    --am-button-green: #688a61;
+    --am-button-green-hover: #43624d;
+    --am-button-green-text: #f5f9f7;
+
+    --am-brand-navy: #084873;
+    --am-brand-teal: #176c73;
+    --am-brand-border: #cce1e6;
+    --am-brand-surface: #edf6f8;
+}
+
+/* Reuse this treatment through am-button-green.
+   Existing Field Officer primary buttons and selected tabs also use it. */
+button.am-button-green,
+a.am-button-green,
+button.fo-primary,
+a.fo-primary,
+a.fo-count-green,
+.fo-drawer-tabs a[aria-current="page"] {
+    background-color: var(--am-button-green);
+    background-image: linear-gradient(
+        var(--am-button-green-hover),
+        var(--am-button-green-hover)
+    );
+    background-repeat: no-repeat;
+    background-position: left center;
+    background-size: 0% 100%;
+    border-color: var(--am-button-green);
+    color: var(--am-button-green-text);
+    transition: background-size 260ms ease, border-color 260ms ease;
+}
+
+/* The darker rectangle fills from left to right without covering the text. */
+button.am-button-green:is(:hover, :focus-visible),
+a.am-button-green:is(:hover, :focus-visible),
+button.fo-primary:is(:hover, :focus-visible),
+a.fo-primary:is(:hover, :focus-visible),
+a.fo-count-green:is(:hover, :focus-visible),
+.fo-drawer-tabs a[aria-current="page"]:is(:hover, :focus-visible) {
+    background-color: var(--am-button-green);
+    background-size: 100% 100%;
+    border-color: var(--am-button-green-hover);
+    color: var(--am-button-green-text);
+}
+
+/* Shared drawer styling preserves existing font sizes. */
+[data-context-drawer] > .am-drawer-header {
+    flex-shrink: 0;
+    background: linear-gradient(110deg, #ffffff, var(--am-brand-surface));
+    border-bottom: 1px solid var(--am-brand-border);
+    box-shadow: inset 4px 0 var(--am-brand-teal);
+}
+
+.am-drawer-header [data-drawer-heading] {
+    min-width: 0;
+    color: var(--am-brand-navy);
+    overflow-wrap: break-word;
+}
+
+.am-drawer-header button {
+    flex-shrink: 0;
+}
+
+.am-drawer-intro {
+    padding: 1rem;
+    border: 1px solid var(--am-brand-border);
+    border-left: 4px solid var(--am-brand-teal);
+    border-radius: .85rem;
+    background: linear-gradient(120deg, #ffffff, var(--am-brand-surface));
+}
+
+.am-drawer-intro .fo-eyebrow {
+    color: var(--am-brand-teal);
+}
+
+.am-drawer-intro .fo-drawer-title {
+    color: var(--am-brand-navy);
+}
+
+.am-drawer-nav {
+    padding: .4rem;
+    gap: .4rem;
+    border: 1px solid var(--am-brand-border);
+    border-radius: .85rem;
+    background: white;
+}
+
+.am-drawer-nav a:not([aria-current="page"]):is(:hover, :focus-visible) {
+    background: var(--am-brand-surface);
+    color: var(--am-brand-navy);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    button.am-button-green,
+    a.am-button-green,
+    button.fo-primary,
+    a.fo-primary,
+    a.fo-count-green,
+    .fo-drawer-tabs a[aria-current="page"] {
+        transition: none;
+    }
 }
