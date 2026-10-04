@@ -1,0 +1,228 @@
+/* Scope these styles to Assigned Areas and its detail pages. */
+.fo-areas {
+    --fo-navy: #0f172a;
+    --fo-border: #d8e6dd;
+    --fo-muted: #64748b;
+    --fo-teal: #115e59;
+}
+.fo-stack { display: grid; gap: 1.25rem; }
+.fo-title { margin-top: .35rem; font-size: 1.65rem; font-weight: 750; }
+.fo-eyebrow { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #115e59; }
+.fo-muted, .fo-record-id { color: #64748b; }
+.fo-record-id { display: block; margin-top: .35rem; font-size: .75rem; font-weight: 400; overflow-wrap: anywhere; }
+.fo-record-title, .fo-drawer-title { margin: .5rem 0; font-size: 1.05rem; font-weight: 700; }
+.fo-card { border: 1px solid #d8e6dd; border-radius: 1rem; background: white; }
+.fo-card-padded { padding: 1rem; }
+/* Align the section title and actions, allowing them to wrap on small screens. */
+.fo-section-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; }
+
+/* Field Officer coverage uses the existing muted application palette. */
+.fo-coverage {
+    --fo-green: #1f6e3d;
+    --fo-teal: #115e59;
+    --fo-border: #d8e6dd;
+}
+.fo-coverage :is(a, button, input, select, summary):focus-visible {
+    outline: 3px solid #0f766e;
+    outline-offset: 3px;
+}
+.fo-eyebrow {
+    color: #115e59;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+}
+.fo-area-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem;
+    border: 1px solid #cce0d5;
+    border-radius: 1rem;
+    background: #eef5f2;
+}
+.fo-area-icon {
+    padding: .8rem;
+    border-radius: .85rem;
+    color: #1f6e3d;
+    background: #dceee2;
+}
+.fo-area-icon svg { width: 1.5rem; height: 1.5rem; }
+.fo-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .35rem .65rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 600;
+}
+.fo-pill-green { color: #166534; background: #ecfdf3; border-color: #bbdfc7; }
+.fo-pill-teal { color: #115e59; background: #f0fdfa; border-color: #bce5dd; }
+.fo-pill-amber { color: #92400e; background: #fffbeb; border-color: #fcd889; }
+.fo-pill-slate { color: #475569; background: #f1f5f9; border-color: #dce3eb; }
+
+.fo-table-card, .fo-filter-card {
+    background: white;
+    border: 1px solid #d8e6dd;
+    border-radius: 1rem;
+    overflow: hidden;
+}
+.fo-section-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: 1.1rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+.fo-table { width: 100%; min-width: 850px; font-size: .875rem; text-align: left; }
+.fo-table th, .fo-table td { padding: 1rem; vertical-align: top; }
+.fo-table thead { background: #f8fafc; color: #475569; }
+.fo-table tbody tr + tr { border-top: 1px solid #e2e8f0; }
+.fo-table tbody tr:hover { background: #f8fafc; }
+/* Keep short controls readable; the table scrolls inside its own card. */
+.fo-area-detail .fo-table { table-layout: auto; }
+.fo-area-detail .fo-table th[scope="row"] { min-width: 13rem; }
+.fo-area-detail .fo-table-card { overflow-x: auto; }
+.fo-status summary, .fo-action, .fo-count { white-space: nowrap; }
+.fo-action svg, .fo-dialog-close svg { flex-shrink: 0; }
+.fo-row-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: .5rem;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: .75rem;
+}
+.fo-action, .fo-primary, .fo-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    min-height: 44px;
+    padding: .55rem .85rem;
+    border: 1px solid #cbd5e1;
+    border-radius: .65rem;
+    font-size: .875rem;
+    font-weight: 600;
+    transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+.fo-action { background: white; color: #334155; }
+.fo-action:hover { background: #f1f5f9; }
+.fo-action svg, .fo-dialog-close svg { width: 1.1rem; height: 1.1rem; }
+.fo-primary { color: white; background: #1f6e3d; border-color: #1f6e3d; }
+.fo-primary:hover { background: #17572f; }
+.fo-count { min-width: 44px; font-variant-numeric: tabular-nums; }
+.fo-count-green { color: #166534; background: #ecfdf3; border-color: #bbdfc7; }
+.fo-count-teal { color: #115e59; background: #f0fdfa; border-color: #bce5dd; }
+.fo-count-slate { color: #334155; background: #f1f5f9; }
+.fo-count:hover { box-shadow: 0 0 0 3px #dceee2; }
+
+/* Status details support hover, focus, and an explicit touch/click toggle. */
+.fo-status summary { cursor: pointer; list-style: none; }
+.fo-status summary::-webkit-details-marker { display: none; }
+.fo-status .fo-status-help { display: none; }
+.fo-status[open] .fo-status-help,
+.fo-status:hover .fo-status-help,
+.fo-status:focus-within .fo-status-help {
+    display: block;
+    width: 12rem;
+    margin-top: .5rem;
+    padding: .7rem;
+    border: 1px solid #cbd5e1;
+    border-radius: .65rem;
+    background: #fff;
+    color: #475569;
+    box-shadow: 0 4px 14px #0f172a12;
+    font-size: .75rem;
+    line-height: 1.5;
+}
+.fo-info-card, .fo-mini-card {
+    display: block;
+    padding: 1rem;
+    background: white;
+    border: 1px solid #d8e6dd;
+    border-radius: .85rem;
+}
+.fo-mini-card { background: #eef5f2; color: #1f6e3d; }
+.fo-mini-card:hover { background: #dceee2; }
+.fo-definition { display: grid; gap: .8rem; }
+.fo-definition > div { display: grid; grid-template-columns: 1fr 1.4fr; gap: .75rem; }
+.fo-definition dt { color: #64748b; font-size: .8rem; }
+.fo-definition dd { font-size: .875rem; overflow-wrap: anywhere; }
+.fo-warning { padding: 1rem; border: 1px solid #fcd889; border-radius: .75rem; background: #fffbeb; color: #92400e; font-size: .875rem; }
+.fo-summary-card { padding: 1.25rem; border: 1px solid #d8e6dd; border-top: 3px solid #1f6e3d; border-radius: .85rem; background: white; }
+.fo-summary-warning { border-color: #fcd889; border-top-color: #d97706; background: #fffbeb; }
+.fo-filter-field { padding: 1rem; border: 1px solid #e2e8f0; border-radius: .8rem; background: #f8fafc; }
+.fo-filter-field > span { display: block; font-size: .875rem; font-weight: 600; }
+.fo-filter-field input, .fo-filter-field select {
+    width: 100%; min-height: 44px; margin-top: .6rem; padding: .6rem;
+    border: 1px solid #cbd5e1; border-radius: .55rem; background: white;
+}
+.fo-filter-field small { display: block; margin-top: .6rem; color: #64748b; line-height: 1.5; }
+.fo-filter-warning { background: #fffbeb; border-color: #fde68a; }
+
+/* The drawer stays inside the native dialog's focus boundary. */
+.fo-dialog {
+    width: min(1500px, 96vw);
+    max-width: none;
+    height: min(900px, 92dvh);
+    max-height: 92dvh;
+    margin: auto;
+    padding: 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 1rem;
+    background: white;
+    color: #1f2937;
+    overflow: hidden;
+}
+.fo-dialog[open] { display: flex; flex-direction: column; }
+.fo-dialog::backdrop { background: #0f172a99; backdrop-filter: blur(3px); }
+.fo-dialog-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem; padding: 1rem 1.4rem; background: #0f172a; color: white;
+}
+.fo-dialog-close {
+    display: inline-flex; align-items: center; gap: .5rem;
+    min-height: 44px; padding: .5rem .9rem;
+    border: 1px solid #64748b; border-radius: .65rem;
+}
+.fo-workspace { position: relative; display: flex; flex: 1; min-height: 0; overflow: hidden; }
+.fo-main-panel { flex: 1; min-width: 0; min-height: 0; overflow: auto; padding: 1.25rem; }
+.fo-side-panel {
+    flex: 0 0 42%; min-width: 340px; max-width: 580px;
+    display: flex; flex-direction: column; background: #f8fafc;
+    border-left: 1px solid #d8e6dd;
+    /* Fade in place so focusing the drawer cannot scroll the workspace sideways. */
+    min-height: 0; overflow: hidden; opacity: 0;
+    transition: opacity 200ms ease;
+}
+.fo-side-panel[hidden] { display: none; }
+.fo-side-panel.is-open { opacity: 1; }
+.fo-side-header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: 1rem; background: white; border-bottom: 1px solid #d8e6dd; }
+.fo-side-body { padding: 1.1rem; overflow-y: auto; flex: 1; min-height: 0; }
+.fo-drawer-tabs { display: flex; flex-wrap: wrap; gap: .4rem; }
+.fo-drawer-tabs a { min-height: 44px; display: inline-flex; align-items: center; padding: .5rem .7rem; border-radius: .6rem; font-size: .8rem; font-weight: 600; color: #475569; }
+.fo-drawer-tabs a[aria-current] { background: #1f6e3d; color: white; }
+@media (max-width: 767px) {
+    .fo-dialog { width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; }
+    .fo-side-panel { position: absolute; inset: 0; min-width: 0; max-width: none; border-left: 0; }
+    .fo-main-panel { padding: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .fo-side-panel, .fo-action, .fo-primary, .fo-count { transition: none; }
+}
+/* Preserve semantic tones supplied by the coverage records. */
+.fo-pill[data-tone="warning"] { color: #92400e; background: #fffbeb; border-color: #fcd889; }
+.fo-pill[data-tone="success"] { color: #166534; background: #ecfdf3; border-color: #bbdfc7; }
+.fo-pill[data-tone="info"] { color: #115e59; background: #f0fdfa; border-color: #bce5dd; }
+.fo-side-header svg { width: 1.1rem; height: 1.1rem; }
+.fo-dialog-header .fo-eyebrow { color: #cbd5e1; }

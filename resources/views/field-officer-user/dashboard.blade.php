@@ -37,7 +37,7 @@
                         <path d="{{ $icon }}"/>
                     </svg>
                 </div>
-                <strong>{{ number_format($value) }}</strong>
+                <strong data-count-up>{{ number_format($value) }}</strong>
                 <p>{{ $context }}</p>
             </a>
         @endforeach
