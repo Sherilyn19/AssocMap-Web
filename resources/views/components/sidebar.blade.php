@@ -28,7 +28,7 @@
                 $navItems[0],
                 ['route' => 'officer.areas.index', 'label' => 'Assigned Areas', 'icon' => $moduleIcons['admin.associations.index']],
                 ['route' => 'officer.associations.index', 'label' => 'My Associations', 'icon' => $moduleIcons['admin.associations.index']],
-                ['route' => 'membership.index', 'label' => 'Members and Applications (read-only)', 'icon' => $navItems[1]['icon']],
+                ['route' => 'membership.index', 'label' => 'Members and Applications', 'icon' => $navItems[1]['icon']],
                 ['route' => 'officer.projects.index', 'label' => 'Projects and Delivery', 'icon' => $moduleIcons['projects.index']],
                 ['route' => 'officer.trainings.index', 'label' => 'Training Records', 'icon' => $moduleIcons['trainings.index']],
                 ['route' => 'monitoring.index', 'label' => 'Monitoring', 'icon' => 'M3 17l5-6 4 4 8-9M15 6h5v5'],

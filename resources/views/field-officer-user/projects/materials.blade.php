@@ -3,7 +3,10 @@
 @forelse ($project->materials as $material)
 <tr class="border-t"><td class="p-3">{{ $material->item_name }}</td><td class="p-3">{{ $material->quantity }} {{ $material->unit }}</td><td class="p-3">{{ $material->unit_cost ?? 'Not recorded' }}</td><td class="p-3">@include('shared.partials.badge', ['label' => $material->status?->status_name])</td><td class="p-3">
 @if (! $project->is_archived && ! $project->association->is_archived)
-<form method="POST" action="{{ route('officer.projects.delivery', [$project, $material]) }}" class="flex flex-wrap gap-2">@csrf @method('PATCH')<input type="hidden" name="_material_id" value="{{ $material->id }}"><input aria-label="Delivery date for {{ $material->item_name }}" type="date" name="delivery_date" aria-describedby="delivery-error-{{ $material->id }}" aria-invalid="{{ old('_material_id') == $material->id && $errors->has('delivery_date') ? 'true' : 'false' }}" value="{{ old('_material_id') == $material->id ? old('delivery_date') : $material->delivery_date?->format('Y-m-d') }}" class="rounded-lg border border-slate-300 p-2"><button class="am-officer-button">Save</button><p id="delivery-error-{{ $material->id }}" class="w-full text-sm text-red-800">{{ old('_material_id') == $material->id ? $errors->first('delivery_date') : '' }}</p></form>
+<form method="POST" action="{{ route('officer.projects.delivery', [$project, $material]) }}" class="flex flex-wrap gap-2">@csrf @method('PATCH')<input type="hidden" name="_material_id" value="{{ $material->id }}"><input aria-label="Delivery date for {{ $material->item_name }}" type="date" name="delivery_date" aria-describedby="delivery-error-{{ $material->id }}" aria-invalid="{{ old('_material_id') == $material->id && $errors->has('delivery_date') ? 'true' : 'false' }}" value="{{ old('_material_id') == $material->id ? old('delivery_date') : $material->delivery_date?->format('Y-m-d') }}" class="rounded-lg border border-slate-300 p-2">{{-- Only the delivery date is editable; the existing server rules remain in effect. --}}
+<button type="submit" class="fo-primary am-button-green">
+    Save date
+</button><p id="delivery-error-{{ $material->id }}" class="w-full text-sm text-red-800">{{ old('_material_id') == $material->id ? $errors->first('delivery_date') : '' }}</p></form>
 @else
 {{ $material->delivery_date?->format('M d, Y') ?? 'Not recorded' }}
 @endif

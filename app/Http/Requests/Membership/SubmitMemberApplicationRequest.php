@@ -27,6 +27,8 @@ final class SubmitMemberApplicationRequest extends FormRequest
     public function rules(): array
     {
         return MemberProfile::rules() + [
+            // A shared association login is not sufficient approval authority.
+            'review_passphrase' => ['required', 'string', 'max:72'],
             // Explicit rejection makes attempted privilege/ownership changes visible.
             'association_id' => ['prohibited'],
             'status_id' => ['prohibited'],

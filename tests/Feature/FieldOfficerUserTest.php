@@ -102,10 +102,19 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
         $this->withSession($this->sessionFor(3, 'Field Officer'))->get('/officer/dashboard')->assertRedirect('/member/dashboard');
     }
 
-    public function test_membership_is_view_only_and_administrator_actions_remain_denied(): void
+    public function test_membership_tabs_are_scoped_and_administrator_actions_remain_denied(): void
     {
         $application = DB::table('member_applications')->insertGetId(['association_id' => 1, 'first_name' => 'Pending', 'last_name' => 'Applicant', 'birthday' => '1990-01-01', 'status_id' => 1]);
-        $this->get('/membership')->assertOk()->assertSee('Representative')->assertSee('Pending Applicant')->assertDontSee('Submit Application');
+        // Each tab displays only its own table.
+        $this->get('/membership?tab=members')
+            ->assertOk()
+            ->assertSee('Representative')
+            ->assertDontSee('Pending Applicant');
+
+        $this->get('/membership?tab=applications')
+            ->assertOk()
+            ->assertSee('Pending Applicant')
+            ->assertDontSee('Submit Application');
         $this->get('/membership/members/1')->assertOk();
         $this->get('/membership/members/2')->assertForbidden();
         $this->get('/membership/applications/'.$application)->assertOk()->assertDontSee('name="review_passphrase"', false);
@@ -117,6 +126,69 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
             $this->call($method, $path)->assertRedirect('/officer/dashboard');
         }
         $this->assertSame(1, (int) DB::table('member_applications')->where('id', $application)->value('status_id'));
+    }
+
+    public function test_member_register_preserves_filtered_totals_and_independent_pagination(): void
+    {
+        // These additional records exist only in the rollback-only test schema.
+        for ($i = 1; $i <= 16; $i++) {
+            DB::table('members')->insert([
+                'association_id' => 1, 'first_name' => 'Listed', 'last_name' => sprintf('Person %02d', $i),
+                'birthday' => '1990-01-01', 'date_registered' => '2020-01-01',
+            ]);
+            DB::table('member_applications')->insert([
+                'association_id' => 1, 'first_name' => 'Listed', 'last_name' => sprintf('Applicant %02d', $i),
+                'birthday' => '1990-01-01', 'status_id' => 1,
+            ]);
+        }
+        $foreign = DB::table('member_applications')->insertGetId([
+            'association_id' => 2, 'first_name' => 'Foreign', 'last_name' => 'Application',
+            'birthday' => '1990-01-01', 'status_id' => 1,
+        ]);
+
+        $this->get('/membership?tab=members')->assertOk()->assertViewIs('field-officer-user.members.index')
+            ->assertViewHas('members', fn ($rows) => $rows->total() === 17 && $rows->count() === 15)
+            ->assertViewHas('applications', fn ($rows) => $rows->total() === 16 && $rows->count() === 15)
+            ->assertDontSee('Other Person')->assertDontSee('Foreign Application');
+        $this->get('/membership?tab=members&members_page=2')->assertOk()
+            ->assertViewHas('members', fn ($rows) => $rows->currentPage() === 2 && $rows->count() === 2)
+            ->assertViewHas('applications', fn ($rows) => $rows->currentPage() === 1);
+        $this->get('/membership?tab=applications&page=2')->assertOk()
+            ->assertViewHas('applications', fn ($rows) => $rows->currentPage() === 2 && $rows->count() === 1)
+            ->assertViewHas('members', fn ($rows) => $rows->currentPage() === 1);
+        $this->get('/membership?tab=applications&search=Listed&status=Approved')->assertOk()
+            ->assertViewHas('members', fn ($rows) => $rows->total() === 16)
+            ->assertViewHas('applications', fn ($rows) => $rows->total() === 0);
+        // Empty-state messages belong to the selected register.
+        $this->get('/membership?tab=members&search=NoMatch')
+            ->assertOk()
+            ->assertSee('No official members found');
+
+        $this->get('/membership?tab=applications&search=NoMatch')
+            ->assertOk()
+            ->assertSee('No applications found');
+        $this->get('/membership/applications/'.$foreign)->assertForbidden();
+    }
+
+    public function test_officer_record_dialog_uses_authorized_details_and_preserves_other_role_views(): void
+    {
+        $application = DB::table('member_applications')->insertGetId([
+            'association_id' => 1, 'first_name' => 'Reviewed', 'last_name' => 'Applicant',
+            'birthday' => '1990-01-01', 'status_id' => 3,
+            'reviewed_at' => '2025-01-02 10:00:00', 'reviewed_by_member_id' => 1,
+            'rejection_reason' => 'Missing required information.',
+        ]);
+        $this->get('/membership/applications/'.$application)->assertOk()
+            ->assertViewIs('field-officer-user.members.record')
+            ->assertSee('data-record-content', false)->assertSee('Missing required information.')
+            ->assertSee('Representative One')->assertDontSee('name="review_passphrase"', false);
+        $this->get('/membership/members/1')->assertOk()
+            ->assertViewIs('field-officer-user.members.record')->assertSee('MEMBER-000001');
+        $this->withSession($this->sessionFor(3, 'Association Member'))
+            ->get('/membership/applications/'.$application)->assertOk()
+            ->assertViewIs('shared.membership.application');
+        $this->withSession($this->sessionFor(1, 'System Administrator'))
+            ->get('/membership/members/1')->assertOk()->assertViewIs('shared.membership.member');
     }
 
     public function test_delivery_allows_only_date_and_checks_nested_ownership(): void

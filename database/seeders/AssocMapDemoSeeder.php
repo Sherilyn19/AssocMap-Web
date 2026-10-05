@@ -348,7 +348,8 @@ class AssocMapDemoSeeder extends Seeder
             ['Gregorio', 'Sumulong', 'Co', 'Male', '1976-12-06'],
         ];
 
-        $roles = ['Pangulo', 'Bise-Presidente', 'Kalihim', 'Ingat-Yaman', 'Miyembro'];
+        // Use English association roles consistently in sample records.
+        $roles = ['President', 'Vice President', 'Secretary', 'Treasurer', 'Member'];
         $beneficiaries = ['Rehistradong Mangingisda', 'Women Fisherfolk', 'Youth Fisherfolk'];
         $result = [];
         $personIndex = 0;
@@ -471,7 +472,7 @@ class AssocMapDemoSeeder extends Seeder
                             'application_id' => $applicationId,
                             'user_id' => null,
                             'sex_id' => $lookups['sex'][$sexName],
-                            'role_in_assoc' => 'Miyembro',
+                            'role_in_assoc' => 'Member',
                             'beneficiary_type' => 'Rehistradong Mangingisda',
                             'contact_number' => sprintf('09%09d', 180000001 + $applicantIndex),
                             'address' => "Barangay {$association['barangay']}, {$association['municipality']}, Cebu",

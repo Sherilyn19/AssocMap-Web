@@ -26,7 +26,10 @@ $profile = ['first_name' => 'Concurrent', 'last_name' => 'Applicant', 'birthday'
 try {
     $service = app(MembershipWorkflowService::class);
     match ($argv[1] ?? '') {
-        'submit' => $service->submit($actor, $profile),
+        // Match the credentials used by the main concurrency test.
+        'submit' => $service->submit($actor, $profile + [
+            'review_passphrase' => 'Race-private-secret',
+        ]),
         'review' => $service->review($actor, MemberApplication::findOrFail(1), ['decision' => 'Approved', 'review_passphrase' => 'Race-private-secret']),
         'credential' => $service->setReviewPassphrase(User::findOrFail(1), Member::findOrFail(1), 'Race-private-secret'),
         'founding' => app(FoundingMemberService::class)->create(User::findOrFail(1), Association::findOrFail(3), $profile + ['justification' => 'Verified founding record', 'profile_verified' => true]),

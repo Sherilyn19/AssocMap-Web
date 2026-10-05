@@ -59,6 +59,12 @@
         </nav>
     </header>
 
+    {{-- Administrator visibility does not grant draft editing or submission authority. --}}
+    <a href="{{ route('membership.drafts.index') }}"
+    class="fo-action">
+        View member drafts
+    </a>
+
     {{-- Feedback --}}
     @if (session('success'))
         <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">

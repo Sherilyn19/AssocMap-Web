@@ -9,6 +9,7 @@ use App\Models\Member;
 use App\Models\User;
 use App\Services\AdminUserManagementService;
 use App\Services\MembershipWorkflowService;
+use App\Services\FieldOfficerMembershipService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -77,7 +78,22 @@ final class MembershipAccountSecurityTest extends MembershipDatabaseTestCase
         $service = app(MembershipWorkflowService::class);
         $service->setReviewPassphrase(User::findOrFail(1), Member::findOrFail(1), self::SECRET);
         $actor = User::with('role')->findOrFail(3);
-        $application = $service->submit($actor, $this->profile());
+        // Prepare a Pending application through the FO workflow.
+        // The association account is still the actor whose review access is tested.
+        $officer = User::findOrFail(2);
+        $draftWorkflow = app(FieldOfficerMembershipService::class);
+
+        $draft = $draftWorkflow->create(
+            $officer,
+            1,
+            $this->profile()
+        );
+
+        $application = $draftWorkflow->submit(
+            $officer,
+            $draft,
+            $draft->revision
+        );
         DB::table('users')->where('id', 3)->update(['is_active' => false]);
         foreach (['Approved', 'Rejected'] as $decision) {
             try {

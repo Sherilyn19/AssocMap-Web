@@ -837,3 +837,54 @@ a.fo-count-green:is(:hover, :focus-visible),
         transition: none;
     }
 }
+
+/* Compact register navigation using the logo's navy and teal palette. */
+.am-register-switch {
+    display: flex;
+    flex-wrap: wrap;
+    width: fit-content;
+    max-width: 100%;
+    gap: .35rem;
+    padding: .3rem;
+    border: 1px solid var(--am-brand-border, #cce1e6);
+    border-radius: .85rem;
+    background: white;
+}
+
+.am-register-switch a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: .55rem 1rem;
+    border-radius: .6rem;
+    color: var(--am-brand-navy, #084873);
+    font-size: .875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 180ms ease, color 180ms ease;
+}
+
+.am-register-switch a:hover {
+    background: var(--am-brand-surface, #edf6f8);
+}
+
+.am-register-switch a[aria-current="page"] {
+    background: var(--am-brand-navy, #084873);
+    color: white;
+}
+
+.am-register-switch a[aria-current="page"]:hover {
+    background: var(--am-brand-teal, #176c73);
+}
+
+.am-register-switch a:focus-visible {
+    outline: 2px solid var(--am-brand-teal, #176c73);
+    outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .am-register-switch a {
+        transition: none;
+    }
+}

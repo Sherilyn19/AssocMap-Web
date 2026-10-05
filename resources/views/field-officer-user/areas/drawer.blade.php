@@ -69,7 +69,7 @@
                 @foreach([
                     'members' => ['current_members_count', 'Members'],
                     'projects' => ['retained_projects_count', 'Projects'],
-                    'gis' => ['locations_count', 'GIS locations'],
+                    'gis' => ['mapped_locations_count', 'GIS locations'],
                 ] as $key => [$field, $label])
                     <a data-area-drawer
                        href="{{ route('officer.areas.details', $parameters + ['section' => $key]) }}">
@@ -101,7 +101,7 @@
 
                 <a data-area-drawer class="fo-action"
                    href="{{ route('officer.areas.details', $parameters + ['section' => 'gis']) }}">
-                    View all {{ $association->locations_count }} GIS locations →
+                    View all {{ $association->mapped_locations_count }} GIS locations →
                 </a>
             </section>
 

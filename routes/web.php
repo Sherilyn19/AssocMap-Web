@@ -96,6 +96,14 @@ Route::get('/areas/{areaUnit}/associations/{association}/{section}', [
 
 Route::get('/associations', [\App\Http\Controllers\FieldOfficerUser\AssociationController::class, 'index'])->name('associations.index');
     Route::get('/associations/{association}', [\App\Http\Controllers\FieldOfficerUser\AssociationController::class, 'show'])->whereNumber('association')->name('associations.show');
+    // Every drawer request uses the same Field Officer authorization.
+    Route::get('/associations/{association}/details/{section}', [
+        \App\Http\Controllers\FieldOfficerUser\AssociationController::class,
+        'details',
+    ])
+    ->whereNumber('association')
+    ->whereIn('section', ['address', 'officer', 'members', 'projects', 'trainings'])
+    ->name('associations.details');
     Route::get('/projects', [\App\Http\Controllers\FieldOfficerUser\ProjectController::class, 'index'])->name('projects.index');
     Route::get('/projects/{project}', [\App\Http\Controllers\FieldOfficerUser\ProjectController::class, 'show'])->whereNumber('project')->name('projects.show');
     Route::patch('/projects/{project}/materials/{material}/delivery', [\App\Http\Controllers\FieldOfficerUser\ProjectController::class, 'delivery'])->whereNumber(['project', 'material'])->name('projects.delivery');
@@ -298,6 +306,41 @@ Route::middleware('assocmap.auth')->prefix('monitoring')->name('monitoring.')
         Route::put('/{type}/{record}', 'update')->whereIn('type', ['production', 'income', 'materials'])->whereNumber('record')->name('update');
     });
 
+    // Saved drafts are available to their eligible creator and administrator viewers.
+Route::middleware('assocmap.auth')
+    ->prefix('membership/drafts')
+    ->name('membership.drafts.')
+    ->controller(\App\Http\Controllers\MemberDraftController::class)
+    ->group(function (): void {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+
+        Route::post('/', 'store')
+            ->middleware('throttle:membership-submit')->name('store');
+
+        Route::get('/{draft}', 'show')->whereNumber('draft')->name('show');
+
+        Route::put('/{draft}', 'update')->whereNumber('draft')
+            ->middleware('throttle:membership-submit')->name('update');
+
+        Route::patch('/{draft}/cancel', 'cancel')->whereNumber('draft')
+            ->middleware('throttle:membership-submit')->name('cancel');
+
+        Route::post('/{draft}/submit', 'submit')->whereNumber('draft')
+            ->middleware('throttle:membership-submit')->name('submit');
+    });
+
+// Keep administrator routes administrator-only.
+Route::middleware('assocmap.auth:Field Officer')
+    ->prefix('officer/members')
+    ->name('officer.members.')
+    ->controller(\App\Http\Controllers\FieldOfficerUser\MemberController::class)
+    ->group(function (): void {
+        Route::get('/{member}/edit', 'edit')->whereNumber('member')->name('edit');
+        Route::put('/{member}', 'update')->whereNumber('member')->name('update');
+        Route::patch('/{member}/archive', 'archive')
+            ->whereNumber('member')->name('archive');
+    });    
 // MEMBERSHIP-WORKFLOW: scoped viewing; only the association account can submit/review.
 Route::middleware('assocmap.auth')->prefix('membership')->name('membership.')
     ->controller(MembershipController::class)->group(function (): void {

@@ -1,13 +1,51 @@
-<x-dashboard-layout title="Submit Membership Application" topbar-title="Submit Membership Application">
-<div data-member-workspace class="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
-    <a class="inline-flex min-h-11 items-center text-blue-800 underline" href="{{ route('member.applications') }}">← Back to applications</a>
-    <header class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"><h1 class="text-2xl font-bold">Submit Membership Application</h1><p class="mt-2 break-words text-sm leading-6 text-slate-600">{{ $association->name }} · Submission creates a Pending application. It does not add an official member.</p></header>
-    @include('shared.membership.partials.feedback')
-    <form method="POST" action="{{ route('membership.applications.store') }}" class="space-y-6 rounded-xl border bg-white p-6">
-        @csrf
-        {{-- The association is derived from login; there is deliberately no association selector. --}}
-        @include('shared.membership.partials.profile-fields')
-        <button class="am-user-button am-user-button-primary">Submit for review</button>
-    </form>
-</div>
+<x-dashboard-layout title="Register Association Member">
+    <div class="fo-coverage space-y-5">
+        <a href="{{ route('member.applications') }}" class="fo-action">
+            Back to applications
+        </a>
+
+        <header class="fo-card p-5">
+            <p class="fo-eyebrow">Association representative</p>
+            <h1 class="mt-2 text-2xl font-bold">Register Association Member</h1>
+            <p class="mt-2">{{ $association->name }}</p>
+        </header>
+
+        @include('shared.membership.partials.feedback')
+
+        <form method="POST"
+              action="{{ route('membership.applications.store') }}"
+              class="fo-card space-y-5 p-5">
+            @csrf
+
+            {{-- Existing shared profile validation remains in use. --}}
+            @include('shared.membership.partials.profile-fields')
+
+            <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <p>
+                    Registration requires the current representative's private
+                    passphrase. Successful verification creates an approved
+                    application and an official member.
+                </p>
+            </div>
+
+            <label class="block">
+                <span class="block font-semibold">Representative review passphrase</span>
+                {{-- Never repopulate a secret using old(). --}}
+                <input type="password"
+                       name="review_passphrase"
+                       required
+                       maxlength="72"
+                       autocomplete="off"
+                       class="mt-2 w-full rounded-lg border border-slate-300 p-3">
+
+                @error('review_passphrase')
+                    <span class="text-sm text-red-700">{{ $message }}</span>
+                @enderror
+            </label>
+
+            <button type="submit" class="fo-action am-button-green">
+                Verify and register member
+            </button>
+        </form>
+    </div>
 </x-dashboard-layout>

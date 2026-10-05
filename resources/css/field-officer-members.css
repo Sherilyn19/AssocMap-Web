@@ -1,0 +1,190 @@
+/* Members reuse the Area cards and buttons; these rules handle record-specific layout. */
+.fo-members-summary { display: block; text-decoration: none; transition: border-color 180ms ease, box-shadow 180ms ease; }
+.fo-members-summary:hover { border-color: var(--am-button-green, #688a61); box-shadow: 0 4px 14px #0848730d; }
+.fo-members-summary-link { display: flex; justify-content: space-between; margin-top: 1rem; color: var(--am-brand-teal, #176c73); font-size: .8rem; font-weight: 600; }
+.fo-members .fo-table-card { scroll-margin-top: 1rem; }
+.am-officer .am-content .fo-members-table { min-width: 680px; table-layout: auto; }
+.am-officer .am-content .fo-members-table .fo-members-name { min-width: 11rem; width: 25%; }
+.am-officer .am-content .fo-members-table td[data-label="Association"] { width: 26%; }
+.am-officer .am-content .fo-members-table .fo-pill { white-space: nowrap; }
+.am-officer .am-content .fo-members-table .fo-members-empty { padding: 2.5rem 1rem; }
+.fo-members-rejected { color: #9f1239; background: #fff1f2; border-color: #fecdd3; }
+/* Show the complete record in a spacious modal. */
+.fo-members-dialog { width: 96vw; height: 94dvh; max-height: 94dvh; }
+.fo-members-dialog .fo-dialog-header { flex-shrink: 0; }
+.fo-members-record .fo-section-heading { background: var(--am-brand-surface, #edf6f8); color: var(--am-brand-navy, #084873); border-radius: 1rem 1rem 0 0; }
+.fo-members-record dd { overflow-wrap: anywhere; }
+.fo-members-record dl > div { min-width: 0; }
+.fo-members-record .fo-primary { white-space: normal; }
+
+/* Keep the same records and labels on phones, arranged as readable record cards. */
+@media (max-width: 639px) {
+    .am-officer .am-content .fo-members-table, .am-officer .am-content .fo-members-table tbody { display: block; width: 100%; min-width: 0; }
+    .am-officer .am-content .fo-members-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .am-officer .am-content .fo-members-table tr { display: grid; padding: 1rem; gap: .75rem; }
+    .am-officer .am-content .fo-members-table :is(th, td) { display: block; width: auto !important; min-width: 0; padding: 0; white-space: normal; }
+    .am-officer .am-content .fo-members-table td[data-label] { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: .75rem; }
+    .am-officer .am-content .fo-members-table td[data-label]::before { content: attr(data-label); color: #64748b; font-size: .75rem; }
+    .am-officer .am-content .fo-members-table .fo-members-name { order: -1; }
+    .am-officer .am-content .fo-members-table .fo-members-action a { width: 100%; }
+    .fo-members-dialog { width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+    .am-officer .am-content .fo-members-dialog[open] { animation: fo-member-dialog-enter 160ms ease-out; }
+    @keyframes fo-member-dialog-enter { from { opacity: 0; } to { opacity: 1; } }
+}
+@media (prefers-reduced-motion: reduce) {
+    .fo-members-summary { transition: none; }
+}
+
+/* Keep the modal width stable when the association drawer opens. */
+.fo-members-dialog.has-association-panel {
+    width: 96vw;
+}
+
+@media (max-width: 767px) {
+    .fo-members-dialog.has-association-panel {
+        width: 100vw;
+        height: 100dvh;
+        max-height: 100dvh;
+        border-radius: 0;
+    }
+}
+
+/* Reusable warning colors: use amber for actions requiring care. */
+:root {
+    --am-warning-surface: #fffbeb;
+    --am-warning-hover: #fef3c7;
+    --am-warning-border: #fcd34d;
+    --am-warning-text: #92400e;
+}
+
+a.am-button-warning,
+button.am-button-warning {
+    background: var(--am-warning-surface);
+    border-color: var(--am-warning-border);
+    color: var(--am-warning-text);
+    transition: background-color 180ms ease, border-color 180ms ease;
+}
+
+a.am-button-warning:hover,
+button.am-button-warning:hover {
+    background: var(--am-warning-hover);
+    border-color: #d97706;
+}
+
+/* One compact row groups navigation and the primary creation action. */
+.am-members-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+}
+
+[data-members-workspace] .am-register-switch {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    padding: .25rem;
+    margin: 0;
+}
+
+[data-members-workspace] .am-register-switch a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: .55rem .85rem;
+    white-space: nowrap;
+}
+
+[data-members-workspace] .am-member-create {
+    min-height: 44px;
+    padding: .55rem .9rem;
+}
+
+/* Native dialog supplies focus containment; forms fit inside its content panel. */
+[data-members-workspace] [data-panel-fallback] {
+    display: none;
+}
+
+[data-members-workspace] [data-record-dialog] {
+    width: 96vw;
+    height: 94dvh;
+    max-height: 94dvh;
+}
+
+[data-members-workspace] [data-record-body] {
+    min-width: 0;
+    transform: none;
+    transition: none;
+}
+
+/* Keep the main modal still while the right drawer opens. */
+[data-members-workspace] [data-record-side] {
+    flex: 0 0 40%;
+    min-width: 320px;
+    max-width: 560px;
+    opacity: 1;
+    transform: none;
+    transition: none;
+}
+
+[data-members-workspace] [data-record-side] .fo-side-header {
+    background: #edf6f8;
+    border-bottom: 1px solid #cfe3e8;
+    color: #084873;
+}
+
+[data-members-workspace] [data-member-editor] > header {
+    background: var(--am-warning-surface);
+    border-color: var(--am-warning-border);
+    border-left: 4px solid #d97706;
+}
+
+/* Save feedback uses the existing blue/green palette. */
+.am-members-message {
+    border: 1px solid #b8d1c0;
+    border-radius: .75rem;
+    background: #edf6f0;
+    color: #244a35;
+    padding: .8rem 1rem;
+    margin-bottom: .75rem;
+}
+
+.am-members-message.is-error {
+    background: var(--am-warning-surface);
+    border-color: var(--am-warning-border);
+    color: var(--am-warning-text);
+}
+
+[data-members-workspace] :is(a, button, input, select, textarea):focus-visible {
+    outline: 3px solid #0b759b;
+    outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+    [data-members-workspace] [data-record-dialog] {
+        width: 100vw;
+        height: 100dvh;
+        max-height: 100dvh;
+        border-radius: 0;
+    }
+
+    /* The drawer covers the main panel on phones; JS makes the panel inert. */
+    [data-members-workspace] [data-record-side] {
+        position: absolute;
+        inset: 0;
+        min-width: 0;
+        max-width: none;
+        width: 100%;
+        z-index: 2;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    a.am-button-warning,
+    button.am-button-warning {
+        transition: none;
+    }
+}

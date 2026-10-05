@@ -40,6 +40,10 @@ class AppServiceProvider extends ServiceProvider
         );
         Gate::policy(Association::class, AssociationPolicy::class);
         Gate::policy(Member::class, MemberPolicy::class);
+        Gate::policy(
+            \App\Models\MemberDraft::class,
+            \App\Policies\MemberDraftPolicy::class
+        );
         Gate::policy(MemberApplication::class, MemberApplicationPolicy::class);
     }
 }

@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\Member;
 use App\Models\User;
 use App\Services\MembershipWorkflowService;
+use App\Services\FieldOfficerMembershipService;
 use Tests\Support\MembershipDatabaseTestCase;
 
 /** Export synthetic, authorized HTML for browser QA without creating real user records. */
@@ -16,9 +17,22 @@ final class MembershipBrowserFixtureTest extends MembershipDatabaseTestCase
     {
         $workflow = app(MembershipWorkflowService::class);
         $workflow->setReviewPassphrase(User::findOrFail(1), Member::findOrFail(1), 'fixture private review phrase');
-        $application = $workflow->submit(User::findOrFail(3), [
-            'first_name' => 'Sample Applicant', 'last_name' => 'For Browser Review', 'birthday' => '1990-02-03', 'sex_id' => 1,
+        // Prepare a real Pending application for the review-screen sample.
+        $officer = User::findOrFail(2);
+        $draftWorkflow = app(FieldOfficerMembershipService::class);
+
+        $draft = $draftWorkflow->create($officer, 1, [
+            'first_name' => 'Sample Applicant',
+            'last_name' => 'For Browser Review',
+            'birthday' => '1990-02-03',
+            'sex_id' => 1,
         ]);
+
+        $application = $draftWorkflow->submit(
+            $officer,
+            $draft,
+            $draft->revision
+        );
         $screens = [
             'register' => '/membership', 'submission' => '/membership/applications/create',
             'review' => '/membership/applications/'.$application->id, 'member' => '/membership/members/1',

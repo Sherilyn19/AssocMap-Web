@@ -11,6 +11,7 @@ use App\Services\AdminUserManagementService;
 use App\Services\AssociationManagementService;
 use App\Services\FoundingMemberService;
 use App\Services\MembershipWorkflowService;
+use App\Services\FieldOfficerMembershipService;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Process\Process;
@@ -34,9 +35,40 @@ final class MembershipConcurrencyTest extends MembershipDatabaseTestCase
         $actor = User::with('role')->findOrFail(3);
         $profile = ['first_name' => 'Concurrent', 'last_name' => 'Applicant', 'birthday' => '1990-02-03', 'sex_id' => 1];
         $application = null;
-        if (in_array($operation, ['duplicate-review', 'deactivate-review', 'replace-representative'], true)) {
-            $service->setReviewPassphrase(User::findOrFail(1), Member::findOrFail(1), 'Race-private-secret');
-            $application = $service->submit($actor, $profile);
+
+        // Registration and review scenarios need a configured representative.
+        // The password/credential scenario deliberately starts without that secret.
+        if (in_array($operation, [
+            'duplicate-submit',
+            'deactivate-submit',
+            'reassign-submit',
+            'duplicate-review',
+            'deactivate-review',
+            'replace-representative',
+        ], true)) {
+            $service->setReviewPassphrase(
+                User::findOrFail(1),
+                Member::findOrFail(1),
+                'Race-private-secret'
+            );
+        }
+
+        if (in_array($operation, [
+            'duplicate-review',
+            'deactivate-review',
+            'replace-representative',
+        ], true)) {
+            // Review races must start with a Pending FO application.
+            $officer = User::findOrFail(2);
+            $draftWorkflow = app(FieldOfficerMembershipService::class);
+
+            $draft = $draftWorkflow->create($officer, 1, $profile);
+
+            $application = $draftWorkflow->submit(
+                $officer,
+                $draft,
+                $draft->revision
+            );
         }
         if ($operation === 'duplicate-founding') {
             DB::table('associations')->insert(['name' => 'Empty Association']);
@@ -49,7 +81,10 @@ final class MembershipConcurrencyTest extends MembershipDatabaseTestCase
             $accounts = app(AdminUserManagementService::class);
             $workerOperation = 'submit';
             if ($operation === 'duplicate-submit') {
-                $service->submit($actor, $profile);
+            // The first verified registration succeeds; the competing one must fail.
+            $service->submit($actor, $profile + [
+                'review_passphrase' => 'Race-private-secret',
+            ]);
             } elseif ($operation === 'duplicate-review') {
                 $service->review($actor, $application, ['decision' => 'Approved', 'review_passphrase' => 'Race-private-secret']);
                 $workerOperation = 'review';
@@ -90,7 +125,14 @@ final class MembershipConcurrencyTest extends MembershipDatabaseTestCase
             $this->assertSame(0, $worker->getExitCode(), $worker->getOutput().$worker->getErrorOutput());
             $this->assertStringContainsString('RESULT:rejected', $worker->getOutput());
             $this->assertSame(in_array($operation, ['duplicate-submit', 'duplicate-review', 'deactivate-review', 'replace-representative'], true) ? 1 : 0, DB::table('member_applications')->count());
-            $this->assertSame($operation === 'duplicate-review' ? 1 : 0, Member::whereNotNull('application_id')->count());
+            // Both successful direct registration and approval create one official member.
+            // The competing request must never create a second member.
+            $this->assertSame(
+                in_array($operation, ['duplicate-submit', 'duplicate-review'], true)
+                    ? 1
+                    : 0,
+                Member::whereNotNull('application_id')->count()
+            );
             if ($operation === 'duplicate-founding') {
                 $this->assertSame(1, Member::where('association_id', 3)->count());
                 $this->assertSame(1, DB::table('audit_logs')->where('action_type', 'CREATE_FOUNDING_MEMBER')->count());

@@ -62,4 +62,54 @@ final class AssociationController extends Controller
                 ->withCount(['members' => fn ($q) => $q->where('is_archived', false)])->findOrFail($association),
         ]);
     }
+
+    public function details(
+        Request $request,
+        int $association,
+        string $section,
+        SessionUserResolver $resolver,
+        FieldOfficerUserAccess $access
+    ) {
+        $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        abort_unless(
+            in_array($section, ['address', 'officer', 'members', 'projects', 'trainings'], true),
+            404
+        );
+
+        // Recheck assignment on every request, including drawer pagination.
+        $association = $access->associations($resolver->resolve($request))
+            ->with(['areaUnit', 'subUnit', 'fieldOfficer'])
+            ->findOrFail($association);
+
+        // Load only the records needed by the selected drawer section.
+        $records = match ($section) {
+            'address' => $association->gisLocations()
+                ->whereNull('archived_at')
+                ->orderBy('location_name')->orderBy('id')
+                ->paginate(8),
+
+            'members' => $association->members()
+                ->where('is_archived', false)
+                ->orderBy('last_name')->orderBy('first_name')->orderBy('id')
+                ->paginate(8),
+
+            'projects' => $association->projects()
+                ->with('status')
+                ->orderBy('title')->orderBy('id')
+                ->paginate(8),
+
+            'trainings' => $association->trainings()
+                ->orderByDesc('date_conducted')->orderByDesc('id')
+                ->paginate(8),
+
+            default => null,
+        };
+
+        return view('field-officer-user.associations.drawer', compact(
+            'association', 'section', 'records'
+        ));
+    }
 }

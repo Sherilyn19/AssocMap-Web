@@ -20,9 +20,12 @@ final class MemberFiltersRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
+            'tab' => ['nullable', Rule::in(['members', 'applications', 'drafts'])],
+            'draft_state' => ['nullable', Rule::in(['draft', 'submitted', 'cancelled'])],
             'search' => ['nullable', 'string', 'max:255'],
             'beneficiary_type' => ['nullable', 'string', 'max:100'],
             'role_in_assoc' => ['nullable', Rule::in(MemberProfile::ROLES)],
+            'representative' => ['nullable', Rule::in(['yes', 'no'])],
             'record_state' => ['nullable', Rule::in(['current', 'archived', 'all'])],
             'sort' => ['nullable', Rule::in(['name_asc', 'name_desc', 'registered_asc', 'registered_desc', 'association_asc', 'submitted_asc', 'submitted_desc'])],
             'per_page' => ['nullable', 'integer', Rule::in([10, 15, 25, 50])],

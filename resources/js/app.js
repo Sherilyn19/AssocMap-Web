@@ -6,8 +6,16 @@ import './bootstrap';
 import './shared/monitoring';
 import './shared/sidebar';
 import './shared/count-up';
+// Shared read-only record dialogs, initially used by Field Officer members.
+import './shared/record-dialog';
+// Record layout is scoped to the Field Officer Members module.
+import '../css/field-officer-members.css';
+// Project-specific layout; shared data and delivery behavior remain unchanged.
+import '../css/field-officer-projects.css';
 // Reuse scrolling context headings in drawers across user roles.
 import './shared/drawer-context';
+// Editable Members workspace: registers, draft modal, and management drawer.
+import './field-officer-user/members-workspace';
 // Initialize the coverage dialog only on the Field Officer Assigned Areas page.
 import './field-officer-user/assigned-areas';
 import './admin-user/admin-user-management';
@@ -109,4 +117,3 @@ if (document.querySelector('[data-gis-page]')) {
 }
 
 import './shared/workspace-details.ts';
-

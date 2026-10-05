@@ -44,15 +44,39 @@ final class MemberPolicy
         };
     }
 
-    public function update(User $user, Member $member): bool
-    {
-        return $user->is_active
-            && $user->role?->role_name === 'System Administrator';
-    }
+        public function update(User $user, Member $member): bool
+        {
+            // Preserve the existing administrator permission.
+            if ($user->is_active
+                && $user->role?->role_name === 'System Administrator') {
+                return true;
+            }
 
-    public function archive(User $user, Member $member): bool
-    {
-        return $user->is_active
-            && $user->role?->role_name === 'System Administrator';
-    }
+            return $this->officerCanManage($user, $member);
+        }
+
+        public function archive(User $user, Member $member): bool
+        {
+            // The existing archive service enforces administrator archive restrictions.
+            if ($user->is_active
+                && $user->role?->role_name === 'System Administrator') {
+                return true;
+            }
+
+            // Field Officers must not archive the currently designated representative.
+            return $this->officerCanManage($user, $member)
+                && (int) $member->association?->representative_member_id
+                    !== (int) $member->id;
+        }
+
+        private function officerCanManage(User $user, Member $member): bool
+        {
+            // Historical members and archived associations cannot receive normal edits.
+            return $user->is_active
+                && $user->role?->role_name === 'Field Officer'
+                && !$member->is_archived
+                && $member->association !== null
+                && !$member->association->is_archived
+                && (int) $member->association->field_officer_id === (int) $user->id;
+        }
 }
