@@ -18,7 +18,15 @@
     <section class="am-training-panel" aria-label="Training schedule">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-2"><h3 class="font-semibold">Training schedule</h3><span class="am-training-category">{{ $schedule }}</span></div>
         @include('shared.trainings.dates', ['compact' => false])
-        <p class="mt-3 text-xs text-slate-500">Dates are read-only. A schedule ending does not confirm training completion.</p>
+        {{-- Only the FO view uses the newly approved schedule-editing rule. --}}
+        <p class="mt-3 text-xs text-slate-500">
+            @if(session('auth_user.role_name') === 'Field Officer')
+                Dates may change only before participant registration starts.
+            @else
+                Dates are read-only.
+            @endif
+            A schedule ending does not confirm training completion.
+        </p>
     </section>
     <section class="am-training-panel" aria-label="Attendance progress">
         <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-semibold">Attendance progress</h3><p class="mt-1 text-sm text-slate-500">{{ $recorded }} of {{ $total }} attendance records finalized</p></div><strong data-count-up class="text-2xl tabular-nums text-emerald-700">{{ $total ? $percentage.'%' : '—' }}</strong></div>

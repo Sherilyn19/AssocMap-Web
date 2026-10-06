@@ -1,0 +1,105 @@
+/* Training controls reuse the existing AssocMap palette and button colors. */
+.fo-training-ui :is(input:not([type="checkbox"]):not([type="hidden"]), select, textarea) {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: .65rem .8rem;
+    border: 1px solid var(--am-brand-border, #cce1e6);
+    border-radius: .65rem;
+    background: #fff;
+    color: #0f172a;
+}
+
+.fo-training-ui input[type="checkbox"] {
+    width: 1.1rem;
+    height: 1.1rem;
+    flex-shrink: 0;
+    margin-top: .2rem;
+}
+
+.fo-training-ui :is(input, select, textarea, button, a):focus-visible {
+    outline: 2px solid var(--am-brand-teal, #176c73);
+    outline-offset: 3px;
+}
+
+/* Archive is a caution action rather than a primary green action. */
+.fo-training-ui .fo-training-warning {
+    background: #fffbeb;
+    border-color: #fcd889;
+    color: #92400e;
+}
+
+.fo-training-ui .fo-training-warning:hover {
+    background: #fef3c7;
+}
+
+/* Supporting information opens at the right without moving the parent modal. */
+.fo-training-editor {
+    position: fixed;
+    inset: 1rem 1rem 1rem auto;
+    width: min(700px, calc(100vw - 2rem));
+    max-width: none;
+    height: calc(100dvh - 2rem);
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--am-brand-border, #cce1e6);
+    border-radius: 1rem;
+    background: white;
+    color: #0f172a;
+    overflow: hidden;
+}
+
+.fo-training-editor[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Creation gets a centered form; related actions remain in the right drawer. */
+.fo-training-editor.is-create {
+    inset: 1rem;
+    width: min(860px, calc(100vw - 2rem));
+    margin-inline: auto;
+}
+
+.fo-training-editor::backdrop {
+    background: rgb(15 23 42 / 35%);
+}
+
+.fo-training-editor__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    flex-shrink: 0;
+    background: #0f172a;
+    color: white;
+}
+
+.fo-training-editor__body {
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1.25rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .fo-training-editor[open] {
+        animation: fo-training-reveal 160ms ease-out;
+    }
+
+    @keyframes fo-training-reveal {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+}
+
+@media (max-width: 639px) {
+    .fo-training-editor,
+    .fo-training-editor.is-create {
+        inset: 0;
+        width: 100%;
+        height: 100dvh;
+        border-radius: 0;
+    }
+}

@@ -38,6 +38,10 @@ final class Training extends Model
             'date_conducted' => 'date',
             'end_date' => 'date',
             'is_archived' => 'boolean',
+            // Keep money precise and workflow markers readable as dates.
+            'training_cost' => 'decimal:2',
+            'external_approval_recorded_at' => 'datetime',
+            'schedule_locked_at' => 'datetime',
         ];
     }
 

@@ -15,6 +15,28 @@ final class MonitoringService
 
     public const CONDITIONS = ['Good', 'Damaged', 'For Repair'];
 
+    // Production units are separate from project material/equipment units.
+    public const UNITS = [
+        'g' => 'Grams (g)',
+        'kg' => 'Kilograms (kg)',
+        'mt' => 'Metric tons (MT)',
+        'pcs' => 'Pieces (pcs)',
+        'count' => 'Individuals (count)',
+        'ml' => 'Milliliters (mL)',
+        'l' => 'Liters (L)',
+        'pack' => 'Packs',
+        'bottle' => 'Bottles',
+        'jar' => 'Jars',
+        'can' => 'Cans',
+        'box' => 'Boxes',
+        'bag' => 'Bags',
+        'tray' => 'Trays',
+    ];
+
+    public const PACKAGED_UNITS = [
+        'pack', 'bottle', 'jar', 'can', 'box', 'bag', 'tray',
+    ];
+
     public function authorize(User $actor): void
     {
         abort_unless($actor->is_active && in_array($actor->role?->role_name, ['System Administrator', 'Field Officer'], true), 403);
@@ -50,9 +72,33 @@ final class MonitoringService
         $query->leftJoin('statuses as project_status', 'project_status.id', '=', 'p.status_id');
         $query->select('p.terminated_on', 'project_status.status_name as project_status_name', 'm.*', 'p.id as project_id', 'p.title as project_title', 'a.name as association_name', 'p.is_archived as project_archived', 'a.is_archived as association_archived');
         if ($type === 'materials') {
-            $query->addSelect('pm.item_name', 's.status_name');
+            $query->addSelect(
+                'pm.item_name',
+                'pm.archived_at as material_archived_at',
+                's.status_name'
+            );
         } elseif ($type === 'production') {
             $query->addSelect('q.quarter_name');
+
+        // Calculate the annual total from the source records.
+        // Suppress it if any record in that project/year lacks a matching confirmed unit.
+        $query->selectSub(function ($annual): void {
+            $annual->from('monitoring_production as annual')
+                ->whereColumn('annual.project_id', 'p.id')
+                ->whereColumn('annual.association_id', 'a.id')
+                ->whereColumn('annual.year', 'm.year')
+                ->selectRaw('
+                    CASE
+                        WHEN COUNT(*) = COUNT(*) FILTER (
+                            WHERE annual.output_unit_code = p.production_unit_code
+                            AND annual.output_unit_spec
+                                IS NOT DISTINCT FROM p.production_unit_spec
+                        )
+                        THEN SUM(annual.actual_output)
+                        ELSE NULL
+                    END
+                ');
+        }, 'year_actual_total');
         }
 
         return $query;

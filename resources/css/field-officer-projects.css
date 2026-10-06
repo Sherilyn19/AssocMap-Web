@@ -6,7 +6,24 @@
 }
 
 .am-officer .am-content .fo-project-table {
-    min-width: 680px;
+    min-width: 960px;
+}
+
+/* Match the Area workspace action and keep wide filter labels contained. */
+.fo-projects .fo-project-map {
+    background: #0f172a;
+    border-color: #0f172a;
+    color: white;
+}
+.fo-projects .fo-project-map:hover { background: #1e293b; }
+.fo-projects .fo-filter-card :is(input, select) { width: 100%; min-width: 0; }
+.fo-projects .fo-project-table .fo-pill { white-space: nowrap; }
+.fo-projects .am-project-details > section > :is(h2, h3) {
+    padding: .8rem 1rem;
+    margin: -1.25rem -1.25rem 1rem;
+    background: var(--fo-project-surface);
+    border-bottom: 1px solid var(--fo-project-border);
+    border-radius: 1rem 1rem 0 0;
 }
 
 .fo-project-table th[scope="row"] {
@@ -156,4 +173,102 @@
     .am-officer .am-content .fo-project-dialog[open] {
         animation: none;
     }
+}
+
+/* Keep management beside the project details, using the existing palette. */
+.fo-project-editor {
+    position: fixed;
+    inset: 1rem 1rem 1rem auto;
+    width: min(620px, calc(100vw - 2rem));
+    height: calc(100dvh - 2rem);
+    max-height: none;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--am-brand-border, #cce1e6);
+    border-radius: 1rem;
+    background: white;
+    color: #0f172a;
+}
+
+.fo-project-editor[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.fo-project-editor.is-create {
+    inset: 1rem;
+    width: min(820px, calc(100vw - 2rem));
+    margin-inline: auto;
+}
+
+.fo-project-editor::backdrop {
+    background: rgb(15 23 42 / 35%);
+}
+
+.fo-project-editor > header {
+    flex-shrink: 0;
+}
+
+.fo-project-editor-body {
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1.25rem;
+}
+
+.fo-project-editor-body :is(input:not([type="checkbox"]), select, textarea) {
+    min-height: 44px;
+    padding: .65rem .75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: .65rem;
+    background: white;
+}
+
+.fo-project-editor :is(input, select, textarea, button, a):focus-visible {
+    outline: 3px solid var(--am-brand-teal, #176c73);
+    outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .fo-project-editor[open] {
+        animation: fo-project-editor-enter 180ms ease-out;
+    }
+
+    @keyframes fo-project-editor-enter {
+        from { opacity: 0; transform: translateX(16px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    .fo-project-editor.is-create[open] {
+        animation-name: fo-project-appear;
+    }
+}
+
+@media (max-width: 639px) {
+    .fo-project-editor,
+    .fo-project-editor.is-create {
+        inset: 0;
+        width: 100vw;
+        height: 100dvh;
+        border-radius: 0;
+    }
+}
+
+/* Give project statuses enough space to remain readable on one line. */
+.fo-projects .fo-project-table td[data-label="Status"] {
+    min-width: 8rem;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+/* Preserve the existing badge colors and prevent compressed labels. */
+.fo-projects .fo-project-table td[data-label="Status"] > span {
+    display: inline-flex;
+    width: max-content;
+    max-width: none;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
 }

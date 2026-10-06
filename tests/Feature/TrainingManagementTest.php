@@ -34,6 +34,10 @@ final class TrainingManagementTest extends MembershipDatabaseTestCase
                 UNIQUE(training_id,member_id)
             );
         SQL);
+        // Add training workflow fields to the temporary test database.
+        (require base_path(
+            'database/migrations/2026_10_06_000002_add_training_workflow_markers.php'
+        ))->up();
     }
 
     private function payload(array $extra = []): array

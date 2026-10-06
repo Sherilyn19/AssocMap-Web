@@ -15,18 +15,197 @@ final class TrainingManagementService
 {
     public const ATTENDANCE_STATUSES = ['Pending', 'Present', 'Absent'];
 
-    public function updateOfficerInformation(Training $training, array $data, \App\Models\User $actor): void
+    /**
+     * Shared validation for FO requests and direct service calls.
+     * Approval confirmation is required only when recording a new training.
+     */
+    public static function officerRules(bool $creating): array
     {
+        $rules = [
+            'stage' => [
+                'required',
+                \Illuminate\Validation\Rule::in(array_keys(Training::STAGES)),
+            ],
+            'remarks' => ['nullable', 'string', 'max:5000'],
+            'is_archived' => ['prohibited'],
+            'external_approval_recorded_at' => ['prohibited'],
+            'schedule_locked_at' => ['prohibited'],
+        ];
+
+        if ($creating) {
+            return $rules + [
+                'association_id' => ['required', 'integer', 'min:1'],
+                'title' => ['required', 'string', 'max:255'],
+                'program_component_id' => [
+                    'required', 'integer', 'exists:program_components,id',
+                ],
+                'training_type' => ['required', 'string', 'max:100'],
+                'venue' => ['required', 'string', 'max:255'],
+                'conducted_by' => ['required', 'string', 'max:255'],
+                'date_conducted' => ['required', 'date_format:Y-m-d'],
+                'end_date' => [
+                    'required', 'date_format:Y-m-d', 'after_or_equal:date_conducted',
+                ],
+                'training_cost' => [
+                    'required', 'numeric', 'min:0',
+                    'max:999999999999.99', 'decimal:0,2',
+                ],
+                'approval_confirmed' => ['required', 'accepted'],
+            ];
+        }
+
+        return $rules + [
+            // FO cannot change the approved identity, budget, or association.
+            'association_id' => ['prohibited'],
+            'title' => ['prohibited'],
+            'program_component_id' => ['prohibited'],
+            'training_type' => ['prohibited'],
+            'venue' => ['prohibited'],
+            'conducted_by' => ['prohibited'],
+            'training_cost' => ['prohibited'],
+            'approval_confirmed' => ['prohibited'],
+
+            // Both dates must be supplied together when changing the schedule.
+            'date_conducted' => [
+                'sometimes', 'required', 'required_with:end_date', 'date_format:Y-m-d',
+            ],
+            'end_date' => [
+                'sometimes', 'required', 'required_with:date_conducted',
+                'date_format:Y-m-d', 'after_or_equal:date_conducted',
+            ],
+        ];
+    }
+
+    /** Record a training that has already received approval outside AssocMap. */
+    public function createOfficerTraining(
+        array $data,
+        \App\Models\User $actor
+    ): Training {
+        return DB::transaction(function () use ($data, $actor): Training {
+            $data = validator($data, self::officerRules(true))->validate();
+
+            // Recheck the current assignment inside the transaction.
+            $association = app(FieldOfficerUserAccess::class)
+                ->lockAssociation($actor, (int) $data['association_id']);
+
+            $training = new Training;
+
+            $training->fill(\Illuminate\Support\Arr::only($data, [
+                'title', 'program_component_id', 'training_type', 'venue',
+                'date_conducted', 'end_date', 'stage', 'conducted_by', 'remarks',
+            ]));
+
+            // These values come from validated data and the authorized association.
+            $training->forceFill([
+                'association_id' => $association->id,
+                'training_cost' => $data['training_cost'],
+                'external_approval_recorded_at' => now(),
+                'is_archived' => false,
+            ])->save();
+
+            $this->audit(
+                (int) $actor->id,
+                'CREATE',
+                $training,
+                'Recorded externally approved training and budget. '
+                    .'FO confirmed completion of the external hearing and approval process.'
+            );
+
+            return $training;
+        }, 3);
+    }
+
+    /** Edit only purpose, remarks, and a schedule whose registration has not started. */
+    public function updateOfficerInformation(
+        Training $training,
+        array $data,
+        \App\Models\User $actor
+    ): void {
         DB::transaction(function () use ($training, $data, $actor): void {
-            $association = app(FieldOfficerUserAccess::class)->lockAssociation($actor, (int) $training->association_id);
+            // Match the training-first lock order used by attendance registration.
             $training = $this->lockedTraining($training);
-            abort_unless((int) $training->association_id === (int) $association->id, 404);
-            $data = validator($data, [
-                'venue' => ['required', 'string', 'max:255'], 'conducted_by' => ['required', 'string', 'max:255'],
-                'remarks' => ['nullable', 'string', 'max:5000'],
-            ])->validate();
-            $training->update($data);
-            $this->audit((int) $actor->id, 'UPDATE', $training, 'Updated venue, facilitator and remarks. Schedule and stage retained.');
+
+            app(FieldOfficerUserAccess::class)
+                ->lockAssociation($actor, (int) $training->association_id);
+
+            $data = validator($data, self::officerRules(false))->validate();
+
+            $hasStart = array_key_exists('date_conducted', $data);
+            $hasEnd = array_key_exists('end_date', $data);
+
+            if ($hasStart !== $hasEnd) {
+                $this->invalid('date_conducted', 'Provide both the start and end dates.');
+            }
+
+            if ($hasStart) {
+                $datesChanged =
+                    $data['date_conducted'] !== $training->date_conducted?->toDateString()
+                    || $data['end_date'] !== $training->end_date?->toDateString();
+
+                // Check both the permanent marker and existing participant records.
+                if ($datesChanged && (
+                    $training->schedule_locked_at !== null
+                    || $training->participants()->exists()
+                )) {
+                    $this->invalid(
+                        'date_conducted',
+                        'Dates cannot change after participant registration has started.'
+                    );
+                }
+            }
+
+            $before = \Illuminate\Support\Arr::only($training->getAttributes(), [
+                'stage', 'remarks', 'date_conducted', 'end_date',
+            ]);
+
+            $training->fill(\Illuminate\Support\Arr::only($data, [
+                'stage', 'remarks', 'date_conducted', 'end_date',
+            ]));
+
+            if (! $training->isDirty()) {
+                return;
+            }
+
+            $training->save();
+
+            $this->audit(
+                (int) $actor->id,
+                'UPDATE',
+                $training,
+                json_encode([
+                    'before' => $before,
+                    'after' => \Illuminate\Support\Arr::only(
+                        $training->getAttributes(),
+                        ['stage', 'remarks', 'date_conducted', 'end_date']
+                    ),
+                ], JSON_THROW_ON_ERROR)
+            );
+        }, 3);
+    }
+
+    /** Archive the assigned training while retaining participants and attendance. */
+    public function archiveOfficerTraining(
+        Training $training,
+        \App\Models\User $actor
+    ): void {
+        DB::transaction(function () use ($training, $actor): void {
+            $training = Training::query()->lockForUpdate()->findOrFail($training->id);
+
+            app(FieldOfficerUserAccess::class)
+                ->lockAssociation($actor, (int) $training->association_id);
+
+            if ($training->is_archived) {
+                return;
+            }
+
+            $training->update(['is_archived' => true]);
+
+            $this->audit(
+                (int) $actor->id,
+                'ARCHIVE',
+                $training,
+                'Archived training; participant and attendance history retained.'
+            );
         }, 3);
     }
 
@@ -105,6 +284,11 @@ final class TrainingManagementService
             $pending = Status::query()->where('status_name', 'Pending')->first();
             if (! $pending) {
                 $this->invalid('member_id', 'The Pending attendance status is unavailable. Please contact the system administrator.');
+            }
+            // Lock the schedule permanently when the first participant is registered.
+            // This marker remains even if an administrator later removes the participant.
+            if ($training->schedule_locked_at === null) {
+                $training->forceFill(['schedule_locked_at' => now()])->save();
             }
             $training->participants()->create(['member_id' => $memberId, 'attendance_status_id' => $pending->id]);
             $this->audit($actorId, 'CREATE', $training, 'Registered participant member #'.$memberId.'.');

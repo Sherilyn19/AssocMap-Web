@@ -104,16 +104,91 @@ Route::get('/associations', [\App\Http\Controllers\FieldOfficerUser\AssociationC
     ->whereNumber('association')
     ->whereIn('section', ['address', 'officer', 'members', 'projects', 'trainings'])
     ->name('associations.details');
+    // These routes inherit the existing Field Officer middleware.
+    // Route defaults choose the operation; browser inputs cannot choose another action.
+    Route::controller(
+        \App\Http\Controllers\FieldOfficerUser\ProjectManageController::class
+    )->group(function (): void {
+        Route::get('/projects/create', 'form')
+            ->defaults('kind', 'project')
+            ->name('projects.create');
+
+        Route::post('/projects', 'save')
+            ->defaults('kind', 'project')
+            ->name('projects.store');
+
+        Route::get('/projects/{project}/edit', 'form')
+            ->whereNumber('project')
+            ->defaults('kind', 'project')
+            ->name('projects.edit');
+
+        Route::put('/projects/{project}', 'save')
+            ->whereNumber('project')
+            ->defaults('kind', 'project')
+            ->name('projects.update');
+
+        Route::patch('/projects/{project}/archive', 'save')
+            ->whereNumber('project')
+            ->defaults('kind', 'archive-project')
+            ->name('projects.archive');
+
+        Route::get('/projects/{project}/materials/create', 'form')
+            ->whereNumber('project')
+            ->defaults('kind', 'material')
+            ->name('projects.materials.create');
+
+        Route::post('/projects/{project}/materials', 'save')
+            ->whereNumber('project')
+            ->defaults('kind', 'material')
+            ->name('projects.materials.store');
+
+        Route::get('/projects/{project}/materials/{material}/edit', 'form')
+            ->whereNumber(['project', 'material'])
+            ->defaults('kind', 'material')
+            ->name('projects.materials.edit');
+
+        Route::put('/projects/{project}/materials/{material}', 'save')
+            ->whereNumber(['project', 'material'])
+            ->defaults('kind', 'material')
+            ->name('projects.materials.update');
+
+        Route::patch('/projects/{project}/materials/{material}/archive', 'save')
+            ->whereNumber(['project', 'material'])
+            ->defaults('kind', 'archive-material')
+            ->name('projects.materials.archive');
+    });
     Route::get('/projects', [\App\Http\Controllers\FieldOfficerUser\ProjectController::class, 'index'])->name('projects.index');
     Route::get('/projects/{project}', [\App\Http\Controllers\FieldOfficerUser\ProjectController::class, 'show'])->whereNumber('project')->name('projects.show');
     Route::patch('/projects/{project}/materials/{material}/delivery', [\App\Http\Controllers\FieldOfficerUser\ProjectController::class, 'delivery'])->whereNumber(['project', 'material'])->name('projects.delivery');
-    Route::controller(\App\Http\Controllers\FieldOfficerUser\TrainingController::class)->prefix('trainings')->name('trainings.')->group(function (): void {
-        Route::get('/', 'index')->name('index');
-        Route::get('/{training}', 'show')->whereNumber('training')->name('show');
-        Route::put('/{training}', 'update')->whereNumber('training')->name('update');
-        Route::post('/{training}/participants', 'addParticipant')->whereNumber('training')->name('participants.store');
-        Route::patch('/{training}/participants/{participant}', 'attendance')->whereNumber(['training', 'participant'])->name('participants.attendance');
-    });
+    // Every training endpoint remains inside the existing Field Officer middleware group.
+    Route::controller(\App\Http\Controllers\FieldOfficerUser\TrainingController::class)
+        ->prefix('trainings')->name('trainings.')
+        ->group(function (): void {
+            Route::get('/', 'index')->name('index');
+            Route::get('/create', 'create')->name('create');
+            Route::post('/', 'store')->name('store');
+
+            Route::get('/{training}', 'show')
+                ->whereNumber('training')->name('show');
+
+            Route::get('/{training}/panel/{panel}', 'panel')
+                ->whereNumber('training')
+                ->whereIn('panel', ['edit', 'attendance', 'archive'])
+                ->name('panel');
+
+            Route::put('/{training}', 'update')
+                ->whereNumber('training')->name('update');
+
+            Route::patch('/{training}/archive', 'archive')
+                ->whereNumber('training')->name('archive');
+
+            Route::post('/{training}/participants', 'addParticipant')
+                ->whereNumber('training')->name('participants.store');
+
+            Route::patch('/{training}/participants/{participant}', 'attendance')
+                ->whereNumber(['training', 'participant'])
+                ->name('participants.attendance');
+        });
 });
 
 Route::get('/member/dashboard', [\App\Http\Controllers\MemberWorkspaceController::class, 'dashboard'])

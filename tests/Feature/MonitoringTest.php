@@ -14,7 +14,12 @@ final class MonitoringTest extends MembershipDatabaseTestCase
         parent::setUp();
         DB::unprepared(<<<'SQL'
             CREATE TABLE projects (id bigserial PRIMARY KEY, association_id bigint REFERENCES associations(id), title varchar, status_id bigint REFERENCES statuses(id), terminated_on date, is_archived boolean DEFAULT false);
-            CREATE TABLE project_materials (id bigserial PRIMARY KEY, project_id bigint REFERENCES projects(id), item_name varchar);
+            CREATE TABLE project_materials (
+                id bigserial PRIMARY KEY,
+                project_id bigint REFERENCES projects(id),
+                item_name varchar,
+                archived_at timestamp
+            );
             CREATE TABLE quarters (id bigserial PRIMARY KEY, quarter_name varchar);
             INSERT INTO quarters (quarter_name) VALUES ('Q1'),('Q2'),('Q3'),('Q4');
             INSERT INTO statuses (status_name) VALUES ('Good'),('Damaged'),('For Repair');
@@ -37,11 +42,16 @@ final class MonitoringTest extends MembershipDatabaseTestCase
                 created_by bigint REFERENCES users(id), created_at timestamp, updated_at timestamp
             );
         SQL);
+
+        // Apply the workflow migration only within this test's isolated schema.
+        (require base_path(
+            'database/migrations/2026_10_06_000003_update_monitoring_workflow.php'
+        ))->up();
     }
 
     private function production(array $extra = []): array
     {
-        return array_replace(['project_id' => 1, 'quarter_id' => 1, 'year' => 2025, 'target_output' => '100.00', 'actual_output' => '80.00', 'remarks' => 'Output in kilograms.'], $extra);
+        return array_replace(['project_id' => 1, 'quarter_id' => 1, 'year' => 2025, 'target_output' => '100.00', 'actual_output' => '80.00', 'remarks' => 'Output in kilograms.', 'output_unit_code' => 'kg', 'output_unit_spec' => null], $extra);
     }
 
     public function test_authentication_and_current_role_are_enforced(): void

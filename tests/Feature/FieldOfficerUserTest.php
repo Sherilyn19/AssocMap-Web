@@ -40,6 +40,12 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
             INSERT INTO monitoring_income (association_id,project_id,month,year,gross_income,created_by) VALUES (1,1,1,2025,150,2),(2,2,1,2025,900,1);
             INSERT INTO monitoring_materials (project_material_id,condition_status_id,created_by) VALUES (1,7,2),(2,7,1);
         SQL);
+
+        // Add training workflow fields to the temporary test database.
+        (require base_path(
+            'database/migrations/2026_10_06_000002_add_training_workflow_markers.php'
+        ))->up();
+        
         // The foreign association belongs to another actual Field Officer.
         DB::table('users')->insert(['id' => 4, 'name' => 'Other Officer', 'email' => 'other-officer@example.test', 'role_id' => 2, 'is_active' => true]);
         DB::table('associations')->where('id', 2)->update(['field_officer_id' => 4]);
@@ -83,6 +89,27 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
         DB::table('trainings')->where('id', 1)->update(['is_archived' => true]);
         $this->get('/officer/projects/1?details=1')->assertOk()->assertSee('Assigned workshop')
             ->assertSee('0 of 0 participant attendance records finalized')->assertSee('No attendance yet');
+    }
+
+    public function test_project_register_summary_and_filters_stay_within_assignments(): void
+    {
+        // Keep current, archived, undated, and empty projects distinct in the fixture.
+        DB::table('projects')->insert([
+            'association_id' => 1, 'title' => 'Archived empty project', 'is_archived' => true,
+        ]);
+        $response = $this->get('/officer/projects?delivery=missing');
+        $response->assertOk()->assertViewHas('summary', fn ($summary) => $summary === [
+            'total' => 2, 'current' => 1, 'associations' => 1, 'missing' => 1,
+        ])->assertViewHas('projects', fn ($rows) => $rows->total() === 1 && $rows->first()->id === 1)
+            ->assertDontSee('Foreign project');
+
+        $this->get('/officer/projects?archive=archived&delivery=none')->assertOk()
+            ->assertViewHas('projects', fn ($rows) => $rows->total() === 1 && $rows->first()->is_archived);
+        DB::table('project_materials')->where('id', 1)->update(['delivery_date' => '2025-01-10']);
+        $this->get('/officer/projects?delivery=recorded')->assertOk()
+            ->assertViewHas('projects', fn ($rows) => $rows->total() === 1 && $rows->first()->recorded_deliveries_count === 1);
+        $this->get('/officer/projects?association_id=2')->assertNotFound();
+        $this->getJson('/officer/projects?delivery=invalid')->assertUnprocessable();
     }
 
     public function test_login_current_identity_invalid_password_and_inactive_account(): void

@@ -27,7 +27,24 @@ final class MonitoringErrors
             return response()->view('errors.monitoring-unavailable', [], 503);
         }
         $input = [];
-        foreach (['project_id', 'year', 'quarter_id', 'month', 'target_output', 'actual_output', 'gross_income', 'project_material_id', 'condition_status_id', 'material_description', 'scheduled_maintenance', 'actual_maintenance', 'remarks'] as $field) {
+        foreach (['project_id', 
+                    'year', 
+                    'quarter_id', 
+                    'month', 
+                    'target_output', 
+                    'actual_output', 
+                    'gross_income', 
+                    'project_material_id', 
+                    'condition_status_id', 
+                    'material_description', 
+                    'scheduled_maintenance', 
+                    'actual_maintenance', 
+                    'remarks',
+                    // Preserve the user's event identity and unit choices after a database failure.
+                    'observed_on',
+                    'submission_token',
+                    'output_unit_code',
+                    'output_unit_spec'] as $field) {
             $value = $request->input($field);
             if (is_scalar($value) || $value === null) {
                 $input[$field] = $value;

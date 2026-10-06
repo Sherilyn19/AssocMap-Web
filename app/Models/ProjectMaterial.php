@@ -31,6 +31,7 @@ final class ProjectMaterial extends Model
     protected function casts(): array
     {
         return [
+            'archived_at' => 'datetime',
             'quantity' => 'decimal:2',
             'unit_cost' => 'decimal:2',
             'delivery_date' => 'date',

@@ -1,9 +1,9 @@
-<x-dashboard-layout :title="($record ? 'Edit ' : 'Add ').$label.' Record'">
+<x-dashboard-layout title="Monitoring Module">
 <div class="pm-page mx-auto max-w-4xl space-y-5">
     <nav aria-label="Breadcrumb" class="text-sm text-slate-600"><a class="hover:underline" href="{{ route('monitoring.index', ['type' => $type]) }}">Monitoring Module</a> / {{ $label }}</nav>
-    <header><h1 class="text-2xl font-bold">{{ $record ? 'Edit' : 'Add' }} {{ $label }} Record</h1><p class="mt-1 text-sm text-slate-600">{{ $type === 'materials' ? 'Record the current condition and maintenance dates for a project material.' : 'Record one entry per project and reporting period.' }}</p></header>
+    <header><h1 class="text-2xl font-bold">{{ $record ? 'Edit' : 'Add' }} {{ $label }} Record</h1><p class="mt-1 text-sm text-slate-600">{{ $type === 'materials' ? 'Add a dated material observation, or correct the selected historical entry.' : 'Record one entry per project and reporting period.' }}</p></header>
     @include('shared.partials.feedback')
-    @if($projects->isEmpty())<p class="rounded-xl border border-amber-200 bg-amber-50 p-4">No active projects are available. An administrator must create a project and assign your association before you can record monitoring data.</p>@else
+    @if($projects->isEmpty())<p class="rounded-xl border border-amber-200 bg-amber-50 p-4">No active projects are available within your access scope. Create an eligible project or ask the administrator to check your association assignment.</p>@else
     <form data-monitoring-form method="POST" action="{{ $record ? route('monitoring.update', [$type, $record->id]) : route('monitoring.store', $type) }}" class="space-y-5 rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
         @csrf @if($record) @method('PUT') @endif
         <p class="text-xs text-slate-600">* Required field</p>
@@ -17,8 +17,67 @@
             @if($type !== 'materials')
                 @include('shared.partials.field', ['prefix'=>'monitoring','name'=>'year','label'=>'Year','type'=>'number','value'=>$record?->year ?? now('Asia/Manila')->year,'required'=>true,'min'=>1900,'step'=>1])
                 @if($type === 'production')
-                    @include('shared.partials.field', ['prefix'=>'monitoring','name'=>'quarter_id','label'=>'Quarter','type'=>'select','value'=>$record?->quarter_id,'required'=>true,'options'=>$quarters])
-                    @include('shared.partials.field', ['prefix'=>'monitoring','name'=>'target_output','label'=>'Target Output','type'=>'number','value'=>$record?->target_output,'required'=>true,'min'=>0,'step'=>'0.01','help'=>'Use the same unit for target and actual output. State the unit in remarks.'])
+                    @include('shared.partials.field', ['prefix'=>'monitoring','name'=>'quarter_id','label'=>'Quarter'
+                    
+                    {{-- The project unit is fixed after its first confirmed production entry. --}}
+                    <div data-production-units class="md:col-span-2 grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label for="monitoring-output-unit" class="pm-label">Production unit *</label>
+
+                            <select id="monitoring-output-unit" name="output_unit_code"
+                                    class="pm-input" required>
+                                <option value="">Select production unit</option>
+                                @foreach(\App\Services\MonitoringService::UNITS as $code => $unitLabel)
+                                    <option value="{{ $code }}"
+                                        @selected(old('output_unit_code', $record?->output_unit_code) === $code)>
+                                        {{ $unitLabel }}
+                                    </option>
+                                @endforeach
+                            </select>
+
+                            <p class="mt-1 text-sm text-red-800">
+                                {{ $errors->first('output_unit_code') }}
+                            </p>
+                        </div>
+
+                        <div data-unit-specification>
+                            <label for="monitoring-output-spec" class="pm-label">Package size *</label>
+                            <input id="monitoring-output-spec" name="output_unit_spec"
+                                class="pm-input" maxlength="100"
+                                value="{{ old('output_unit_spec', $record?->output_unit_spec) }}"
+                                placeholder="For example: 250 g or 500 mL">
+
+                            <p class="mt-1 text-sm text-red-800">
+                                {{ $errors->first('output_unit_spec') }}
+                            </p>
+                        </div>
+
+                        <p data-unit-message class="text-sm text-slate-600 md:col-span-2">
+                            Use this unit for both target and actual output.
+                        </p>
+
+                        @if($record && $record->output_unit_code === null)
+                            <p class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm md:col-span-2">
+                                This historical record has no confirmed unit.
+                                Check the source record before selecting one. Saving confirms its unit.
+                            </p>
+                        @endif
+                    </div>
+
+                    {{-- Safe JSON supplies only the already authorized project's unit settings. --}}
+                    <script type="application/json" data-project-unit-data>
+                    {!! json_encode(
+                        $projects->mapWithKeys(fn ($project) => [
+                            $project->id => [
+                                'code' => $project->production_unit_code,
+                                'spec' => $project->production_unit_spec,
+                            ],
+                        ]),
+                        JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+                    ) !!}
+                    </script>
+                    ,'type'=>'select','value'=>$record?->quarter_id,'required'=>true,'options'=>$quarters])
+                    @include('shared.partials.field', ['prefix'=>'monitoring','name'=>'target_output','label'=>'Target Output','type'=>'number','value'=>$record?->target_output,'required'=>true,'min'=>0,'step'=>'0.01','help'=>'Target and actual output use the selected project unit.'])
                     @include('shared.partials.field', ['prefix'=>'monitoring','name'=>'actual_output','label'=>'Actual Output','type'=>'number','value'=>$record?->actual_output,'required'=>true,'min'=>0,'step'=>'0.01'])
                 @else
                     @php($months = collect(range(1,12))->mapWithKeys(fn($month) => [$month => date('F', mktime(0,0,0,$month,1))]))
@@ -26,6 +85,21 @@
                     @include('shared.partials.field', ['prefix'=>'monitoring','name'=>'gross_income','label'=>'Gross Income (₱)','type'=>'number','value'=>$record?->gross_income,'required'=>true,'min'=>0,'step'=>'0.01','help'=>'Total income before expenses.'])
                 @endif
             @else
+                {{-- Each inspection or maintenance observation is its own dated record. --}}
+                @include('shared.partials.field', [
+                    'prefix' => 'monitoring',
+                    'name' => 'observed_on',
+                    'label' => 'Observation / inspection date',
+                    'type' => 'date',
+                    'value' => $record?->observed_on,
+                    'required' => true,
+                ])
+
+                @if(!$record)
+                    {{-- Reusing the submitted token prevents accidental duplicate form submissions. --}}
+                    <input type="hidden" name="submission_token"
+                        value="{{ old('submission_token', (string) \Illuminate\Support\Str::uuid()) }}">
+                @endif
                 <div><label class="pm-label" for="monitoring-material">Project Material *</label>
                     <select id="monitoring-material" name="project_material_id" class="pm-input" required aria-describedby="monitoring-material-error">
                         <option value="">Select a material</option>

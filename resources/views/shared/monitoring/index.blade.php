@@ -27,6 +27,12 @@
                 <th class="p-4">Remarks</th><th class="p-4">Action</th></tr></thead>
             <tbody class="divide-y divide-slate-200">
             @forelse($records as $record)
+                @php
+                // An archived material has the same read-only protection as its archived parent.
+                $recordReadOnly = $record->project_archived
+                    || $record->association_archived
+                    || ($type === 'materials' && $record->material_archived_at !== null);
+            @endphp
                 <tr class="align-top {{ !$record->terminated_on && $record->project_status_name === 'Ongoing' ? 'bg-blue-50/50' : '' }}">
                     <td class="p-4">
                         <p class="font-semibold">{{ $record->project_title }}</p>
@@ -37,22 +43,60 @@
                         @if($record->terminated_on)
                             <p class="mt-1 text-xs">Terminated: {{ $record->terminated_on }}</p>
                         @endif
-                        @if($record->project_archived || $record->association_archived)
+                        @if($recordReadOnly)
                             <span class="text-xs text-amber-800">Archived — read only</span>
                         @endif
                     </td>
                     @if($type === 'production')
                         <td class="whitespace-nowrap p-4">{{ $record->quarter_name }} {{ $record->year }}</td>
-                        <td class="p-4">Target: {{ $record->target_output === null ? 'Not recorded' : number_format($record->target_output, 2) }}<br>Actual: {{ $record->actual_output === null ? 'Not recorded' : number_format($record->actual_output, 2) }}</td>
+                        <td class="p-4">
+                        <p>Target: {{ number_format($record->target_output, 2) }}</p>
+                        <p>Actual: {{ number_format($record->actual_output, 2) }}</p>
+
+                        <p class="mt-1 text-xs text-slate-600">
+                            {{ \App\Services\MonitoringService::UNITS[$record->output_unit_code] ?? 'Unit not recorded' }}
+                            @if($record->output_unit_spec)
+                                — {{ $record->output_unit_spec }}
+                            @endif
+                        </p>
+
+                        <details class="mt-3">
+                            <summary class="cursor-pointer text-sm underline">Yearly production</summary>
+                            <div class="mt-2 rounded-lg border bg-slate-50 p-3 text-sm">
+                                @if($record->year_actual_total === null)
+                                    Annual total unavailable: some entries have unconfirmed units.
+                                @else
+                                    <p>
+                                        {{ $record->year }} actual output:
+                                        <strong>{{ number_format($record->year_actual_total, 2) }}</strong>
+                                    </p>
+                                    <p class="mt-1">
+                                        Sum of recorded quarters for this project and year,
+                                        using the same confirmed unit.
+                                    </p>
+                                    <p class="mt-1 text-xs">
+                                        Missing quarters are not assumed to have zero production.
+                                    </p>
+                                @endif
+                            </div>
+                        </details>
+                    </td>
                         <td class="p-4">{{ \App\Support\MonitoringProgress::label($record->target_output, $record->actual_output) }}<p class="mt-1 text-xs text-slate-600">Actual ÷ Target × 100</p></td>
                     @elseif($type === 'income')
                         <td class="whitespace-nowrap p-4">{{ date('F', mktime(0, 0, 0, $record->month, 1)) }} {{ $record->year }}</td><td class="p-4">@include('shared.monitoring.partials.income-details')</td>
                     @else
-                        <td class="p-4"><p class="font-medium">{{ $record->item_name }}</p><p>@include('shared.partials.badge', ['label' => $record->status_name ?? 'Not recorded'])</p><p class="mt-1 text-xs text-slate-600">{{ $record->material_description }}</p></td>
+                        <td class="p-4"><p class="font-medium">{{ $record->item_name }}</p>
+                        {{-- Preserve undated legacy entries without inventing inspection dates. --}}
+                        <p class="mt-1 text-xs text-slate-600">
+                            Observed:
+                            {{ $record->observed_on ?? 'Date not recorded' }}
+                            · Entry #{{ $record->id }}
+                        </p>
+                        <p>@include('shared.partials.badge', ['label' => $record->status_name ?? 'Not recorded'])</p><p class="mt-1 text-xs text-slate-600">{{ $record->material_description }}</p></td>
                         <td class="whitespace-nowrap p-4"><p>Scheduled: {{ $record->scheduled_maintenance ?? 'Not set' }}</p><p>Actual: {{ $record->actual_maintenance ?? 'Not recorded' }}</p>@if($record->scheduled_maintenance && !$record->actual_maintenance && $record->scheduled_maintenance < now('Asia/Manila')->toDateString())<p class="mt-1 font-semibold text-red-700">Maintenance overdue</p>@endif</td>
                     @endif
                     <td class="max-w-xs whitespace-pre-line break-words p-4">{{ $record->remarks ?: '—' }}</td>
-                    <td class="p-4">@if(!$record->project_archived && !$record->association_archived)<a class="pm-action border border-slate-300" href="{{ route('monitoring.edit', [$type, $record->id]) }}">Edit<span class="sr-only"> {{ $record->project_title }} record {{ $record->id }}</span></a>@else<span class="text-slate-500">Read only</span>@endif</td>
+                    <td class="p-4">@if(!$recordReadOnly)<a class="pm-action border border-slate-300" href="{{ route('monitoring.edit', [$type, $record->id]) }}">Edit<span class="sr-only"> {{ $record->project_title }} record {{ $record->id }}</span></a>@else<span class="text-slate-500">Read only</span>@endif</td>
                 </tr>
             @empty<tr><td colspan="6" class="p-10 text-center text-slate-600">No monitoring records found. Add a record or adjust the filters.</td></tr>@endforelse
             </tbody>
