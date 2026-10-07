@@ -74,15 +74,6 @@ Route::middleware('assocmap.auth:Field Officer')->prefix('officer')->name('offic
     )->name('areas.index');
 
     Route::get('/areas/{areaUnit}', [\App\Http\Controllers\FieldOfficerUser\AreaController::class, 'show'])->whereNumber('areaUnit')->name('areas.show');
-    
-    // Load association details within the Field Officer's assigned coverage.
-    Route::get(
-        '/areas/{areaUnit}/associations/{association}/{section}',
-        [\App\Http\Controllers\FieldOfficerUser\AreaController::class, 'drawer']
-    )
-        ->whereNumber(['areaUnit', 'association'])
-        ->whereIn('section', ['overview', 'members', 'projects', 'gis'])
-        ->name('areas.drawer');
 
 // Recheck the officer's assignment whenever drawer information is requested.
 Route::get('/areas/{areaUnit}/associations/{association}/{section}', [
@@ -189,6 +180,16 @@ Route::get('/associations', [\App\Http\Controllers\FieldOfficerUser\AssociationC
                 ->whereNumber(['training', 'participant'])
                 ->name('participants.attendance');
         });
+
+        // Read-only evidence panels recheck the current FO assignment.
+        Route::get(
+            '/monitoring/{type}/{record}/details',
+            [\App\Http\Controllers\FieldOfficerUser\MonitoringController::class, 'details']
+        )
+            ->whereIn('type', ['production', 'income', 'materials'])
+            ->whereNumber('record')
+            ->name('monitoring.details');
+
 });
 
 Route::get('/member/dashboard', [\App\Http\Controllers\MemberWorkspaceController::class, 'dashboard'])

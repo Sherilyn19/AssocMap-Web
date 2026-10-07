@@ -39,6 +39,15 @@
 <section class="rounded-xl border border-slate-200 bg-white p-5">
     <h3 class="text-lg font-semibold">Project overview</h3>
     <dl class="mt-4 grid gap-5 sm:grid-cols-2">
+        {{-- Distinguish an unrecorded budget from a recorded zero amount. --}}
+        <div>
+            <dt class="text-sm text-slate-500">Project budget</dt>
+            <dd class="mt-1 font-medium">
+                {{ $project->budget === null
+                    ? 'Not recorded'
+                    : 'PHP '.number_format((float) $project->budget, 2) }}
+            </dd>
+        </div>
     @foreach (['Association' => $project->association->name, 'Commodity' => $project->commodity_type, 'Program component' => $project->programComponent?->name, 'Project proposal acceptance date' => null] as $label => $value)
         <div><dt class="text-sm text-slate-500">{{ $label }}</dt><dd class="mt-1 font-medium">{{ $value ?: 'Not recorded' }}</dd></div>
     @endforeach

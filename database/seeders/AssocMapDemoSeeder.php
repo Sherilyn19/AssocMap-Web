@@ -667,7 +667,7 @@ class AssocMapDemoSeeder extends Seeder
                 [
                     'target_output' => 1200 + ($index * 100),
                     'actual_output' => 980 + ($index * 95),
-                    'remarks' => 'Maayos ang produksyon ngunit kailangan pang palakasin ang market linkage.',
+                    'remarks' => 'Production is progressing well, but market linkages need strengthening..',
                     'created_by' => $createdBy,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -683,7 +683,7 @@ class AssocMapDemoSeeder extends Seeder
                 ],
                 [
                     'gross_income' => 85000 + ($index * 7500),
-                    'remarks' => 'Kita mula sa bentahan sa lokal na merkado at mga suking buyer.',
+                    'remarks' => 'Income from sales in the local market and to regular buyers.',
                     'created_by' => $createdBy,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -699,13 +699,13 @@ class AssocMapDemoSeeder extends Seeder
                 ->value('id');
 
             $payload = [
-                'material_description' => 'Pangunahing kagamitan na mino-monitor ng Field Officer.',
+                'material_description' => 'Primary equipment monitored by the Field Officer.',
                 'condition_status_id' => $lookups['statuses'][$conditionName],
                 'scheduled_maintenance' => '2025-06-15',
                 'actual_maintenance' => $conditionName === 'Good' ? null : '2025-06-20',
                 'remarks' => $conditionName === 'Good'
-                    ? 'Maayos at ginagamit nang tama.'
-                    : 'Naitala para sa pagkukumpuni at follow-up inspection.',
+                    ? 'In good condition and used properly.'
+                    : 'Recorded for repair and follow-up inspection.',
                 'created_by' => $createdBy,
                 'updated_at' => now(),
             ];

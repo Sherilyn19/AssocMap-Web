@@ -204,6 +204,10 @@ final class ProjectManagementService
                 'commodity_type' => trim((string) $data['commodity_type']),
                 'program_component_id' => (int) $data['program_component_id'],
                 'implementation_date' => $data['implementation_date'],
+                // Save a supplied budget; preserve zero as a valid recorded amount.
+                ...(array_key_exists('budget', $data)
+                    ? ['budget' => $data['budget']]
+                    : []),
                 'terminated_on' => $data['terminated_on'] ?? null,
                 'status_id' => (int) $data['status_id'],
                 'remarks' => $data['remarks'] ?? null,
@@ -237,6 +241,11 @@ final class ProjectManagementService
                 'commodity_type' => trim((string) $data['commodity_type']),
                 'program_component_id' => (int) $data['program_component_id'],
                 'implementation_date' => $data['implementation_date'],
+                // Older callers that omit budget must not erase an existing amount.
+                // An explicitly submitted null clears it to "Not recorded".
+                ...(array_key_exists('budget', $data)
+                    ? ['budget' => $data['budget']]
+                    : []),
                 'terminated_on' => $data['terminated_on'] ?? null,
                 'status_id' => (int) $data['status_id'],
                 'remarks' => $data['remarks'] ?? null,
@@ -354,6 +363,17 @@ final class ProjectManagementService
     // business eligibility because it can be called outside an HTTP form submission.
     private function validateProjectReferences(array $data): void
     {
+        // Validate money at the shared write boundary, including direct service calls.
+        // The maximum matches the existing numeric(14,2) budget column.
+        validator($data, [
+            'budget' => [
+                'sometimes',
+                'nullable',
+                'numeric',
+                'decimal:0,2',
+                'between:0,999999999999.99',
+            ],
+        ])->validate();
         $association = Association::query()
             ->whereKey((int) $data['association_id'])
             ->where('is_archived', false)

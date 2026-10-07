@@ -30,6 +30,13 @@ final class MonitoringController extends Controller
     {
         $actor = $this->actor($request);
 
+        // FO presentation is separate; shared monitoring write rules remain unchanged.
+        if ($actor->role?->role_name === 'Field Officer') {
+            return app(
+                \App\Http\Controllers\FieldOfficerUser\MonitoringController::class
+            )->index($request);
+        }
+
         $filters = $request->validate([
             'type' => [
                 'nullable',
@@ -205,6 +212,13 @@ final class MonitoringController extends Controller
         } catch (\Illuminate\Database\QueryException $error) {
             // Return a safe database error and preserve supported form input.
             return \App\Support\MonitoringErrors::render($error, $request);
+        }
+
+        // Modal requests need JSON; ordinary form submissions retain their redirect.
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => MonitoringService::TYPES[$type].' monitoring record saved.',
+            ]);
         }
 
         return redirect()

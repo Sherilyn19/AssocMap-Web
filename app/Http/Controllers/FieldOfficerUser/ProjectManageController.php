@@ -137,6 +137,8 @@ final class ProjectManageController extends Controller
                             'required', 'integer', 'exists:program_components,id',
                         ],
                         'implementation_date' => ['required', 'date_format:Y-m-d'],
+                        // Retain this optional input; the shared service validates its amount.
+                        'budget' => ['sometimes'],
                         'terminated_on' => [
                             'nullable',
                             'date_format:Y-m-d',

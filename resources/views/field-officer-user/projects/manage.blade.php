@@ -85,6 +85,7 @@
                         ['title', 'Project title', 'text', true],
                         ['commodity_type', 'Commodity', 'text', true],
                         ['implementation_date', 'Implementation date', 'date', true],
+                        ['budget', 'Project budget (PHP, optional)', 'number', false],
                         ['terminated_on', 'Termination date', 'date', false],
                     ]
                     : [
