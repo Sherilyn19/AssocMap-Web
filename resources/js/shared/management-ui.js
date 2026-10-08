@@ -75,15 +75,46 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('load', stop, { once: true });
     if (document.readyState !== 'complete') start();
 
-    // Bubble after module handlers so canceled validation, local dialogs, modified
-    // clicks, downloads and same-document anchors never display a false loading state.
     document.addEventListener('click', (event) => {
+        if (!(event.target instanceof Element)) return;
+
         const link = event.target.closest('a[href]');
-        if (!link || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || link.hasAttribute('download') || link.hasAttribute('data-download') || (link.target && link.target !== '_self')) return;
+
+        if (
+            !link
+            || event.defaultPrevented
+            || event.button !== 0
+            || event.ctrlKey
+            || event.metaKey
+            || event.shiftKey
+            || event.altKey
+            || link.hasAttribute('download')
+            || link.hasAttribute('data-download')
+            // GIS history displays its own loading indicator inside the modal.
+            || link.hasAttribute('data-gis-history')
+            || (link.target && link.target !== '_self')
+        ) return;
+
         const url = new URL(link.href, location.href);
-        if (url.origin !== location.origin || !['http:', 'https:'].includes(url.protocol)) return;
-        if (url.pathname === location.pathname && url.search === location.search && url.hash) return;
-        start();
+
+        if (
+            url.origin !== location.origin
+            || !['http:', 'https:'].includes(url.protocol)
+        ) return;
+
+        if (
+            url.pathname === location.pathname
+            && url.search === location.search
+            && url.hash
+        ) return;
+
+        // Allow local dialog handlers to cancel navigation first.
+        // History manages its own loading indicator inside the dialog.
+        queueMicrotask(() => {
+            if (event.defaultPrevented) return;
+
+            start();
+        });
     });
     document.addEventListener('submit', (event) => {
         if (!event.defaultPrevented && event.target.method !== 'dialog' && (!event.target.target || event.target.target === '_self')) {

@@ -42,6 +42,24 @@ export function parseSaveReply(status: number, body: unknown): SaveReply {
         if (errors.revision?.length || errors.submission_token?.length) {
             return { ok: false, message: 'Reload GIS Mapping before editing this location again.', errors: {}, reload: true };
         }
+        // Use controlled messages instead of exposing unexpected server content.
+        if (errors.association_id?.length) {
+            return {
+                ok: false,
+                message: 'This association is unavailable or not eligible for publication. Reload GIS Mapping.',
+                errors,
+                reload: true,
+            };
+        }
+
+        if (errors.confirmed?.length) {
+            return {
+                ok: false,
+                message: 'Confirm the GIS action before continuing.',
+                errors,
+                reload: false,
+            };
+        }
         if (errors.publication?.length) {
             return { ok: false, message: 'Correct the location name and coordinates before publishing.', errors, reload: false };
         }

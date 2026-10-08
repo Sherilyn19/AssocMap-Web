@@ -44,10 +44,23 @@ final class GisLocation extends Model
 
     public function scopePubliclyVisible(Builder $query): Builder
     {
-        // Public readers must start here, never filter the administrator payload in a browser.
-        return $query->where('is_published', true)->whereNull('archived_at')
-            ->whereHas('association', fn (Builder $parent) => $parent->where('is_archived', false))
-            ->whereBetween('latitude', [-90, 90])->whereBetween('longitude', [-180, 180])
-            ->whereNotNull('location_name')->whereRaw("BTRIM(location_name) <> ''");
+        // Qualify GIS columns because filter choices join related tables.
+        // Public records must also belong to an active, non-archived association.
+        return $query
+            ->where('gis_locations.is_published', true)
+            ->whereNull('gis_locations.archived_at')
+            ->whereHas('association', function (Builder $association): void {
+                $association
+                    ->where('associations.is_archived', false)
+                    ->whereHas(
+                        'status',
+                        fn (Builder $status) => $status
+                            ->where('statuses.status_name', 'Active')
+                    );
+            })
+            ->whereBetween('gis_locations.latitude', [-90, 90])
+            ->whereBetween('gis_locations.longitude', [-180, 180])
+            ->whereNotNull('gis_locations.location_name')
+            ->whereRaw("BTRIM(gis_locations.location_name) <> ''");
     }
 }

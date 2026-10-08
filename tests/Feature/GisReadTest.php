@@ -44,10 +44,16 @@ final class GisReadTest extends GisDatabaseTestCase
             'longitude' => 0, 'submission_token' => (string) Str::uuid()])->assertCreated()->json('id');
         $this->getJson('/map/locations')->assertJsonCount(1, 'records');
         $revision = app(GisIndexService::class)->overview()['records']->firstWhere('id', $id)['revision'];
-        $this->patchJson('/admin/gis/'.$id.'/publish', compact('revision'))->assertOk();
+        $this->patchJson('/admin/gis/'.$id.'/publish', [
+            'revision' => $revision,
+            'confirmed' => true,
+        ])->assertOk();
         $this->getJson('/map/locations')->assertJsonCount(2, 'records');
         $revision = app(GisIndexService::class)->overview()['records']->firstWhere('id', $id)['revision'];
-        $this->patchJson('/admin/gis/'.$id.'/unpublish', compact('revision'))->assertOk();
+        $this->patchJson('/admin/gis/'.$id.'/unpublish', [
+            'revision' => $revision,
+            'confirmed' => true,
+        ])->assertOk();
         $this->getJson('/map/locations')->assertJsonCount(1, 'records');
     }
 

@@ -43,11 +43,17 @@ final class GisManagementTest extends GisDatabaseTestCase
         $this->assertSame(2, DB::table('gis_locations')->where('association_id', 1)->count());
     }
 
-    public function test_edit_preserves_ownership_and_publication_and_rejects_stale_forms(): void
+    public function test_edit_preserves_ownership_unpublishes_and_rejects_stale_forms(): void
     {
         $revision = $this->revision();
         $this->putJson('/admin/gis/1', $this->fields(['revision' => $revision, 'association_id' => 2, 'is_published' => false, 'geom' => 'bad']))->assertOk();
-        $this->assertDatabaseHas('gis_locations', ['id' => 1, 'association_id' => 1, 'is_published' => true, 'location_name' => 'New site']);
+        // Editing public-facing information automatically unpublishes the location.
+        $this->assertDatabaseHas('gis_locations', [
+            'id' => 1,
+            'association_id' => 1,
+            'is_published' => false,
+            'location_name' => 'New site',
+        ]);
         $this->assertNotSame($revision, $this->revision());
         $this->putJson('/admin/gis/1', $this->fields(['revision' => $revision, 'location_name' => 'Stale overwrite']))->assertStatus(409);
         $this->assertDatabaseMissing('gis_locations', ['location_name' => 'Stale overwrite']);

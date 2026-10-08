@@ -22,7 +22,6 @@ class GisController extends Controller
 {
     public function archive(PublishGisLocationRequest $request, int $location, GisManagementService $gis): JsonResponse
     {
-        $request->validate(['confirmed' => ['accepted']]);
         try {
             $id = $gis->archive($location, $request->validated('revision'), (int) $request->attributes->get('assocmap.actor')->id);
 

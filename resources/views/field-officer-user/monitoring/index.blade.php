@@ -9,10 +9,14 @@
             </p>
         </div>
 
-        <a href="{{ route('monitoring.create', $type) }}"
-           data-monitoring-open="create"
-           class="fo-action am-button-green">
-            <span aria-hidden="true">+</span> Add {{ $types[$type] }} Record
+        {{-- Production opens a quarter; dated entries are added inside Achievement. --}}
+        <a href="{{ $type === 'production'
+                ? route('officer.production-progress.create')
+                : route('monitoring.create', $type) }}"
+        data-monitoring-open="create"
+        class="fo-action am-button-green">
+            <span aria-hidden="true">+</span>
+            {{ $type === 'production' ? 'Open production quarter' : 'Add '.$types[$type].' Record' }}
         </a>
     </header>
 

@@ -177,6 +177,11 @@ final class MonitoringController extends Controller
         $actor = $this->actor($request);
         abort_unless(isset(MonitoringService::TYPES[$type]), 404);
 
+        // Production has dated entries and its own compact achievement presentation.
+        if ($type === 'production') {
+            return app(ProductionProgressController::class)->show($request, $record);
+        }
+
         $input = $request->validate([
             'history_year' => ['nullable', 'integer', 'between:1900,2100'],
             'page' => ['nullable', 'integer', 'min:1'],

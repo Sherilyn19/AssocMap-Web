@@ -128,13 +128,15 @@ export function createEditor(root, getMap) {
         cancel.disabled = false;
         save.textContent = 'Save location';
         panel.querySelector('#gis-editor-title').textContent = record ? 'Edit location' : 'Add location';
+        // Explain what happens to publication when the location is saved.
         panel.querySelector('[data-gis-publication-note]').textContent = record
-            ? 'This edit keeps the current publication status and association.' : 'New locations are saved as unpublished.';
+            ? 'Changes to public location details unpublish this location. Review and publish it again when ready.'
+            : 'New locations are saved as unpublished.';
         root.classList.add('gis-is-editing');
         panel.hidden = false;
         add.disabled = true;
         // Keep filters and map reset from interrupting the current edit.
-        root.querySelectorAll('[data-filter], [data-gis-clear], [data-gis-reset]').forEach(control => { control.disabled = true; });
+        root.querySelectorAll('[data-filter], [data-gis-clear], [data-gis-reset], [data-gis-card], [data-gis-apply]').forEach(control => { control.disabled = true; });
         attachMap();
         (record ? fields.location_name : fields.association_id).focus({ preventScroll: true });
         panel.scrollIntoView({ block: 'nearest', behavior: 'instant' });
@@ -149,7 +151,7 @@ export function createEditor(root, getMap) {
         panel.hidden = true;
         root.classList.remove('gis-is-editing');
         add.disabled = false;
-        root.querySelectorAll('[data-filter], [data-gis-clear]').forEach(control => { control.disabled = false; });
+        root.querySelectorAll('[data-filter], [data-gis-clear], [data-gis-card], [data-gis-apply]').forEach(control => { control.disabled = false; });
         root.querySelector('[data-gis-reset]').disabled = !getMap();
         returnFocus?.focus({ preventScroll: true });
     }

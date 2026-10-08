@@ -75,17 +75,17 @@ Route::middleware('assocmap.auth:Field Officer')->prefix('officer')->name('offic
 
     Route::get('/areas/{areaUnit}', [\App\Http\Controllers\FieldOfficerUser\AreaController::class, 'show'])->whereNumber('areaUnit')->name('areas.show');
 
-// Recheck the officer's assignment whenever drawer information is requested.
-Route::get('/areas/{areaUnit}/associations/{association}/{section}', [
-    \App\Http\Controllers\FieldOfficerUser\AreaController::class,
-    'details',
-])
-    ->whereNumber('areaUnit')
-    ->whereNumber('association')
-    ->whereIn('section', ['association', 'members', 'projects', 'gis'])
-    ->name('areas.details');
+    // Recheck the officer's assignment whenever drawer information is requested.
+    Route::get('/areas/{areaUnit}/associations/{association}/{section}', [
+        \App\Http\Controllers\FieldOfficerUser\AreaController::class,
+        'details',
+    ])
+        ->whereNumber('areaUnit')
+        ->whereNumber('association')
+        ->whereIn('section', ['association', 'members', 'projects', 'gis'])
+        ->name('areas.details');
 
-Route::get('/associations', [\App\Http\Controllers\FieldOfficerUser\AssociationController::class, 'index'])->name('associations.index');
+    Route::get('/associations', [\App\Http\Controllers\FieldOfficerUser\AssociationController::class, 'index'])->name('associations.index');
     Route::get('/associations/{association}', [\App\Http\Controllers\FieldOfficerUser\AssociationController::class, 'show'])->whereNumber('association')->name('associations.show');
     // Every drawer request uses the same Field Officer authorization.
     Route::get('/associations/{association}/details/{section}', [
@@ -181,14 +181,30 @@ Route::get('/associations', [\App\Http\Controllers\FieldOfficerUser\AssociationC
                 ->name('participants.attendance');
         });
 
-        // Read-only evidence panels recheck the current FO assignment.
-        Route::get(
-            '/monitoring/{type}/{record}/details',
-            [\App\Http\Controllers\FieldOfficerUser\MonitoringController::class, 'details']
-        )
-            ->whereIn('type', ['production', 'income', 'materials'])
-            ->whereNumber('record')
-            ->name('monitoring.details');
+    // Read-only evidence panels recheck the current FO assignment.
+    Route::get(
+        '/monitoring/{type}/{record}/details',
+        [\App\Http\Controllers\FieldOfficerUser\MonitoringController::class, 'details']
+    )
+        ->whereIn('type', ['production', 'income', 'materials'])
+        ->whereNumber('record')
+        ->name('monitoring.details');
+        
+    // Production progress remains inside the authorized FO workspace.
+    Route::get(
+        '/monitoring/production-progress/create',
+        [\App\Http\Controllers\FieldOfficerUser\ProductionProgressController::class, 'create']
+    )->name('production-progress.create');
+
+    Route::post(
+        '/monitoring/production-progress',
+        [\App\Http\Controllers\FieldOfficerUser\ProductionProgressController::class, 'store']
+    )->name('production-progress.store');
+
+    Route::post(
+        '/monitoring/production-progress/{record}',
+        [\App\Http\Controllers\FieldOfficerUser\ProductionProgressController::class, 'update']
+    )->whereNumber('record')->name('production-progress.update');
 
 });
 
@@ -451,6 +467,8 @@ Route::middleware('assocmap.auth:Field Officer')->prefix('officer/gis')->name('g
     Route::patch('/{location}/publish', [GisController::class, 'publish'])->whereNumber('location')->name('publish');
     Route::patch('/{location}/unpublish', [GisController::class, 'unpublish'])->whereNumber('location')->name('unpublish');
     Route::patch('/{location}/archive', [GisController::class, 'archive'])->whereNumber('location')->name('archive');
+    Route::get('/archived', [\App\Http\Controllers\GisHistoryController::class, 'archived'])->name('archived');
+    Route::get( '/{location}/history', [\App\Http\Controllers\GisHistoryController::class, 'show'])->whereNumber('location')->name('history');
 });
 
 // This route name matches the existing GIS Mapping sidebar link.
@@ -469,3 +487,5 @@ Route::patch('/admin/gis/{location}/unpublish', [GisController::class, 'unpublis
     ->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.unpublish');
 Route::patch('/admin/gis/{location}/archive', [GisController::class, 'archive'])
     ->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.archive');
+Route::get('/admin/gis/archived',[\App\Http\Controllers\GisHistoryController::class, 'archived'])->middleware('assocmap.auth:System Administrator')->name('gis.archived');
+Route::get('/admin/gis/{location}/history',[\App\Http\Controllers\GisHistoryController::class, 'show'])->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.history');

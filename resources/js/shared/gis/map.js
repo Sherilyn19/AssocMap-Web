@@ -2,9 +2,11 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { validPosition } from './data';
 
-export function createMap(container, onSelect, onStatus) {
+export function createMap(container, onSelect, onStatus, options = {}) {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const map = L.map(container, { zoomAnimation: !reducedMotion, fadeAnimation: !reducedMotion });
+    // Remove Leaflet branding while retaining the tile provider's required credit.
+    map.attributionControl.setPrefix(false);
     // The Philippines view is only a starting extent when no valid records exist.
     map.setView([12.5, 122], 5);
     const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -88,7 +90,9 @@ export function createMap(container, onSelect, onStatus) {
                 button.addEventListener('click', () => onSelect(record.id, true));
                 popup.append(name, context, button);
             });
-            marker.bindPopup(popup);
+            // Grouped markers still need a chooser.
+            // Individual FO locations open the compact details modal directly.
+            if (multiple || !options.detailsModal) marker.bindPopup(popup);
             marker.on('click', () => {
                 if (edit) edit.pick(first.latitude, first.longitude);
                 else if (!multiple) onSelect(first.id, false);
@@ -140,7 +144,11 @@ export function createMap(container, onSelect, onStatus) {
             }
             // Change the selected ring without rebuilding a popup while it is open.
             markers.forEach(({ marker, ids }) => marker.getElement()?.classList.toggle('is-selected', ids.includes(id)));
-            if (focus) markers.find(item => item.ids.includes(id))?.marker.openPopup();
+            if (options.detailsModal) {
+                map.closePopup();
+            } else if (focus) {
+                markers.find(item => item.ids.includes(id))?.marker.openPopup();
+            }
         },
     };
 }
