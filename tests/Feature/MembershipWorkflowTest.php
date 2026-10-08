@@ -11,6 +11,7 @@ use App\Models\MemberApplication;
 use App\Models\User;
 use App\Services\AssociationManagementService;
 use App\Services\MembershipWorkflowService;
+use App\Services\FieldOfficerMembershipService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\Support\MembershipDatabaseTestCase;
@@ -27,7 +28,23 @@ final class MembershipWorkflowTest extends MembershipDatabaseTestCase
 
     private function pending(): MemberApplication
     {
-        return app(MembershipWorkflowService::class)->submit(User::findOrFail(3), $this->profile());
+        // FO submission requires a configured representative.
+        // Avoid provisioning again when the test already configured the secret.
+        if (!Member::findOrFail(1)->review_passphrase_hash) {
+            $this->provision();
+        }
+
+        $officer = User::findOrFail(2);
+        $workflow = app(FieldOfficerMembershipService::class);
+
+        // A Pending application must now come from a saved FO draft.
+        $draft = $workflow->create($officer, 1, $this->profile());
+
+        return $workflow->submit(
+            $officer,
+            $draft,
+            $draft->revision
+        );
     }
 
     private function provision(): void
@@ -41,7 +58,84 @@ final class MembershipWorkflowTest extends MembershipDatabaseTestCase
         $this->assertSame(1, (int) $application->association_id);
         $this->assertSame('Pending', $application->status->status_name);
         $this->assertSame(2, Member::count());
-        $this->assertSame(1, DB::table('audit_logs')->where('action_type', 'SUBMIT')->count());
+        // Submission records one audit for the application and one for its draft.
+        $this->assertSame(
+            1,
+            DB::table('audit_logs')
+                ->where('module', 'Member Application')
+                ->where('action_type', 'SUBMIT')
+                ->count()
+        );
+
+        $this->assertSame(
+            1,
+            DB::table('audit_logs')
+                ->where('module', 'Member Draft')
+                ->where('action_type', 'SUBMIT')
+                ->count()
+        );
+    }
+
+        public function test_verified_direct_registration_creates_approved_member(): void
+    {
+        $this->provision();
+        $accountsBefore = User::count();
+
+        $application = app(MembershipWorkflowService::class)->submit(
+            User::findOrFail(3),
+            $this->profile() + [
+                'review_passphrase' => self::SECRET,
+            ]
+        );
+
+        // Verified direct registration completes approval in one transaction.
+        $this->assertSame(
+            'Approved',
+            $application->fresh()->status->status_name
+        );
+
+        $this->assertSame(
+            1,
+            Member::where('application_id', $application->id)->count()
+        );
+
+        $this->assertSame(
+            1,
+            (int) $application->reviewed_by_member_id
+        );
+
+        $this->assertNotNull($application->reviewed_at);
+        $this->assertSame($accountsBefore, User::count());
+
+        $this->assertDatabaseHas('audit_logs', [
+            'module' => 'Member Application',
+            'record_id' => $application->id,
+            'action_type' => 'REGISTER',
+        ]);
+    }
+
+    public function test_direct_registration_requires_private_passphrase(): void
+    {
+        $this->provision();
+        $membersBefore = Member::count();
+
+        try {
+            app(MembershipWorkflowService::class)->submit(
+                User::findOrFail(3),
+                $this->profile()
+            );
+
+            $this->fail('Registration without a passphrase must fail.');
+        } catch (\Illuminate\Validation\ValidationException $error) {
+            $this->assertArrayHasKey(
+                'review_passphrase',
+                $error->errors()
+            );
+        }
+
+        // Missing verification must not create an application or official member.
+        $this->assertSame(0, MemberApplication::count());
+        $this->assertSame($membersBefore, Member::count());
     }
 
     public function test_submission_rejects_browser_controlled_ownership_and_status(): void
@@ -54,8 +148,19 @@ final class MembershipWorkflowTest extends MembershipDatabaseTestCase
     public function test_normalized_duplicate_submission_is_rejected(): void
     {
         $this->pending();
+
         $this->expectException(MembershipRuleException::class);
-        app(MembershipWorkflowService::class)->submit(User::findOrFail(3), array_replace($this->profile(), ['first_name' => '  APPLICANT  ', 'middle_name' => '']));
+
+        // Use valid representative credentials so this tests duplicate identity,
+        // rather than failing because the passphrase was omitted.
+        app(MembershipWorkflowService::class)->submit(
+            User::findOrFail(3),
+            array_replace($this->profile(), [
+                'first_name' => '  APPLICANT  ',
+                'middle_name' => '',
+                'review_passphrase' => self::SECRET,
+            ])
+        );
     }
 
     public function test_approval_creates_one_member_and_records_reviewer_and_audit(): void
@@ -116,7 +221,15 @@ final class MembershipWorkflowTest extends MembershipDatabaseTestCase
         } catch (\Illuminate\Database\QueryException $exception) {
             $this->assertSame('Pending', $application->fresh()->status->status_name);
             $this->assertSame(0, Member::where('application_id', $application->id)->count());
-            $this->assertSame(0, DB::table('audit_logs')->where('action_type', 'CREATE')->count());
+            // The earlier draft creation audit remains valid.
+            // Failed approval must not leave a member-creation audit.
+            $this->assertSame(
+                0,
+                DB::table('audit_logs')
+                    ->where('module', 'Member')
+                    ->where('action_type', 'CREATE')
+                    ->count()
+            );
         }
     }
 

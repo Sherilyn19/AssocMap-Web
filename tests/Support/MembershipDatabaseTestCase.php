@@ -54,6 +54,13 @@ abstract class MembershipDatabaseTestCase extends TestCase
         SQL);
         (require base_path('database/migrations/2026_08_08_083300_harden_member_management_integrity.php'))->up();
         (require base_path('database/migrations/2026_09_08_000001_add_member_review_passphrase.php'))->up();
+
+        // Give every membership test the draft table and application submitter fields.
+        // This runs inside the temporary test schema created above.
+        (require base_path(
+            'database/migrations/2026_10_05_000001_add_member_drafts.php'
+        ))->up();
+
         $this->withoutVite();
     }
 

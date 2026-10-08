@@ -40,6 +40,12 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
             INSERT INTO monitoring_income (association_id,project_id,month,year,gross_income,created_by) VALUES (1,1,1,2025,150,2),(2,2,1,2025,900,1);
             INSERT INTO monitoring_materials (project_material_id,condition_status_id,created_by) VALUES (1,7,2),(2,7,1);
         SQL);
+
+        // Add training workflow fields to the temporary test database.
+        (require base_path(
+            'database/migrations/2026_10_06_000002_add_training_workflow_markers.php'
+        ))->up();
+        
         // The foreign association belongs to another actual Field Officer.
         DB::table('users')->insert(['id' => 4, 'name' => 'Other Officer', 'email' => 'other-officer@example.test', 'role_id' => 2, 'is_active' => true]);
         DB::table('associations')->where('id', 2)->update(['field_officer_id' => 4]);
@@ -85,6 +91,27 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
             ->assertSee('0 of 0 participant attendance records finalized')->assertSee('No attendance yet');
     }
 
+    public function test_project_register_summary_and_filters_stay_within_assignments(): void
+    {
+        // Keep current, archived, undated, and empty projects distinct in the fixture.
+        DB::table('projects')->insert([
+            'association_id' => 1, 'title' => 'Archived empty project', 'is_archived' => true,
+        ]);
+        $response = $this->get('/officer/projects?delivery=missing');
+        $response->assertOk()->assertViewHas('summary', fn ($summary) => $summary === [
+            'total' => 2, 'current' => 1, 'associations' => 1, 'missing' => 1,
+        ])->assertViewHas('projects', fn ($rows) => $rows->total() === 1 && $rows->first()->id === 1)
+            ->assertDontSee('Foreign project');
+
+        $this->get('/officer/projects?archive=archived&delivery=none')->assertOk()
+            ->assertViewHas('projects', fn ($rows) => $rows->total() === 1 && $rows->first()->is_archived);
+        DB::table('project_materials')->where('id', 1)->update(['delivery_date' => '2025-01-10']);
+        $this->get('/officer/projects?delivery=recorded')->assertOk()
+            ->assertViewHas('projects', fn ($rows) => $rows->total() === 1 && $rows->first()->recorded_deliveries_count === 1);
+        $this->get('/officer/projects?association_id=2')->assertNotFound();
+        $this->getJson('/officer/projects?delivery=invalid')->assertUnprocessable();
+    }
+
     public function test_login_current_identity_invalid_password_and_inactive_account(): void
     {
         $password = 'Officer-Fixture-2026';
@@ -102,10 +129,19 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
         $this->withSession($this->sessionFor(3, 'Field Officer'))->get('/officer/dashboard')->assertRedirect('/member/dashboard');
     }
 
-    public function test_membership_is_view_only_and_administrator_actions_remain_denied(): void
+    public function test_membership_tabs_are_scoped_and_administrator_actions_remain_denied(): void
     {
         $application = DB::table('member_applications')->insertGetId(['association_id' => 1, 'first_name' => 'Pending', 'last_name' => 'Applicant', 'birthday' => '1990-01-01', 'status_id' => 1]);
-        $this->get('/membership')->assertOk()->assertSee('Representative')->assertSee('Pending Applicant')->assertDontSee('Submit Application');
+        // Each tab displays only its own table.
+        $this->get('/membership?tab=members')
+            ->assertOk()
+            ->assertSee('Representative')
+            ->assertDontSee('Pending Applicant');
+
+        $this->get('/membership?tab=applications')
+            ->assertOk()
+            ->assertSee('Pending Applicant')
+            ->assertDontSee('Submit Application');
         $this->get('/membership/members/1')->assertOk();
         $this->get('/membership/members/2')->assertForbidden();
         $this->get('/membership/applications/'.$application)->assertOk()->assertDontSee('name="review_passphrase"', false);
@@ -117,6 +153,69 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
             $this->call($method, $path)->assertRedirect('/officer/dashboard');
         }
         $this->assertSame(1, (int) DB::table('member_applications')->where('id', $application)->value('status_id'));
+    }
+
+    public function test_member_register_preserves_filtered_totals_and_independent_pagination(): void
+    {
+        // These additional records exist only in the rollback-only test schema.
+        for ($i = 1; $i <= 16; $i++) {
+            DB::table('members')->insert([
+                'association_id' => 1, 'first_name' => 'Listed', 'last_name' => sprintf('Person %02d', $i),
+                'birthday' => '1990-01-01', 'date_registered' => '2020-01-01',
+            ]);
+            DB::table('member_applications')->insert([
+                'association_id' => 1, 'first_name' => 'Listed', 'last_name' => sprintf('Applicant %02d', $i),
+                'birthday' => '1990-01-01', 'status_id' => 1,
+            ]);
+        }
+        $foreign = DB::table('member_applications')->insertGetId([
+            'association_id' => 2, 'first_name' => 'Foreign', 'last_name' => 'Application',
+            'birthday' => '1990-01-01', 'status_id' => 1,
+        ]);
+
+        $this->get('/membership?tab=members')->assertOk()->assertViewIs('field-officer-user.members.index')
+            ->assertViewHas('members', fn ($rows) => $rows->total() === 17 && $rows->count() === 15)
+            ->assertViewHas('applications', fn ($rows) => $rows->total() === 16 && $rows->count() === 15)
+            ->assertDontSee('Other Person')->assertDontSee('Foreign Application');
+        $this->get('/membership?tab=members&members_page=2')->assertOk()
+            ->assertViewHas('members', fn ($rows) => $rows->currentPage() === 2 && $rows->count() === 2)
+            ->assertViewHas('applications', fn ($rows) => $rows->currentPage() === 1);
+        $this->get('/membership?tab=applications&page=2')->assertOk()
+            ->assertViewHas('applications', fn ($rows) => $rows->currentPage() === 2 && $rows->count() === 1)
+            ->assertViewHas('members', fn ($rows) => $rows->currentPage() === 1);
+        $this->get('/membership?tab=applications&search=Listed&status=Approved')->assertOk()
+            ->assertViewHas('members', fn ($rows) => $rows->total() === 16)
+            ->assertViewHas('applications', fn ($rows) => $rows->total() === 0);
+        // Empty-state messages belong to the selected register.
+        $this->get('/membership?tab=members&search=NoMatch')
+            ->assertOk()
+            ->assertSee('No official members found');
+
+        $this->get('/membership?tab=applications&search=NoMatch')
+            ->assertOk()
+            ->assertSee('No applications found');
+        $this->get('/membership/applications/'.$foreign)->assertForbidden();
+    }
+
+    public function test_officer_record_dialog_uses_authorized_details_and_preserves_other_role_views(): void
+    {
+        $application = DB::table('member_applications')->insertGetId([
+            'association_id' => 1, 'first_name' => 'Reviewed', 'last_name' => 'Applicant',
+            'birthday' => '1990-01-01', 'status_id' => 3,
+            'reviewed_at' => '2025-01-02 10:00:00', 'reviewed_by_member_id' => 1,
+            'rejection_reason' => 'Missing required information.',
+        ]);
+        $this->get('/membership/applications/'.$application)->assertOk()
+            ->assertViewIs('field-officer-user.members.record')
+            ->assertSee('data-record-content', false)->assertSee('Missing required information.')
+            ->assertSee('Representative One')->assertDontSee('name="review_passphrase"', false);
+        $this->get('/membership/members/1')->assertOk()
+            ->assertViewIs('field-officer-user.members.record')->assertSee('MEMBER-000001');
+        $this->withSession($this->sessionFor(3, 'Association Member'))
+            ->get('/membership/applications/'.$application)->assertOk()
+            ->assertViewIs('shared.membership.application');
+        $this->withSession($this->sessionFor(1, 'System Administrator'))
+            ->get('/membership/members/1')->assertOk()->assertViewIs('shared.membership.member');
     }
 
     public function test_delivery_allows_only_date_and_checks_nested_ownership(): void

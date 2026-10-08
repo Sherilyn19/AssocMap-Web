@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
         content.removeAttribute('aria-busy');
         clearTimeout(recoveryTimer);
     };
-    const start = (label = 'Loading…') => {
+    const start = (label = 'Loading…', managed = false) => {
         overlay.querySelector('[data-loading-label]').textContent = label;
         overlay.hidden = false;
         // Join the browser's top layer above any open analytics or confirmation dialog.
@@ -52,9 +52,24 @@ document.addEventListener('DOMContentLoaded', () => {
         content.setAttribute('aria-busy', 'true');
         // A canceled navigation must not leave an indefinite screen blocker.
         clearTimeout(recoveryTimer);
-        recoveryTimer = setTimeout(() => { stop(); if (page.hasAttribute('data-association-page')) document.dispatchEvent(new Event('management:slow')); }, 30000);
+        // Background requests close the loader themselves when processing finishes.
+        // Ordinary page navigation keeps the existing recovery timer.
+        if (!managed) {
+            recoveryTimer = setTimeout(() => {
+                stop();
+
+                if (page.hasAttribute('data-association-page')) {
+                    document.dispatchEvent(new Event('management:slow'));
+                }
+            }, 30000);
+        }
     };
-    document.addEventListener('management:loading', event => start(event.detail?.label || 'Saving changes…'));
+    document.addEventListener('management:loading', event => {
+        start(
+            event.detail?.label || 'Saving changes…',
+            event.detail?.managed === true
+        );
+    });
     document.addEventListener('management:loaded', stop);
     window.addEventListener('pageshow', stop);
     window.addEventListener('load', stop, { once: true });

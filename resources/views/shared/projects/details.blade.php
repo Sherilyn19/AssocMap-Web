@@ -5,6 +5,27 @@
     $percent = $registered > 0 ? (int) round($recorded / $registered * 100) : 0;
 @endphp
 <div class="space-y-6 am-project-details">
+    {{-- Only the FO view offers these controls; backend scope is checked again. --}}
+    @if(session('auth_user.role_name') === 'Field Officer'
+        && !$project->is_archived
+        && !$project->association->is_archived)
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('officer.projects.edit', $project) }}"
+            data-project-manage
+            data-editor-title="Manage project"
+            class="fo-action am-button-warning">
+                Manage project
+            </a>
+
+            <a href="{{ route('officer.projects.materials.create', $project) }}"
+            data-project-manage
+            data-editor-title="Add material"
+            class="fo-action am-button-green">
+                <span aria-hidden="true">＋</span>
+                Add material
+            </a>
+        </div>
+    @endif
 <header class="border-b border-slate-200 pb-5">
     <span class="am-officer-eyebrow">Project #{{ $project->id }} · {{ $project->association->name }}</span>
     <h2 class="mt-2 text-2xl font-bold text-slate-900">{{ $project->title }}</h2>
@@ -18,6 +39,15 @@
 <section class="rounded-xl border border-slate-200 bg-white p-5">
     <h3 class="text-lg font-semibold">Project overview</h3>
     <dl class="mt-4 grid gap-5 sm:grid-cols-2">
+        {{-- Distinguish an unrecorded budget from a recorded zero amount. --}}
+        <div>
+            <dt class="text-sm text-slate-500">Project budget</dt>
+            <dd class="mt-1 font-medium">
+                {{ $project->budget === null
+                    ? 'Not recorded'
+                    : 'PHP '.number_format((float) $project->budget, 2) }}
+            </dd>
+        </div>
     @foreach (['Association' => $project->association->name, 'Commodity' => $project->commodity_type, 'Program component' => $project->programComponent?->name, 'Project proposal acceptance date' => null] as $label => $value)
         <div><dt class="text-sm text-slate-500">{{ $label }}</dt><dd class="mt-1 font-medium">{{ $value ?: 'Not recorded' }}</dd></div>
     @endforeach
@@ -30,7 +60,15 @@
     <label class="mt-4 block text-sm font-medium" for="project-training-progress">Attendance recorded</label>
     <progress id="project-training-progress" class="am-project-progress mt-2" value="{{ $percent }}" max="100">{{ $percent }}%</progress>
     <p class="mt-2 text-sm text-slate-600">{{ $recorded }} of {{ $registered }} participant attendance records finalized across active trainings.</p>
-    <p class="mt-3 rounded-lg bg-slate-50 p-3 text-sm leading-6 text-slate-600">Trainings for {{ $project->association->name }}. Progress shows attendance recorded, not training completion.</p>
+
+        {{-- Keep this explanation for the other users sharing this template. --}}
+    @if(session('auth_user.role_name') !== 'Field Officer')
+        <p class="mt-3 rounded-lg bg-slate-50 p-3 text-sm leading-6 text-slate-600">
+            Trainings for {{ $project->association->name }}.
+            Progress shows attendance recorded, not training completion.
+        </p>
+    @endif
+
     <div class="mt-5 space-y-5">
     @foreach (\App\Models\Training::STAGES + ['unknown' => 'Other trainings'] as $stage => $stageLabel)
         @php($stageTrainings = $trainings->filter(fn ($training) => $stage === 'unknown' ? ! array_key_exists($training->stage ?? '', \App\Models\Training::STAGES) : $training->stage === $stage))

@@ -29,25 +29,63 @@ final class MembershipWorkflowService
     public function submit(User $actor, array $data): MemberApplication
     {
         return DB::transaction(function () use ($actor, $data): MemberApplication {
-            if (!$actor?->is_active || $actor->role?->role_name !== 'Association Member' || !$actor->association_id) {
-                throw new MembershipRuleException('Only the association account may submit its applications.');
+            if (!$actor->is_active
+                || $actor->role?->role_name !== 'Association Member'
+                || !$actor->association_id) {
+                throw new MembershipRuleException(
+                    'Only the association account may use representative registration.'
+                );
             }
-            $association = Association::query()->lockForUpdate()->findOrFail($actor->association_id);
+
+            $association = Association::query()
+                ->lockForUpdate()->findOrFail($actor->association_id);
+
             $actor = $this->lockAssociationAccount($actor, $association);
             $this->requireCurrentAssociation($association);
+
+            // Validate inside the service too, so non-HTTP callers cannot bypass it.
+            $validated = validator(
+                MemberProfile::normalize($data),
+                MemberProfile::rules() + [
+                    'review_passphrase' => ['required', 'string', 'max:72'],
+                ]
+            )->validate();
+
             foreach (['members', 'member_applications'] as $table) {
-                if ($this->identity->exists($table, $association->id, $data)) {
-                    throw new MembershipRuleException('This person already has a member record or application in your association.');
+                if ($this->identity->exists($table, $association->id, $validated)) {
+                    throw new MembershipRuleException(
+                        'This person already has a member record or application in your association.'
+                    );
                 }
             }
 
-            // Whitelisting prevents mass assignment of status, reviewer or association IDs.
-            $application = MemberApplication::create(Arr::only($data, MemberProfile::FIELDS) + [
-                'association_id' => $association->id,
-                'status_id' => $this->statusId('Pending'),
+            $application = new MemberApplication();
+
+            $application->forceFill(
+                Arr::only($validated, MemberProfile::FIELDS) + [
+                    'association_id' => $association->id,
+                    'status_id' => $this->statusId('Pending'),
+                    'submitted_by_user_id' => $actor->id,
+                    'submission_source' => 'representative',
+                ]
+            )->save();
+
+            // Reuse existing private-passphrase verification and approval logic.
+            // The outer transaction rolls everything back if verification fails.
+            $approved = $this->review($actor, $application, [
+                'decision' => 'Approved',
+                'review_passphrase' => $validated['review_passphrase'],
             ]);
-            $this->audit($actor->id, 'SUBMIT', 'Member Application', $application->id, 'Submitted membership application for representative review.');
-            return $application;
+
+            $this->audit(
+                $actor->id,
+                'REGISTER',
+                'Member Application',
+                $approved->id,
+                'Direct registration completed by the verified association representative.'
+            );
+
+            return $approved;
         }, 3);
     }
 

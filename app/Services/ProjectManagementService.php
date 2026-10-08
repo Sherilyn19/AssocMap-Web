@@ -31,6 +31,12 @@ final class ProjectManagementService
             $project = $association->projects()->lockForUpdate()->findOrFail($projectId);
             abort_if($project->is_archived, 403, 'Archived projects cannot be changed.');
             $material = $project->materials()->lockForUpdate()->findOrFail($materialId);
+            // Direct requests must not change archived material records.
+            abort_if(
+                $material->archived_at !== null,
+                403,
+                'Archived materials cannot be changed.'
+            );
             $data = validator($data, ['delivery_date' => ['present', 'nullable', 'date_format:Y-m-d']])->validate();
             $before = $material->delivery_date?->toDateString();
             $material->update(['delivery_date' => $data['delivery_date']]);
@@ -198,6 +204,10 @@ final class ProjectManagementService
                 'commodity_type' => trim((string) $data['commodity_type']),
                 'program_component_id' => (int) $data['program_component_id'],
                 'implementation_date' => $data['implementation_date'],
+                // Save a supplied budget; preserve zero as a valid recorded amount.
+                ...(array_key_exists('budget', $data)
+                    ? ['budget' => $data['budget']]
+                    : []),
                 'terminated_on' => $data['terminated_on'] ?? null,
                 'status_id' => (int) $data['status_id'],
                 'remarks' => $data['remarks'] ?? null,
@@ -231,6 +241,11 @@ final class ProjectManagementService
                 'commodity_type' => trim((string) $data['commodity_type']),
                 'program_component_id' => (int) $data['program_component_id'],
                 'implementation_date' => $data['implementation_date'],
+                // Older callers that omit budget must not erase an existing amount.
+                // An explicitly submitted null clears it to "Not recorded".
+                ...(array_key_exists('budget', $data)
+                    ? ['budget' => $data['budget']]
+                    : []),
                 'terminated_on' => $data['terminated_on'] ?? null,
                 'status_id' => (int) $data['status_id'],
                 'remarks' => $data['remarks'] ?? null,
@@ -305,6 +320,17 @@ final class ProjectManagementService
         return DB::transaction(function () use ($project, $material, $data, $actorId): ProjectMaterial {
             $this->ensureProjectIsWritable($project);
 
+            // Read the current archive state under a lock before applying changes.
+            $material = ProjectMaterial::query()
+                ->lockForUpdate()
+                ->findOrFail($material->id);
+
+            if ($material->archived_at !== null) {
+                throw new \InvalidArgumentException(
+                    'Archived materials cannot be changed.'
+                );
+            }
+
             // Never trust a route-bound material alone. The material must belong
             // to the project currently being managed.
             if ((int) $material->project_id !== (int) $project->id) {
@@ -337,6 +363,17 @@ final class ProjectManagementService
     // business eligibility because it can be called outside an HTTP form submission.
     private function validateProjectReferences(array $data): void
     {
+        // Validate money at the shared write boundary, including direct service calls.
+        // The maximum matches the existing numeric(14,2) budget column.
+        validator($data, [
+            'budget' => [
+                'sometimes',
+                'nullable',
+                'numeric',
+                'decimal:0,2',
+                'between:0,999999999999.99',
+            ],
+        ])->validate();
         $association = Association::query()
             ->whereKey((int) $data['association_id'])
             ->where('is_archived', false)

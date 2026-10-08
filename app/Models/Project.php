@@ -21,6 +21,7 @@ final class Project extends Model
         'commodity_type',
         'program_component_id',
         'implementation_date',
+        'budget',
         'terminated_on',
         'status_id',
         'remarks',
@@ -34,6 +35,8 @@ final class Project extends Model
             'implementation_date' => 'date',
             'terminated_on' => 'date',
             'is_archived' => 'boolean',
+            // Preserve two decimal places when reading the recorded budget.
+            'budget' => 'decimal:2',
         ];
     }
 

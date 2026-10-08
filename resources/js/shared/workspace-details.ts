@@ -7,6 +7,7 @@ function bindDetailDialog(kind: DetailKind): void {
     if (!dialog || !content || typeof dialog.showModal !== 'function') return;
     let request: AbortController | undefined;
     let opener: HTMLAnchorElement | undefined;
+    const useSharedLoader = kind === 'project' && !!dialog.closest('[data-officer-projects]');
 
     // Delegation also handles project links loaded inside a training dialog.
     document.addEventListener('click', async (event: MouseEvent) => {
@@ -18,9 +19,14 @@ function bindDetailDialog(kind: DetailKind): void {
         request?.abort();
         const current = new AbortController();
         request = current;
-        content.textContent = `Loading ${kind} details…`;
+        content.textContent = useSharedLoader ? '' : `Loading ${kind} details…`;
         content.setAttribute('aria-busy', 'true');
         if (!dialog.open) dialog.showModal();
+        // The FO project page uses the same loading overlay as Assigned Areas.
+        if (useSharedLoader) document.dispatchEvent(new CustomEvent('management:loading', {
+            detail: { label: 'Loading project details…', managed: true },
+        }));
+        const timeout = setTimeout(() => current.abort(), 30000);
         dialog.scrollTop = 0;
         document.body.classList.add('am-project-modal-open');
         try {
@@ -33,10 +39,10 @@ function bindDetailDialog(kind: DetailKind): void {
             // Redirects may be a login response; do not insert that page into a dialog.
             if (!response.ok || response.redirected) throw new Error('Details unavailable');
             const html = await response.text();
-            if (current.signal.aborted) return;
+            if (request !== current || !dialog.open) return;
             content.innerHTML = html;
         } catch (error: unknown) {
-            if (current.signal.aborted) return;
+            if (request !== current || !dialog.open) return;
             content.textContent = `The ${kind} details could not load. `;
             const fallback = document.createElement('a');
             fallback.href = link.href;
@@ -44,7 +50,11 @@ function bindDetailDialog(kind: DetailKind): void {
             fallback.textContent = `Open the full ${kind} page`;
             content.append(fallback);
         } finally {
-            if (request === current) content.removeAttribute('aria-busy');
+            clearTimeout(timeout);
+            if (request === current) {
+                content.removeAttribute('aria-busy');
+                if (useSharedLoader) document.dispatchEvent(new Event('management:loaded'));
+            }
         }
     });
     dialog.querySelector(`[data-${kind}-close]`)?.addEventListener('click', () => dialog.close());

@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Models\{Member, User};
 use App\Services\MembershipWorkflowService;
+use App\Services\FieldOfficerMembershipService;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\MembershipDatabaseTestCase;
 
@@ -114,7 +115,22 @@ final class MemberWorkspaceTest extends MembershipDatabaseTestCase
     {
         $workflow = app(MembershipWorkflowService::class);
         $workflow->setReviewPassphrase(User::findOrFail(1), Member::findOrFail(1), 'Member-review-private');
-        $application = $workflow->submit(User::findOrFail(3), ['first_name' => 'New', 'last_name' => 'Applicant', 'birthday' => '1990-01-01', 'sex_id' => 1]);
+        // Review-access checks need an application that is still Pending.
+        $officer = User::findOrFail(2);
+        $draftWorkflow = app(FieldOfficerMembershipService::class);
+
+        $draft = $draftWorkflow->create($officer, 1, [
+            'first_name' => 'New',
+            'last_name' => 'Applicant',
+            'birthday' => '1990-01-01',
+            'sex_id' => 1,
+        ]);
+
+        $application = $draftWorkflow->submit(
+            $officer,
+            $draft,
+            $draft->revision
+        );
         $url = '/membership/applications/'.$application->id;
         $this->get($url)->assertOk()->assertDontSee('data-representative-review', false);
         $this->post($url.'/review-access', ['review_passphrase' => 'wrong'])->assertSessionHas('error');

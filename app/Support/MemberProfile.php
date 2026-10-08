@@ -9,7 +9,7 @@ use Illuminate\Validation\Rule;
 /** Shared profile rules keep application submission and official-member corrections consistent. */
 final class MemberProfile
 {
-    public const ROLES = ['President', 'Secretary', 'Treasurer', 'Member'];
+    public const ROLES = ['President', 'Vice President', 'Secretary', 'Treasurer', 'Member'];
     public const FIELDS = ['first_name', 'middle_name', 'last_name', 'birthday', 'sex_id', 'beneficiary_type', 'contact_number', 'address'];
 
     public static function normalize(array $input): array

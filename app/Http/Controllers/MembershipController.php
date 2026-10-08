@@ -37,8 +37,67 @@ final class MembershipController extends Controller
     {
         $actor = $this->sessionUser->resolve($request);
         Gate::forUser($actor)->authorize('viewAny', MemberApplication::class);
+        // Saved drafts use the same Members workspace, with their own authorization.
+        if ($request->input('tab') === 'drafts') {
+            abort_unless($actor->role?->role_name === 'Field Officer', 403);
+
+            Gate::forUser($actor)->authorize('viewAny', \App\Models\MemberDraft::class);
+
+            $associationOptions = Association::query()
+                ->where('field_officer_id', $actor->id)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+
+            $drafts = \App\Models\MemberDraft::query()
+                ->with('association')
+                ->where('created_by_user_id', $actor->id)
+                ->whereHas('association', fn ($query) =>
+                    $query->where('field_officer_id', $actor->id)
+                );
+
+            if ($request->filled('association_id')) {
+                $associationId = $request->integer('association_id');
+
+                abort_unless($associationOptions->contains('id', $associationId), 403);
+                $drafts->where('association_id', $associationId);
+            }
+
+            if ($request->filled('draft_state')) {
+                $drafts->where('state', $request->input('draft_state'));
+            }
+
+            if ($request->filled('search')) {
+                // Search only the already-authorized drafts.
+                $drafts->whereRaw(
+                    "CONCAT_WS(' ', profile->>'first_name', profile->>'middle_name',
+                    profile->>'last_name') ILIKE ?",
+                    ['%'.$request->input('search').'%']
+                );
+            }
+
+            return view('field-officer-user.members.index', [
+                'associationOptions' => $associationOptions,
+                'drafts' => $drafts->orderByDesc('updated_at')
+                    ->orderByDesc('id')->paginate(15)->withQueryString(),
+            ]);
+        }
         $applications = $this->access->scope(MemberApplication::with(['association', 'status']), $actor);
-        $members = $this->access->scope(Member::with('association')->where('is_archived', false), $actor);
+        // Apply association access first. Archive filters never expand officer access.
+        $members = $this->access->scope(Member::with('association'), $actor);
+
+        if ($actor->role?->role_name === 'Field Officer') {
+            // Default to current members, including when the filter is blank.
+            $recordState = $request->input('record_state') ?: 'current';
+
+            if ($recordState === 'archived') {
+                $members->where('is_archived', true);
+            } elseif ($recordState !== 'all') {
+                $members->where('is_archived', false);
+            }
+        } else {
+            // Preserve the existing register behavior for other roles.
+            $members->where('is_archived', false);
+        }
         if ($request->filled('status')) {
             $applications->whereHas('status', fn ($query) => $query->where('status_name', $request->input('status')));
         }
@@ -47,10 +106,65 @@ final class MembershipController extends Controller
                 $query->whereRaw("CONCAT_WS(' ', first_name, middle_name, last_name) ILIKE ?", ['%'.$request->input('search').'%']);
             }
         }
-        return view('shared.membership.index', [
+
+        $associationOptions = collect();
+
+        if ($actor->role?->role_name === 'Field Officer') {
+            // Offer only associations currently assigned to this officer.
+            $associationOptions = Association::query()
+                ->where('field_officer_id', $actor->id)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+
+            if ($request->filled('association_id')) {
+                $associationId = $request->integer('association_id');
+
+                // A manually changed URL must not select another officer's association.
+                abort_unless(
+                    $associationOptions->contains('id', $associationId),
+                    403
+                );
+
+                $members->where('association_id', $associationId);
+                $applications->where('association_id', $associationId);
+            }
+
+            // Roles belong to official members, not application records.
+            if ($request->filled('role_in_assoc')) {
+                $members->where('role_in_assoc', $request->input('role_in_assoc'));
+            }
+
+            if ($request->filled('representative')) {
+                $isRepresentative = $request->input('representative') === 'yes';
+
+                $members->whereHas('association', function ($query) use ($isRepresentative) {
+                    if ($isRepresentative) {
+                        $query->whereColumn(
+                            'associations.representative_member_id',
+                            'members.id'
+                        );
+                    } else {
+                        // If nobody is designated, every member is a non-representative.
+                        $query->where(function ($designation) {
+                            $designation->whereNull('associations.representative_member_id')
+                                ->orWhereColumn(
+                                    'associations.representative_member_id',
+                                    '<>',
+                                    'members.id'
+                                );
+                        });
+                    }
+                });
+            }
+        }
+        // Field Officers use their own presentation with the same scoped records.
+        return view($actor->role?->role_name === 'Field Officer'
+            ? 'field-officer-user.members.index'
+            : 'shared.membership.index', [
             'applications' => $applications->orderByDesc('created_at')->orderByDesc('id')->paginate(15)->withQueryString(),
             'members' => $members->orderBy('last_name')->orderBy('first_name')->orderBy('id')->paginate(15, ['*'], 'members_page')->withQueryString(),
             'canSubmit' => Gate::forUser($actor)->allows('create', MemberApplication::class),
+            'associationOptions' => $associationOptions,
         ]);
     }
 
@@ -69,7 +183,7 @@ final class MembershipController extends Controller
         $actor = $this->sessionUser->resolve($request);
         return $this->mutate($request, function () use ($request, $actor): RedirectResponse {
             $application = $this->workflow->submit($actor, $request->validated());
-            return redirect()->route('membership.applications.show', $application)->with('success', 'Application submitted. It is Pending representative review.');
+            return redirect()->route('membership.applications.show', $application)->with('success', 'Representative verified. Application approved and official member registered..');
         });
     }
 
@@ -77,7 +191,10 @@ final class MembershipController extends Controller
     {
         $actor = $this->sessionUser->resolve($request);
         Gate::forUser($actor)->authorize('view', $application);
-        return view('shared.membership.application', [
+        // The Field Officer dialog consumes the same authorized record as the full page.
+        return view($actor->role?->role_name === 'Field Officer'
+            ? 'field-officer-user.members.record'
+            : 'shared.membership.application', [
             'application' => $application->load(['association.representative', 'status', 'sex', 'reviewer', 'member']),
             'canReview' => app(\App\Services\RepresentativeReviewAccess::class)->allows($request, $actor, $application),
             'canUnlockReview' => Gate::forUser($actor)->allows('review', $application),
@@ -88,7 +205,12 @@ final class MembershipController extends Controller
     {
         $actor = $this->sessionUser->resolve($request);
         Gate::forUser($actor)->authorize('view', $member);
-        return view('shared.membership.member', ['member' => $member->load(['association', 'sex'])]);
+        // Reuse the loaded profile without exposing editing or approval controls.
+        return view($actor->role?->role_name === 'Field Officer'
+            ? 'field-officer-user.members.record'
+            : 'shared.membership.member', [
+                'member' => $member->load(['association', 'sex']),
+            ]);
     }
 
     public function unlockReview(Request $request, MemberApplication $application): RedirectResponse
