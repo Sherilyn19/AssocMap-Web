@@ -1,0 +1,441 @@
+/* FO-only layout using the existing AssocMap palette. */
+.fo-gis {
+    --fo-gis-blue: #084873;
+    --fo-gis-teal: #176c73;
+    --fo-gis-green: #66875c;
+    --fo-gis-border: #d6e3e6;
+    display: grid;
+    gap: 18px;
+}
+
+.fo-gis-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px;
+    background: #fff;
+    border: 1px solid var(--fo-gis-border);
+    border-radius: 16px;
+}
+
+.fo-gis-header h1 {
+    margin: 10px 0 5px;
+    font-size: clamp(24px, 2.4vw, 32px);
+    font-weight: 750;
+    line-height: 1.2;
+    color: #0f172a;
+}
+
+.fo-gis-header p {
+    margin: 0;
+    color: #52677e;
+    font-size: 14px;
+}
+
+.fo-gis-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.fo-gis-cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.fo-gis-card {
+    display: grid;
+    gap: 8px;
+    padding: 17px;
+    text-align: left;
+    text-decoration: none;
+    color: #0f172a;
+    background: white;
+    border: 1px solid var(--fo-gis-border);
+    border-top: 3px solid var(--fo-gis-teal);
+    border-radius: 13px;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.fo-gis-card > span {
+    font-size: 13px;
+    font-weight: 650;
+    color: #475569;
+}
+
+.fo-gis-card strong {
+    font-size: 28px;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.fo-gis-card small {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    color: #64748b;
+}
+
+.fo-gis-card-visible { border-top-color: #1f6e3d; }
+.fo-gis-card-hidden { border-top-color: #b7791f; background: #fffdf5; }
+.fo-gis-card-archived { border-top-color: #64748b; }
+
+.fo-gis-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 16px #0f172a0d;
+}
+
+.fo-gis-filter,
+.fo-gis .gis-map-card,
+.fo-gis .gis-record-panel,
+.fo-gis-unmapped {
+    background: #fff;
+    border: 1px solid var(--fo-gis-border);
+    border-radius: 14px;
+}
+
+.fo-gis-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 13px 17px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.fo-gis-section-heading h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 650;
+    color: #0f172a;
+}
+
+.fo-gis-scope {
+    padding: 5px 9px;
+    border: 1px solid #b7e5df;
+    border-radius: 999px;
+    background: #effcf9;
+    color: var(--fo-gis-teal);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.fo-gis-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 13px;
+    padding: 16px;
+}
+
+.fo-gis-filter-grid label {
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 650;
+    color: #334155;
+}
+
+.fo-gis-filter-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.fo-gis-filter-footer p {
+    margin: 0;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.am-officer .fo-gis .gis-save-button {
+    background: var(--fo-gis-green);
+    border-color: var(--fo-gis-green);
+    color: white;
+}
+
+.am-officer .fo-gis .gis-save-button:hover {
+    background: #55754c;
+}
+
+.am-officer .fo-gis :is(.gis-button, .gis-input, .gis-record-button) {
+    font-size: 13px;
+    min-height: 40px;
+}
+
+.fo-gis .gis-input {
+    border: 1px solid #cbd5e1;
+    background: white;
+}
+
+.fo-gis .gis-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(290px, 340px);
+    height: clamp(470px, 68dvh, 660px);
+    scroll-margin-top: 15px;
+}
+
+.fo-gis .gis-record {
+    padding: 15px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.fo-gis .gis-record-button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    font-weight: 650;
+    color: var(--fo-gis-blue);
+}
+
+.fo-gis .gis-record p {
+    margin: 5px 0;
+    font-size: 12px;
+    color: #475569;
+}
+
+.fo-gis .gis-record small {
+    font-size: 11px;
+    color: #64748b;
+}
+
+.fo-gis-record-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 11px;
+}
+
+.fo-gis-history-link {
+    color: var(--fo-gis-teal);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.fo-gis-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 11px 15px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 11px;
+}
+
+.fo-gis-map-status,
+.fo-gis-empty {
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.fo-gis-unmapped { padding: 14px 17px; font-size: 12px; }
+.fo-gis-unmapped summary { cursor: pointer; font-weight: 650; }
+.fo-gis-unmapped ul { margin-top: 10px; padding-left: 18px; }
+
+/* Details stay compact; only the dialog body scrolls. */
+.fo-gis-dialog {
+    width: min(620px, calc(100vw - 28px));
+    max-width: none;
+    max-height: calc(100dvh - 40px);
+    margin: auto;
+    padding: 0;
+    border: 1px solid var(--fo-gis-border);
+    border-radius: 17px;
+    background: white;
+    color: #0f172a;
+    overflow: hidden;
+}
+
+.fo-gis-dialog[open] {
+    display: flex;
+    flex-direction: column;
+    animation: fo-gis-enter 180ms ease-out;
+}
+
+.fo-gis-dialog::backdrop {
+    background: #0f172a70;
+    backdrop-filter: blur(3px);
+}
+
+.fo-gis-dialog-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 15px 18px;
+    background: #edf6f8;
+    border-bottom: 1px solid #d6e3e6;
+    border-left: 4px solid var(--fo-gis-teal);
+}
+
+.fo-gis-dialog-heading small {
+    font-size: 10px;
+    letter-spacing: .06em;
+    color: var(--fo-gis-teal);
+    font-weight: 700;
+}
+
+.fo-gis-dialog-heading h2 {
+    margin-top: 4px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--fo-gis-blue);
+}
+
+.fo-gis-dialog-body {
+    padding: 18px;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.fo-gis-detail-context h3 {
+    margin: 0 0 5px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--fo-gis-blue);
+}
+
+.fo-gis-detail-context p {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: #52677e;
+}
+
+.fo-gis-detail-context .gis-badge { font-size: 11px; }
+
+.fo-gis-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.fo-gis-detail-grid > div {
+    padding: 11px;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    overflow-wrap: anywhere;
+}
+
+.fo-gis-detail-grid dt { font-size: 11px; color: #64748b; }
+.fo-gis-detail-grid dd { margin: 4px 0 0; font-size: 13px; }
+
+.fo-gis-dialog-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.fo-gis-notice {
+    margin-top: 13px;
+    padding: 10px 12px;
+    border: 1px solid #f2d49b;
+    border-radius: 9px;
+    background: #fffaf0;
+    color: #92400e;
+    font-size: 12px;
+}
+
+.fo-gis .fo-gis-edit {
+    border-color: #efcf8b;
+    background: #fff7df;
+    color: #854d0e;
+}
+
+.fo-gis .fo-gis-archive { color: #9a3412; border-color: #edc4ac; }
+
+.fo-gis-feedback {
+    padding: 12px 16px;
+    border: 1px solid #bbdfc7;
+    border-radius: 10px;
+    background: #f0fbf3;
+    color: #166534;
+    font-size: 13px;
+}
+
+.fo-gis .gis-editor:not([hidden]) {
+    animation: fo-gis-editor-enter 180ms ease-out;
+}
+
+/* History no longer occupies an almost-empty full-height drawer. */
+.am-officer .gis-history-dialog {
+    height: auto;
+    max-height: calc(100dvh - 40px);
+    margin: auto;
+    border-radius: 17px;
+}
+
+.am-officer .gis-history-body { flex: 0 1 auto; }
+.am-officer .gis-history-timeline > li { padding-bottom: 16px; }
+
+/* Info disclosures can wrap without stretching the surrounding heading. */
+.fo-gis .am-info__content {
+    max-width: min(280px, calc(100vw - 65px));
+    white-space: normal;
+}
+
+@keyframes fo-gis-enter {
+    from { opacity: 0; transform: translateY(6px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes fo-gis-editor-enter {
+    from { opacity: 0; transform: translateX(12px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@media (max-width: 1000px) {
+    .fo-gis-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .fo-gis-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 900px) {
+    .fo-gis .gis-workspace {
+        grid-template-columns: minmax(0, 1fr);
+        height: auto;
+    }
+
+    .fo-gis .gis-map { min-height: 330px; height: 45dvh; }
+    .fo-gis .gis-record-panel { max-height: 470px; }
+}
+
+@media (max-width: 520px) {
+    .fo-gis-header { padding: 17px; }
+    .fo-gis-filter-grid { grid-template-columns: minmax(0, 1fr); }
+    .fo-gis-detail-grid { grid-template-columns: minmax(0, 1fr); }
+    .fo-gis-card { padding: 13px; }
+    .fo-gis-card strong { font-size: 24px; }
+    .fo-gis-scope { white-space: normal; }
+}
+
+@media (pointer: coarse) {
+    .am-officer .fo-gis :is(.gis-button, .gis-input, .gis-record-button) {
+        min-height: 44px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fo-gis *, .am-officer .gis-history-dialog {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+
+    .fo-gis-card:hover { transform: none; }
+}

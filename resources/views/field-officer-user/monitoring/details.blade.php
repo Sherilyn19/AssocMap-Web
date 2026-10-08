@@ -93,8 +93,14 @@
         </div>
 
         <figure>
-            <figcaption class="am-monitoring-muted">
-                Monthly gross income. Empty months are unrecorded, not zero.
+            <figcaption class="am-info-line">
+                <strong>Monthly gross income</strong>
+
+                <x-info label="About monthly gross income">
+                    Empty months are unrecorded, not zero. Gross income is before expenses,
+                    not profit. Totals include recorded months only.
+                    Changes compare recorded amounts and do not explain their cause.
+                </x-info>
             </figcaption>
             <div class="am-monitoring-chart" aria-hidden="true">
                 @foreach(range(1, 12) as $month)
@@ -145,10 +151,6 @@
             </table>
         </div>
 
-        <p class="am-monitoring-muted">
-            Gross income is income before expenses, not profit. The total includes recorded months only.
-            Changes compare recorded amounts; the system does not infer their cause.
-        </p>
     @else
         <dl class="am-monitoring-facts">
             <div><dt>Material</dt><dd>{{ $material->item_name }}</dd></div>
@@ -158,10 +160,16 @@
             <div><dt>Archive state</dt><dd>{{ $material->archived_at ? 'Archived' : 'Current' }}</dd></div>
         </dl>
 
-        <p class="am-monitoring-muted">
-            Observations appear newest first. Undated entries appear last; their inspection dates are unknown.
-            Delivery information comes from the material register.
-        </p>
+        <div class="am-info-line">
+            <h4>Inspection timeline</h4>
+
+            <x-info label="About the inspection timeline">
+                Observations appear newest first. Undated entries appear last.
+                Delivery information comes from the material register.
+                Each observation shows its latest saved values; edits are retained
+                in audit history and are not additional inspections.
+            </x-info>
+        </div>
 
         <ol class="am-monitoring-timeline">
             @foreach($history as $entry)

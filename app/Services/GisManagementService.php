@@ -83,36 +83,106 @@ final class GisManagementService
         });
     }
 
-    public function publication(int $id, string $revision, bool $published, int $actorId): int
-    {
-        return app(AssociationDatabase::class)->run(function () use ($id, $revision, $published, $actorId): int {
+    public function publication(
+        int $id,
+        string $revision,
+        bool $published,
+        int $actorId
+    ): int {
+        return app(AssociationDatabase::class)->run(function () use (
+            $id,
+            $revision,
+            $published,
+            $actorId
+        ): int {
             $this->authorize($actorId);
-            $parentId = DB::table('gis_locations')->where('id', $id)->value('association_id');
+
+            $parentId = DB::table('gis_locations')
+                ->where('id', $id)
+                ->value('association_id');
+
             abort_if($parentId === null, 404);
+
+            // Lock and recheck the current assignment before touching the location.
             $this->lockAssociation((int) $parentId, $actorId);
-            $location = DB::table('gis_locations')->select('gis_locations.*')->selectRaw(GisRevision::SQL)
-                ->where('id', $id)->lockForUpdate()->first();
-            abort_if(! $location, 404);
-            abort_if($location->archived_at !== null, 409, 'Archived locations cannot be published or edited.');
+
+            $location = DB::table('gis_locations')
+                ->select('gis_locations.*')
+                ->selectRaw(GisRevision::SQL)
+                ->where('id', $id)
+                ->lockForUpdate()
+                ->first();
+
+            abort_if(!$location, 404);
             abort_if((int) $location->association_id !== (int) $parentId, 409);
-            // Repeating the same explicit state is a no-op, never a toggle or a second audit.
+            abort_if(
+                $location->archived_at !== null,
+                409,
+                'Archived locations retain read-only history.'
+            );
+
+            if ($published) {
+                // Run this before the repeated-action check.
+                // An inactive association must never receive a successful publish.
+                $active = Association::query()
+                    ->whereKey($parentId)
+                    ->where('is_archived', false)
+                    ->whereHas(
+                        'status',
+                        fn ($query) => $query->where('status_name', 'Active')
+                    )
+                    ->exists();
+
+                if (!$active) {
+                    throw ValidationException::withMessages([
+                        'association_id' =>
+                            'Only an Active, non-archived association can publish a location.',
+                    ]);
+                }
+
+                $valid = is_string($location->location_name)
+                    && trim($location->location_name) !== '';
+
+                foreach (['latitude' => 90, 'longitude' => 180] as $field => $limit) {
+                    $value = $location->$field;
+
+                    $valid = $valid
+                        && is_numeric($value)
+                        && is_finite((float) $value)
+                        && abs((float) $value) <= $limit;
+                }
+
+                if (!$valid) {
+                    throw ValidationException::withMessages([
+                        'publication' =>
+                            'Correct the location name and coordinates before publishing.',
+                    ]);
+                }
+            }
+
+            // Repeating an explicit state does not toggle it or create another audit.
             if ((bool) $location->is_published === $published) {
                 return $id;
             }
-            abort_unless(hash_equals($location->revision, $revision), 409);
-            if ($published) {
-                $valid = is_string($location->location_name) && trim($location->location_name) !== '';
-                foreach (['latitude' => 90, 'longitude' => 180] as $field => $limit) {
-                    $value = $location->$field;
-                    $valid = $valid && is_numeric($value) && is_finite((float) $value) && abs((float) $value) <= $limit;
-                }
-                if (! $valid) {
-                    throw ValidationException::withMessages(['publication' => 'Correct the location name and coordinates before publishing.']);
-                }
-            }
-            DB::table('gis_locations')->where('id', $id)->update(['is_published' => $published, 'updated_at' => DB::raw('clock_timestamp()')]);
-            $this->audit($actorId, $published ? 'PUBLISH' : 'UNPUBLISH', $id,
-                ['is_published' => (bool) $location->is_published], ['is_published' => $published]);
+
+            abort_unless(
+                hash_equals($location->revision, $revision),
+                409,
+                'This location changed. Reload GIS Mapping before continuing.'
+            );
+
+            DB::table('gis_locations')->where('id', $id)->update([
+                'is_published' => $published,
+                'updated_at' => DB::raw('clock_timestamp()'),
+            ]);
+
+            $this->audit(
+                $actorId,
+                $published ? 'PUBLISH' : 'UNPUBLISH',
+                $id,
+                ['is_published' => (bool) $location->is_published],
+                ['is_published' => $published]
+            );
 
             return $id;
         });
@@ -120,29 +190,117 @@ final class GisManagementService
 
     public function update(int $id, array $data, int $actorId): int
     {
-        return app(AssociationDatabase::class)->run(function () use ($id, $data, $actorId): int {
+        return app(AssociationDatabase::class)->run(function () use (
+            $id,
+            $data,
+            $actorId
+        ): int {
             $this->authorize($actorId);
-            $parentId = DB::table('gis_locations')->where('id', $id)->value('association_id');
-            abort_if($parentId === null, 404, 'This location is no longer available. Reload GIS Mapping.');
-            // Match association archival: lock the parent first, then the location.
+
+            $parentId = DB::table('gis_locations')
+                ->where('id', $id)
+                ->value('association_id');
+
+            abort_if($parentId === null, 404);
+
+            // Use the same parent-first lock order as publication and archival.
             $this->lockAssociation((int) $parentId, $actorId);
-            $location = DB::table('gis_locations')->select(['id', 'association_id', 'project_id', 'archived_at', 'location_name', 'latitude', 'longitude'])
-                ->selectRaw(GisRevision::SQL)->where('id', $id)->lockForUpdate()->first();
-            abort_if(! $location, 404, 'This location is no longer available. Reload GIS Mapping.');
+
+            $location = DB::table('gis_locations')
+                ->select('gis_locations.*')
+                ->selectRaw(GisRevision::SQL)
+                ->where('id', $id)
+                ->lockForUpdate()
+                ->first();
+
+            abort_if(!$location, 404);
             abort_if($location->archived_at !== null, 409, 'Archived locations cannot be edited.');
-            abort_if((int) $location->association_id !== (int) $parentId || ! hash_equals($location->revision, $data['revision']),
-                409, 'This location changed after you opened the form. Reload GIS Mapping before editing again.');
-            $before = ['location_name' => $location->location_name, 'latitude' => $location->latitude, 'longitude' => $location->longitude, 'project_id' => $location->project_id];
+
+            abort_if(
+                (int) $location->association_id !== (int) $parentId
+                || !hash_equals($location->revision, $data['revision']),
+                409,
+                'This location changed. Reload GIS Mapping before editing again.'
+            );
+
             $values = $this->fields($data);
-            // Older clients omit this optional field; omission must preserve a saved link.
-            $projectId = array_key_exists('project_id', $data) ? $data['project_id'] : $location->project_id;
-            $values['project_id'] = $this->projectId($projectId, (int) $parentId, $location->project_id);
-            // Do not write association_id or is_published: preserve their latest saved values.
-            DB::table('gis_locations')->where('id', $id)->update($values + ['updated_at' => DB::raw('clock_timestamp()')]);
+
+            // An omitted project field preserves its existing link.
+            $projectId = array_key_exists('project_id', $data)
+                ? $data['project_id']
+                : $location->project_id;
+
+            $values['project_id'] = $this->projectId(
+                $projectId,
+                (int) $parentId,
+                $location->project_id
+            );
+
+            $before = [
+                'location_name' => $location->location_name,
+                'latitude' => $location->latitude,
+                'longitude' => $location->longitude,
+                'project_id' => $location->project_id,
+                'is_published' => (bool) $location->is_published,
+            ];
+
+            $unpublish = (bool) $location->is_published
+                && $this->publicFieldsChanged($location, $values);
+
+            $values['is_published'] = $unpublish
+                ? false
+                : (bool) $location->is_published;
+
+            DB::table('gis_locations')->where('id', $id)->update([
+                ...$values,
+                'updated_at' => DB::raw('clock_timestamp()'),
+            ]);
+
             $this->audit($actorId, 'UPDATE', $id, $before, $values);
+
+            if ($unpublish) {
+                // Both the edit and automatic unpublication share this transaction.
+                $this->audit(
+                    $actorId,
+                    'UNPUBLISH',
+                    $id,
+                    ['is_published' => true],
+                    [
+                        'is_published' => false,
+                        'reason' => 'Public-facing location information changed.',
+                    ]
+                );
+            }
 
             return $id;
         });
+    }
+
+    private function publicFieldsChanged(object $location, array $values): bool
+    {
+        if (
+            $location->location_name !== $values['location_name']
+            || (string) $location->project_id !== (string) $values['project_id']
+        ) {
+            return true;
+        }
+
+        // Compare PostgreSQL numerics exactly.
+        // Formatting 10.0 as 10.00 is not a coordinate change.
+        $comparison = DB::selectOne(
+            'SELECT (
+                CAST(? AS numeric) IS DISTINCT FROM CAST(? AS numeric)
+                OR CAST(? AS numeric) IS DISTINCT FROM CAST(? AS numeric)
+            ) AS changed',
+            [
+                $location->latitude,
+                $values['latitude'],
+                $location->longitude,
+                $values['longitude'],
+            ]
+        );
+
+        return (bool) $comparison->changed;
     }
 
     private function authorize(int $actorId): void

@@ -1465,3 +1465,404 @@ a.fo-count-green:is(:hover, :focus-visible),
         transition: none;
     }
 }
+
+/* Native hidden attributes must win over shared button display rules. */
+.am-monitoring-dialog [hidden] {
+    display: none !important;
+}
+
+/* Compact achievement layout using the existing monitoring palette. */
+.am-achievement {
+    color: #1e293b;
+    font-size: 14px;
+}
+
+.am-achievement > * + * {
+    margin-top: 18px;
+}
+
+.am-achievement h3,
+.am-achievement h4 {
+    margin: 0 0 8px;
+    color: var(--am-brand-navy, #084873);
+    font-weight: 700;
+}
+
+.am-achievement h3 {
+    font-size: 17px;
+}
+
+.am-achievement h4 {
+    font-size: 14px;
+}
+
+.am-achievement-heading,
+.am-production-event-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.am-achievement-heading p,
+.am-achievement small {
+    color: #64748b;
+}
+
+.am-achievement-chip {
+    display: inline-block;
+    padding: 4px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px;
+    background: #f8fafc;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.am-achievement-summary {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 20px;
+    align-items: center;
+    padding: 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.am-achievement-status strong,
+.am-achievement-status span {
+    display: block;
+}
+
+.am-achievement-status span {
+    margin-top: 3px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.am-achievement-values dl {
+    display: flex;
+    gap: 24px;
+    margin: 10px 0;
+}
+
+.am-achievement-values dt {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.am-achievement-values dd {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+/* The generated wave rises with the server-provided fill percentage. */
+.am-water {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    place-items: center;
+    width: 120px;
+    height: 120px;
+    overflow: hidden;
+    border: 2px solid #176c73;
+    border-radius: 50%;
+    background: #e7f1f3;
+}
+
+.am-water-fill {
+    position: absolute;
+    z-index: -1;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0;
+    background: #176c73;
+    transition: height 1100ms cubic-bezier(.22, .61, .36, 1);
+}
+
+.am-water-fill::before {
+    content: "";
+    position: absolute;
+    top: -11px;
+    left: 0;
+    width: 100%;
+    height: 12px;
+    /* Vite resolves this relative to resources/css/app.css. */
+    background: url("../images/shared/production-wave.svg") repeat-x;
+    background-size: 240px 12px;
+}
+
+/* Stop after three cycles instead of creating an endless distraction. */
+.am-water.is-filling .am-water-fill::before {
+    animation: am-water-wave 1200ms linear 3;
+}
+
+.am-water strong {
+    padding: 5px 9px;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px;
+    background: #fff;
+    color: #084873;
+    font-size: 20px;
+}
+
+.am-quarter-track {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.am-quarter {
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+}
+
+.am-quarter.is-selected {
+    border-color: #176c73;
+    background: #edf6f8;
+}
+
+.am-quarter a,
+.am-quarter small {
+    display: block;
+}
+
+.am-quarter a span {
+    display: block;
+    margin-top: 4px;
+}
+
+.am-quarter small {
+    overflow-wrap: anywhere;
+    font-size: 10px;
+}
+
+.am-quarter-bar {
+    height: 5px;
+    margin: 7px 0;
+    overflow: hidden;
+    border-radius: 5px;
+    background: #e2e8f0;
+}
+
+.am-quarter-bar span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #176c73;
+    transition: width 400ms ease;
+}
+
+.am-progress-disclosure {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    background: #fff;
+}
+
+.am-progress-disclosure > summary {
+    cursor: pointer;
+    color: #084873;
+    font-weight: 600;
+}
+
+.am-progress-disclosure[open] > :not(summary) {
+    animation: am-progress-reveal 180ms ease-out;
+}
+
+.am-production-timeline {
+    margin: 14px 0 0 8px;
+    padding: 0 0 0 18px;
+    border-left: 2px solid #cce1e6;
+    list-style: none;
+}
+
+.am-production-timeline > li {
+    position: relative;
+    padding: 0 0 16px;
+    overflow-wrap: anywhere;
+}
+
+.am-production-timeline > li::before {
+    content: "";
+    position: absolute;
+    left: -24px;
+    top: 5px;
+    width: 10px;
+    height: 10px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #176c73;
+}
+
+.am-production-timeline > li.is-voided::before {
+    background: #94a3b8;
+}
+
+.am-production-timeline > li.is-voided {
+    color: #64748b;
+}
+
+.am-audit-values {
+    margin: 8px 0;
+}
+
+.am-audit-values > div {
+    padding: 5px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.am-audit-values dt {
+    font-size: 11px;
+    color: #64748b;
+}
+
+.am-audit-values dd {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+@keyframes am-water-wave {
+    to { background-position-x: 240px; }
+}
+
+@keyframes am-progress-reveal {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 480px) {
+    .am-achievement-summary {
+        grid-template-columns: 90px minmax(0, 1fr);
+        gap: 12px;
+        padding: 12px;
+    }
+
+    .am-water {
+        width: 90px;
+        height: 90px;
+    }
+
+    .am-water strong {
+        font-size: 16px;
+    }
+
+    .am-quarter-track {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .am-achievement-values dl {
+        gap: 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .am-water-fill,
+    .am-quarter-bar span {
+        transition: none;
+    }
+
+    .am-water.is-filling .am-water-fill::before,
+    .am-progress-disclosure[open] > :not(summary) {
+        animation: none;
+    }
+}
+
+/* Anchor supplementary information to its heading or label. */
+.am-info-line {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.am-info-line > h4,
+.am-info-line > p,
+.am-info-line > label {
+    margin: 0;
+}
+
+.am-info {
+    display: inline-block;
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+/* The icon is compact while retaining a usable interaction area. */
+.am-info > summary {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 4px;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    color: var(--am-brand-teal, #176c73);
+    cursor: pointer;
+    list-style: none;
+}
+
+.am-info > summary::-webkit-details-marker {
+    display: none;
+}
+
+.am-info > summary svg {
+    width: 19px;
+    height: 19px;
+}
+
+.am-info > summary:hover,
+.am-info[open] > summary {
+    background: #edf6f8;
+    border-color: #cce1e6;
+}
+
+.am-info > summary:focus-visible {
+    outline: 2px solid var(--am-brand-teal, #176c73);
+    outline-offset: 2px;
+}
+
+/* Keep the explanation within the available heading width. */
+.am-info__content {
+    position: absolute;
+    z-index: 30;
+    top: 100%;
+    left: 0;
+    box-sizing: border-box;
+    width: min(320px, 100%);
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    background: #fff;
+    box-shadow: 0 8px 20px rgb(15 23 42 / 12%);
+    color: #334155;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.am-info[open] > .am-info__content {
+    animation: am-info-appear 140ms ease-out;
+}
+
+@keyframes am-info-appear {
+    from { opacity: 0; transform: translateY(-3px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .am-info[open] > .am-info__content {
+        animation: none;
+    }
+}

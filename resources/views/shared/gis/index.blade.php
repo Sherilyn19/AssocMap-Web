@@ -1,4 +1,7 @@
 <x-dashboard-layout title="GIS Mapping" topbar-title="GIS Mapping">
+    @if(request()->routeIs('gis.officer.*'))
+    @include('field-officer-user.gis.index')
+@else
 <div data-gis-page class="gis-page space-y-4">
     @include('shared.gis.publication')
     <header class="flex flex-wrap items-end justify-between gap-3">
@@ -7,7 +10,22 @@
             <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">GIS Mapping</h1>
             <p class="mt-1 text-sm text-slate-600">Explore association locations and program coverage.</p>
         </div>
-        <button data-gis-add hidden type="button" class="gis-button gis-save-button">+ Add location</button>
+        <div class="gis-history-actions">
+            <a class="gis-button" href="{{ route('gis.public') }}"
+            target="_blank" rel="noopener">
+                Public GIS Map
+            </a>
+
+            <a class="gis-button" data-gis-history
+            href="{{ route(request()->routeIs('gis.officer.*') ? 'gis.officer.archived' : 'gis.archived') }}">
+                Archived Locations
+            </a>
+
+            <button data-gis-add hidden type="button"
+                    class="gis-button gis-save-button">
+                + Add Location
+            </button>
+        </div>
     </header>
 
     @if(!request()->routeIs('gis.officer.*'))
@@ -38,7 +56,7 @@
     <div class="gis-workspace">
         <section class="gis-map-card rounded-xl border border-slate-200 bg-white shadow-sm" aria-label="Association location map">
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-2">
-                <h2 class="text-sm font-semibold">Location map</h2>
+                <h2 class="text-sm font-semibold">Internal GIS Map</h2>
                 <button data-gis-reset type="button" disabled class="gis-button">Reset map view</button>
             </div>
             <p data-gis-map-status role="status" class="border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs text-slate-600">Loading map… Location details are available in the list.</p>
@@ -70,6 +88,14 @@
                             @if($record['archived'])<span class="gis-badge bg-slate-100 text-slate-700">Archived association</span>@endif
                             @unless($record['valid'])<span class="gis-badge bg-red-50 text-red-800">Coordinates need review</span>@endunless
                         </div>
+                        <a class="gis-button mt-2 inline-block"
+                            data-gis-history href="{{ $record['history_url'] }}">
+                                View History
+                            </a>
+
+                            @if(!$record['can_publish'] && !$record['archived'])
+                                <p class="mt-2 text-xs text-amber-800">Not eligible for public visibility</p>
+                            @endif
                         <noscript><p class="mt-2 text-xs">{{ $record['valid'] ? $record['latitude'].', '.$record['longitude'] : 'No valid map position' }}</p></noscript>
                     </article>
                 @endforeach
@@ -88,4 +114,5 @@
     {{-- Encode names safely so text cannot end this data block or run as HTML. --}}
     <script data-gis-data type="application/json">{!! json_encode($records->values(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) !!}</script>
 </div>
+@endif
 </x-dashboard-layout>

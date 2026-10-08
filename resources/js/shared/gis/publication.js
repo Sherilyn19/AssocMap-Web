@@ -41,7 +41,16 @@ export function createPublication(root) {
         cancel.disabled = true;
         confirm.textContent = 'Saving…';
         dialog.setAttribute('aria-busy', 'true');
-        const result = await saveLocation(archiving ? record.archive_url : record.publication_url, 'PATCH', { revision: record.revision, ...(archiving ? { confirmed: true } : {}) }, root.querySelector('[name="_token"]').value);
+        // All visibility and archive operations require explicit confirmation.
+        const result = await saveLocation(
+            archiving ? record.archive_url : record.publication_url,
+            'PATCH',
+            {
+                revision: record.revision,
+                confirmed: true,
+            },
+            root.querySelector('[name="_token"]').value,
+        );
         busy = false;
         dialog.removeAttribute('aria-busy');
         blocked = result.ok || result.reload || Boolean(result.errors.association_id);

@@ -28,7 +28,15 @@ final class GisMapController extends Controller
         $actor = $internal ? $request->attributes->get('assocmap.actor') : null;
         abort_if($internal && ! $actor, 403);
         try {
-            $data = app(AssociationDatabase::class)->run(fn () => $gis->locations($filters, $actor));
+            $isJson = $request->expectsJson() || $request->routeIs('*.data');
+
+            // JSON map responses retain their existing allowlist and response structure.
+            [$data, $options] = app(AssociationDatabase::class)->run(
+                fn () => [
+                    $gis->locations($filters, $actor),
+                    $isJson ? [] : $gis->filterOptions($actor),
+                ]
+            );
         } catch (PDOException|AssociationDeadlineException $error) {
             Log::error('GIS viewing is unavailable.', ['type' => $error::class]);
 
@@ -41,6 +49,6 @@ final class GisMapController extends Controller
             return response()->json($data)->header('Cache-Control', 'no-store');
         }
 
-        return response()->view('shared.gis.viewer', compact('data', 'filters', 'internal'))->header('Cache-Control', 'no-store');
+        return response()->view('shared.gis.viewer', compact('data', 'filters', 'internal', 'options'))->header('Cache-Control', 'no-store');
     }
 }

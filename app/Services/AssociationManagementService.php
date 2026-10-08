@@ -223,6 +223,9 @@ final class AssociationManagementService
                 throw new AssociationRuleException('Archived associations must be restored before editing.');
             }
 
+            // Capture public GIS information before applying the association changes.
+            $gisBefore = GisPublicationImpact::associationSnapshot($locked);
+
             $beforeOfficer = $locked->field_officer_id;
             $beforeRepresentative = $locked->representative_member_id;
             $beforeStatus = $locked->status_id;
@@ -245,7 +248,17 @@ final class AssociationManagementService
             }
             $locked->save();
 
+            // A status or public-facing information change requires a new publication review.
+            // Reactivation never changes an unpublished location back to published.
+            app(GisPublicationImpact::class)->associationChanged(
+                (int) $locked->id,
+                $gisBefore,
+                GisPublicationImpact::associationSnapshot($locked),
+                $actorId
+            );
+
             $changes = array_keys($locked->getChanges());
+
             $this->writeAudit(
                 $actorId,
                 'UPDATE',

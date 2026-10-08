@@ -35,7 +35,14 @@ final class GisPublicationTest extends GisDatabaseTestCase
     public function test_publication_is_explicit_atomic_and_repeated_action_does_not_toggle(): void
     {
         $revision = $this->revision();
-        $payload = ['revision' => $revision, 'is_published' => false, 'user_id' => 3, 'performed_at' => '2000-01-01'];
+        // Confirm publication while retaining the fields used to test input protection.
+        $payload = [
+            'revision' => $revision,
+            'confirmed' => true,
+            'is_published' => false,
+            'user_id' => 3,
+            'performed_at' => '2000-01-01',
+        ];
         $this->patchJson('/admin/gis/1/publish', $payload)->assertOk();
         $this->patchJson('/admin/gis/1/publish', $payload)->assertOk();
         $this->assertTrue((bool) DB::table('gis_locations')->value('is_published'));
@@ -45,10 +52,10 @@ final class GisPublicationTest extends GisDatabaseTestCase
         $this->assertSame('PUBLISH', $event->action_type);
         $this->assertTrue(json_decode($event->details, true)['after']['is_published']);
         $this->assertStringNotContainsString('2000-01-01', $event->performed_at);
-        $this->patchJson('/admin/gis/1/unpublish', ['revision' => $revision])->assertConflict();
+        $this->patchJson('/admin/gis/1/unpublish', ['revision' => $revision, 'confirmed' => true])->assertConflict();
         $latest = $this->revision();
-        $this->patchJson('/admin/gis/1/unpublish', ['revision' => $latest])->assertOk();
-        $this->patchJson('/admin/gis/1/unpublish', ['revision' => $latest])->assertOk();
+        $this->patchJson('/admin/gis/1/unpublish', ['revision' => $latest, 'confirmed' => true])->assertOk();
+        $this->patchJson('/admin/gis/1/unpublish', ['revision' => $latest, 'confirmed' => true])->assertOk();
         $this->assertFalse((bool) DB::table('gis_locations')->value('is_published'));
         $this->assertSame(2, DB::table('audit_logs')->where('module', 'GIS')->count());
     }
@@ -56,10 +63,10 @@ final class GisPublicationTest extends GisDatabaseTestCase
     public function test_failed_audit_rolls_back_publication_and_unpublication(): void
     {
         DB::statement("ALTER TABLE audit_logs ADD CONSTRAINT reject_publication CHECK (module <> 'GIS')");
-        $this->patchJson('/admin/gis/1/publish', ['revision' => $this->revision()])->assertStatus(503)->assertDontSee('SQLSTATE');
+        $this->patchJson('/admin/gis/1/publish', ['revision' => $this->revision(), 'confirmed' => true])->assertStatus(503)->assertDontSee('SQLSTATE');
         $this->assertFalse((bool) DB::table('gis_locations')->value('is_published'));
         DB::table('gis_locations')->update(['is_published' => true]);
-        $this->patchJson('/admin/gis/1/unpublish', ['revision' => $this->revision()])->assertStatus(503);
+        $this->patchJson('/admin/gis/1/unpublish', ['revision' => $this->revision(), 'confirmed' => true])->assertStatus(503);
         $this->assertTrue((bool) DB::table('gis_locations')->value('is_published'));
     }
 
@@ -67,20 +74,20 @@ final class GisPublicationTest extends GisDatabaseTestCase
     {
         $this->patchJson('/admin/gis/1/publish', [])->assertUnprocessable();
         DB::table('gis_locations')->update(['latitude' => 91]);
-        $this->patchJson('/admin/gis/1/publish', ['revision' => $this->revision()])->assertUnprocessable()->assertJsonValidationErrors('publication');
+        $this->patchJson('/admin/gis/1/publish', ['revision' => $this->revision(), 'confirmed' => true])->assertUnprocessable()->assertJsonValidationErrors('publication');
         DB::table('gis_locations')->update(['is_published' => true]);
         // Removing a bad published record from visibility remains possible.
-        $this->patchJson('/admin/gis/1/unpublish', ['revision' => $this->revision()])->assertOk();
+        $this->patchJson('/admin/gis/1/unpublish', ['revision' => $this->revision(), 'confirmed' => true])->assertOk();
         DB::table('associations')->where('id', 1)->update(['is_archived' => true]);
         foreach (['publish', 'unpublish'] as $action) {
-            $this->patchJson('/admin/gis/1/'.$action, ['revision' => $this->revision()])->assertUnprocessable();
-            $this->patchJson('/admin/gis/99999/'.$action, ['revision' => $this->revision()])->assertNotFound();
+            $this->patchJson('/admin/gis/1/'.$action, ['revision' => $this->revision(), 'confirmed' => true])->assertUnprocessable();
+            $this->patchJson('/admin/gis/99999/'.$action, ['revision' => $this->revision(), 'confirmed' => true])->assertNotFound();
         }
     }
 
     public function test_direct_publication_requests_block_nonadmins_and_require_csrf(): void
     {
-        $data = ['revision' => $this->revision()];
+        $data = ['revision' => $this->revision(), 'confirmed' => true];
         foreach ([2 => 'dashboard.officer', 3 => 'dashboard.member'] as $id => $route) {
             $this->withSession($this->sessionFor($id, 'System Administrator'));
             foreach (['publish', 'unpublish'] as $action) {
@@ -100,7 +107,12 @@ final class GisPublicationTest extends GisDatabaseTestCase
         }
         $this->app['env'] = 'testing';
         $this->deleteJson('/admin/gis/1')->assertStatus(405);
-        $this->assertSame(0, DB::table('audit_logs')->count());
+        // Denied requests may create security audits.
+        // They must never create a GIS business-change audit.
+        $this->assertSame(
+            0,
+            DB::table('audit_logs')->where('module', 'GIS')->count()
+        );
     }
 
     public function test_one_submission_creates_one_record_and_one_audit_and_changed_payload_is_rejected(): void
@@ -134,15 +146,15 @@ final class GisPublicationTest extends GisDatabaseTestCase
         $data = ['location_name' => 'Renamed', 'latitude' => $record['latitude_text'], 'longitude' => $record['longitude_text'], 'revision' => $record['revision']];
         $this->putJson('/admin/gis/1', $data)->assertOk();
         $this->assertSame($latitude, DB::table('gis_locations')->value('latitude'));
-        $this->patchJson('/admin/gis/1/publish', ['revision' => $record['revision']])->assertConflict();
-        $this->patchJson('/admin/gis/1/publish', ['revision' => $this->revision()])->assertOk();
+        $this->patchJson('/admin/gis/1/publish', ['revision' => $record['revision'], 'confirmed' => true])->assertConflict();
+        $this->patchJson('/admin/gis/1/publish', ['revision' => $this->revision(), 'confirmed' => true])->assertOk();
         $this->putJson('/admin/gis/1', $data)->assertConflict();
     }
 
     public function test_public_query_and_association_archival_preserve_visibility_and_audit_rules(): void
     {
         $this->assertSame(0, GisLocation::publiclyVisible()->count());
-        $this->patchJson('/admin/gis/1/publish', ['revision' => $this->revision()])->assertOk();
+        $this->patchJson('/admin/gis/1/publish', ['revision' => $this->revision(), 'confirmed' => true])->assertOk();
         $this->assertSame(1, GisLocation::publiclyVisible()->count());
         app(AssociationManagementService::class)->archive(Association::findOrFail(1), 1);
         $this->assertSame(0, GisLocation::publiclyVisible()->count());

@@ -59,3 +59,234 @@ body:has([data-gis-page]) .am-content { max-width: none; padding: 1rem 1.5rem; }
 @media (max-width: 1279px) { .gis-filters { grid-template-columns: repeat(4, minmax(0, 1fr)); } .gis-search { grid-column: 1 / -1; } }
 @media (max-width: 900px) { .gis-workspace { grid-template-columns: minmax(0, 1fr); height: auto; } .gis-map { height: 50dvh; flex: none; } .gis-record-panel { max-height: 550px; } }
 @media (max-width: 560px) { body:has([data-gis-page]) .am-content { padding: 1rem; } .gis-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .gis-map { min-height: 340px; } }
+/* Read-only GIS history stays separate from the map editor. */
+.gis-history-dialog {
+    width: min(620px, calc(100vw - 24px));
+    max-width: none;
+    height: calc(100dvh - 24px);
+    max-height: none;
+    margin: 12px 12px 12px auto;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #cbd5e1;
+    border-radius: 14px;
+    background: #fff;
+    color: #1e293b;
+}
+
+.gis-history-dialog[open] {
+    display: flex;
+    flex-direction: column;
+    animation: gis-history-enter 180ms ease-out;
+}
+
+.gis-history-dialog::backdrop {
+    background: rgb(15 23 42 / 45%);
+    backdrop-filter: blur(3px);
+}
+
+.gis-history-dialog [hidden] {
+    display: none !important;
+}
+
+.gis-history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 15px 18px;
+    border-bottom: 1px solid #cce1e6;
+    background: #edf6f8;
+}
+
+.gis-history-header small {
+    color: #176c73;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .06em;
+}
+
+.gis-history-header h2 {
+    margin-top: 3px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #084873;
+}
+
+.gis-history-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px;
+    font-size: 13px;
+}
+
+.gis-history-context {
+    margin-bottom: 12px;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    overflow-wrap: anywhere;
+}
+
+.gis-history-context h3 {
+    color: #084873;
+    font-weight: 700;
+}
+
+.gis-history-muted {
+    margin: 5px 0;
+    font-size: 11px;
+    color: #64748b;
+}
+
+.gis-history-timeline {
+    margin: 16px 0 0 7px;
+    padding-left: 18px;
+    border-left: 2px solid #cce1e6;
+    list-style: none;
+}
+
+.gis-history-timeline > li {
+    position: relative;
+    padding-bottom: 18px;
+}
+
+.gis-history-timeline > li::before {
+    content: "";
+    position: absolute;
+    left: -24px;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    border: 2px solid white;
+    border-radius: 50%;
+    background: #176c73;
+}
+
+.gis-history-values > div {
+    padding: 6px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.gis-history-values dt {
+    color: #64748b;
+    font-size: 11px;
+}
+
+.gis-history-values dd {
+    margin: 2px 0 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.gis-history-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.gis-history-dialog [data-history-error]:not([hidden]) {
+    padding: 12px;
+    border: 1px solid #fcd34d;
+    border-radius: 9px;
+    background: #fffbeb;
+    color: #92400e;
+}
+
+.gis-history-dialog :focus-visible {
+    outline: 2px solid #176c73;
+    outline-offset: 3px;
+}
+
+@keyframes gis-history-enter {
+    from { opacity: 0; transform: translateX(18px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gis-history-dialog[open] {
+        animation: none;
+    }
+}
+
+/* Keep explanations inside scrollable GIS panels instead of clipping them. */
+.gis-page .am-info {
+    max-width: 100%;
+    vertical-align: middle;
+}
+
+.gis-page .am-info__content {
+    position: static;
+    width: min(280px, 100%);
+    max-width: 100%;
+    margin-top: 7px;
+    box-sizing: border-box;
+    white-space: normal;
+}
+
+/* The history dialog grows with its contents instead of reserving a full screen. */
+.gis-history-dialog[open],
+.am-officer .gis-history-dialog[open] {
+    height: auto;
+    max-height: calc(100dvh - 40px);
+    margin: auto;
+}
+
+.gis-history-dialog .gis-history-body {
+    flex: 0 1 auto;
+    min-height: 0;
+}
+
+.gis-loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    min-height: 150px;
+    padding: 24px 16px;
+    color: #084873;
+}
+
+.gis-loading-state p {
+    margin: 5px 0 0;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.gis-loading-ring {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    border: 3px solid #d8e8e6;
+    border-top-color: #176c73;
+    border-radius: 50%;
+    animation: gis-loading-spin 800ms linear infinite;
+}
+
+.gis-history-dialog [data-history-failure] {
+    padding-bottom: 8px;
+}
+
+.gis-history-dialog [data-history-retry] {
+    margin-top: 10px;
+}
+
+/* Keep the required map credit readable but unobtrusive. */
+.gis-page .leaflet-control-attribution {
+    padding: 3px 7px;
+    border-radius: 5px 0 0;
+    background: rgb(255 255 255 / 92%);
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+@keyframes gis-loading-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gis-loading-ring { animation: none; }
+}

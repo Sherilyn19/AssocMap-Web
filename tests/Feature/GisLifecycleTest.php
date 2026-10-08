@@ -40,7 +40,10 @@ final class GisLifecycleTest extends GisDatabaseTestCase
             $this->postJson('/admin/gis', $this->locationPayload(['project_id' => $projectId]))->assertUnprocessable()->assertJsonValidationErrors('project_id');
         }
         $id = $this->postJson('/admin/gis', $this->locationPayload())->assertCreated()->json('id');
-        $this->patchJson('/admin/gis/'.$id.'/publish', ['revision' => $this->revision($id)])->assertOk();
+        $this->patchJson('/admin/gis/'.$id.'/publish', [
+            'revision' => $this->revision($id),
+            'confirmed' => true,
+        ])->assertOk();
         $this->getJson('/map/locations?commodity=Milkfish')->assertJsonCount(1, 'records')
             ->assertJsonPath('records.0.project_title', 'Coastal livelihood')->assertJsonPath('records.0.commodity', 'Milkfish')
             ->assertDontSee('project_id')->assertDontSee('remarks');
@@ -70,7 +73,11 @@ final class GisLifecycleTest extends GisDatabaseTestCase
         $this->getJson('/gis/locations')->assertJsonCount(0, 'records');
         $this->get('/admin/gis')->assertDontSee('Original site');
         $this->postJson('/admin/gis/export', ['format' => 'csv'])->assertUnprocessable();
-        $this->patchJson('/admin/gis/1/publish', compact('revision'))->assertConflict();
+        // Supply valid confirmation so the test reaches the archived-record check.
+        $this->patchJson('/admin/gis/1/publish', [
+            'revision' => $revision,
+            'confirmed' => true,
+        ])->assertConflict();
         $this->putJson('/admin/gis/1', $this->locationPayload(compact('revision')))->assertConflict();
         $this->deleteJson('/admin/gis/1')->assertStatus(405);
     }

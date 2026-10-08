@@ -1,3 +1,5 @@
+import '../../field-officer-user/gis.js';
+import './history.ts';
 import '../../../css/gis.css';
 import { filterRecords, optionsFor, summarize, validPosition } from './data';
 import { createEditor } from './editor';
@@ -5,7 +7,8 @@ import { createPublication } from './publication';
 import { parseMapRecords } from './contracts.ts';
 
 const page = document.querySelector('[data-gis-page]');
-if (page) initialize(page);
+// The officer page has its own presentation; Admin keeps the existing controller.
+if (page && !page.hasAttribute('data-fo-gis')) initialize(page);
 
 async function initialize(root) {
     const status = root.querySelector('[data-gis-map-status]');
@@ -75,6 +78,13 @@ async function initialize(root) {
             info.append(term, description);
         });
         content.append(info);
+        // History is read-only and remains available when editing is unavailable.
+        const history = document.createElement('a');
+        history.href = record.history_url;
+        history.dataset.gisHistory = '';
+        history.className = 'gis-button';
+        history.textContent = 'View History';
+        content.append(history);
         if (record.editable) {
             const edit = document.createElement('button');
             edit.type = 'button'; edit.className = 'gis-button'; edit.textContent = 'Edit location';
@@ -83,7 +93,12 @@ async function initialize(root) {
             const publish = document.createElement('button');
             publish.type = 'button'; publish.className = 'gis-button ml-2';
             publish.textContent = record.published ? 'Unpublish location' : 'Publish location';
-            publish.disabled = !record.published && (!record.valid || !record.name.trim());
+            publish.disabled = !record.published
+                && (!record.can_publish || !record.valid || !record.name.trim());
+
+            publish.title = !record.published && !record.can_publish
+                ? 'Only Active, non-archived associations can publish locations.'
+                : '';
             publish.addEventListener('click', () => publication.open(record, publish));
             content.append(publish);
             const archive = document.createElement('button');

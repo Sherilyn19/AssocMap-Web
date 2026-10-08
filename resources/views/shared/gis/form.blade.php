@@ -1,9 +1,15 @@
 {{-- The form edits a draft. Only Save sends a request to Laravel. --}}
 <section data-gis-editor hidden class="gis-editor p-4" aria-labelledby="gis-editor-title">
     <h2 id="gis-editor-title" class="text-lg font-bold">Add location</h2>
-    <p class="mt-1 text-xs text-slate-600">Click the map to place the temporary pin, or enter coordinates below.</p>
-    <p class="mt-1 text-xs text-slate-600">All fields except project are required.</p>
-    <p id="gis-coordinate-help" class="mt-1 text-xs text-slate-600">Use decimal degrees, such as 11.2745 and 124.0524. Use a minus sign for south or west.</p>
+    {{-- Keep the main instruction short; show additional guidance in the info icon. --}}
+    <div class="mt-2 flex items-center gap-2 text-xs text-slate-600">
+        <span>Choose a map position or enter coordinates.</span>
+        <x-info label="Location entry instructions">
+            All fields except project are required. Coordinates use decimal degrees.
+            Use a minus sign for south or west. The temporary pin is not saved until
+            you select Save location.
+        </x-info>
+    </div>
     <p data-gis-save-message hidden role="alert" tabindex="-1" class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-slate-800"></p>
     <a data-gis-reload hidden href="{{ route(request()->routeIs('gis.officer.*') ? 'gis.officer.index' : 'gis.index') }}" class="mt-2 inline-block text-sm text-assocmap-primary underline">Reload GIS Mapping</a>
     <form data-gis-form action="{{ route(request()->routeIs('gis.officer.*') ? 'gis.officer.store' : 'gis.store') }}" method="POST" novalidate class="mt-4 space-y-4">
@@ -22,7 +28,10 @@
             <div>
                 <label for="gis-project" class="text-xs font-semibold text-slate-700">Project (optional)</label>
                 <select id="gis-project" name="project_id" class="gis-input" aria-describedby="gis-project-error gis-project-help"><option value="">No linked project</option></select>
-                <p id="gis-project-help" class="mt-1 text-xs text-slate-600">Choose an active project from the selected association. Its title and commodity will appear publicly when this location is published.</p>
+                <x-info label="Linked project information">
+                    Choose a current project from this association. Its title and commodity
+                    appear publicly only when the location is publicly visible.
+                </x-info>
                 <p id="gis-project-error" data-gis-error="project_id" class="mt-1 text-xs text-red-700"></p>
             </div>
             <div>
@@ -33,7 +42,7 @@
             @foreach(['latitude' => 'Latitude (−90 to 90)', 'longitude' => 'Longitude (−180 to 180)'] as $field => $label)
                 <div>
                     <label for="gis-{{ $field }}" class="text-xs font-semibold text-slate-700">{{ $label }}</label>
-                    <input id="gis-{{ $field }}" name="{{ $field }}" type="text" inputmode="decimal" maxlength="128" required class="gis-input" aria-describedby="gis-{{ $field }}-error gis-coordinate-help">
+                    <input id="gis-{{ $field }}" name="{{ $field }}" type="text" inputmode="decimal" maxlength="128" required class="gis-input" aria-describedby="gis-{{ $field }}-error">
                     <p id="gis-{{ $field }}-error" data-gis-error="{{ $field }}" class="mt-1 text-xs text-red-700"></p>
                 </div>
             @endforeach

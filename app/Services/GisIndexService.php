@@ -14,11 +14,19 @@ final class GisIndexService
     public function overview(?int $officerId = null): array
     {
         // Load related names together. The map never needs member or account details.
+        // Reuse the public-map eligibility rules instead of duplicating them in JavaScript.
+        $publicLocations = GisLocation::query()
+            ->publiclyVisible()
+            ->select('id');
         $locations = GisLocation::query()
             ->whereNull('archived_at')
             ->when($officerId !== null, fn ($query) => $query->whereHas('association', fn ($parent) => $parent->where('field_officer_id', $officerId)->where('is_archived', false)))
             ->select(['id', 'association_id', 'project_id', 'location_name', 'latitude', 'longitude', 'is_published', 'created_at', 'updated_at'])
             ->selectRaw(GisRevision::SQL)
+            ->selectRaw(
+            'gis_locations.id IN ('.$publicLocations->toSql().') AS public_visible',
+            $publicLocations->getBindings()
+        )
             ->with([
                 'association:id,name,area_unit_id,sub_unit_id,program_component_id,status_id,is_archived',
                 'association.areaUnit:id,name',
@@ -41,6 +49,16 @@ final class GisIndexService
 
             return [
                 'id' => $location->id,
+                // A saved publication flag alone does not prove public visibility.
+                'public_visible' => (bool) $location->public_visible,
+                // Management metadata remains internal; public readers use GisReadService.
+                'history_url' => route(
+                    $officerId === null ? 'gis.history' : 'gis.officer.history',
+                    $location->id
+                ),
+                'can_publish' => $association !== null
+                    && !$association->is_archived
+                    && $association->status?->status_name === 'Active',
                 'association_id' => $location->association_id,
                 'project_id' => $location->project_id,
                 'project_title' => $location->project?->title,
@@ -84,6 +102,34 @@ final class GisIndexService
         $projects = Project::query()->select(['id', 'association_id', 'title', 'commodity_type'])
             ->where('is_archived', false)->whereIn('association_id', $associations->pluck('id'))->orderBy('title')->get();
 
-        return compact('records', 'unmapped', 'associations', 'projects');
+        // Archive scope matches the existing history controller, including reassignment.
+        $archivedCount = GisLocation::query()
+            ->whereNotNull('archived_at')
+            ->when(
+                $officerId !== null,
+                fn ($query) => $query->whereHas(
+                    'association',
+                    fn ($association) => $association
+                        ->where('field_officer_id', $officerId)
+                )
+            )
+            ->count();
+
+        $visibleCount = $records->where('public_visible', true)->count();
+
+        $summary = [
+            'current' => $records->count(),
+            'visible' => $visibleCount,
+            'hidden' => $records->count() - $visibleCount,
+            'archived' => $archivedCount,
+        ];
+
+        return compact(
+            'records',
+            'unmapped',
+            'associations',
+            'projects',
+            'summary'
+        );
     }
 }

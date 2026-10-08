@@ -225,15 +225,39 @@ final class ProjectManagementService
         }, 3);
     }
 
-    public function updateProject(Project $project, array $data, int $actorId): Project
-    {
-        return DB::transaction(function () use ($project, $data, $actorId): Project {
+        public function updateProject(
+        Project $project,
+        array $data,
+        int $actorId
+    ): Project {
+        return DB::transaction(function () use (
+            $project,
+            $data,
+            $actorId
+        ): Project {
+            // Lock associations before the project to coordinate with GIS writes.
+            // Re-read the project instead of comparing against a stale route model.
+            $project = $this->lockProjectForGisWrite(
+                $project,
+                (int) $data['association_id']
+            );
+
             $this->ensureProjectIsWritable($project);
             $this->validateProjectReferences($data);
-            if ((int) $data['association_id'] !== (int) $project->association_id
-                && DB::table('gis_locations')->where('project_id', $project->id)->exists()) {
-                throw new \InvalidArgumentException('Projects linked to active or archived GIS locations must remain in the same association.');
+
+            if (
+                (int) $data['association_id'] !== (int) $project->association_id
+                && DB::table('gis_locations')
+                    ->where('project_id', $project->id)
+                    ->exists()
+            ) {
+                throw new \InvalidArgumentException(
+                    'Projects linked to active or archived GIS locations must remain in the same association.'
+                );
             }
+
+            $gisImpact = app(GisPublicationImpact::class);
+            $beforeGis = $gisImpact->projectSnapshot($project);
 
             $project->update([
                 'association_id' => (int) $data['association_id'],
@@ -241,21 +265,33 @@ final class ProjectManagementService
                 'commodity_type' => trim((string) $data['commodity_type']),
                 'program_component_id' => (int) $data['program_component_id'],
                 'implementation_date' => $data['implementation_date'],
-                // Older callers that omit budget must not erase an existing amount.
-                // An explicitly submitted null clears it to "Not recorded".
+
+                // Omitted budget preserves the existing value; explicit null clears it.
                 ...(array_key_exists('budget', $data)
                     ? ['budget' => $data['budget']]
                     : []),
+
                 'terminated_on' => $data['terminated_on'] ?? null,
                 'status_id' => (int) $data['status_id'],
                 'remarks' => $data['remarks'] ?? null,
             ]);
 
+            // Private project changes, such as remarks or budget, do not unpublish.
+            $gisImpact->projectChanged(
+                (int) $project->id,
+                $beforeGis,
+                $gisImpact->projectSnapshot($project),
+                $actorId
+            );
+
             $this->writeAudit(
                 $actorId,
                 'UPDATE',
                 $project->id,
-                'Updated project: ' . $project->title . '; status ID: ' . $project->status_id . '; termination date: ' . ($project->terminated_on?->toDateString() ?? 'Not recorded')
+                'Updated project: '.$project->title
+                    .'; status ID: '.$project->status_id
+                    .'; termination date: '
+                    .($project->terminated_on?->toDateString() ?? 'Not recorded')
             );
 
             return $project->fresh(['association', 'programComponent', 'status']);
@@ -265,22 +301,32 @@ final class ProjectManagementService
     public function archiveProject(Project $project, int $actorId): void
     {
         DB::transaction(function () use ($project, $actorId): void {
-            // Re-read under a row lock: another request may have changed the record
-            // since route binding. Repeated archive requests must not add duplicate audits.
-            $project = Project::query()->lockForUpdate()->findOrFail($project->id);
+            $project = $this->lockProjectForGisWrite($project);
+
+            // Repeated archival must not create duplicate audit events.
             if ($project->is_archived) {
                 return;
             }
 
-            $project->update([
-                'is_archived' => true,
-            ]);
+            $gisImpact = app(GisPublicationImpact::class);
+            $beforeGis = $gisImpact->projectSnapshot($project);
+
+            $project->update(['is_archived' => true]);
+
+            // The GIS location itself is retained.
+            // Its changed public presentation requires a new publication decision.
+            $gisImpact->projectChanged(
+                (int) $project->id,
+                $beforeGis,
+                $gisImpact->projectSnapshot($project),
+                $actorId
+            );
 
             $this->writeAudit(
                 $actorId,
                 'ARCHIVE',
                 $project->id,
-                'Archived project: ' . $project->title
+                'Archived project: '.$project->title
             );
         }, 3);
     }
@@ -414,6 +460,45 @@ final class ProjectManagementService
         }
 
         return $status;
+    }
+
+    /**
+     * Serialize project changes with GIS publication.
+     * Read the project again after locking, rather than trusting route-bound values.
+     */
+    private function lockProjectForGisWrite(
+        Project $project,
+        ?int $targetAssociationId = null
+    ): Project {
+        $sourceAssociationId = (int) $project->association_id;
+
+        $associationIds = array_unique([
+            $sourceAssociationId,
+            $targetAssociationId ?? $sourceAssociationId,
+        ]);
+
+        sort($associationIds, SORT_NUMERIC);
+
+        foreach ($associationIds as $associationId) {
+            Association::query()
+                ->whereKey($associationId)
+                ->lockForUpdate()
+                ->firstOrFail();
+        }
+
+        $current = Project::query()
+            ->whereKey($project->id)
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        // A concurrent transfer requires the user to reload the project.
+        abort_if(
+            (int) $current->association_id !== $sourceAssociationId,
+            409,
+            'This project changed associations. Reload it before continuing.'
+        );
+
+        return $current;
     }
 
     private function ensureProjectIsWritable(Project $project): void

@@ -1,3 +1,6 @@
+import './monitoring-info';
+import { initializeProductionProgress } from './production-progress';
+
 function initializeMonitoringForm(form) {
     if (form.dataset.initialized) return;
     form.dataset.initialized = 'true';
@@ -190,6 +193,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             dialog.querySelector('#monitoring-dialog-title').textContent = title;
             content.replaceChildren(document.importNode(panel, true));
+
+            // Initialize visual components after the fetched panel is inserted.
+            initializeProductionProgress(content);
 
             const form = content.querySelector('[data-monitoring-form]');
             if (form) initializeMonitoringForm(form);

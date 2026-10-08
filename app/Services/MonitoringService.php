@@ -218,6 +218,27 @@ final class MonitoringService
 
                 abort_unless($original, 404);
                 $before = (array) $original;
+                // Dated-entry totals must only change through the progress workflow.
+                if (
+                    $type === 'production'
+                    && ($original->tracking_mode ?? 'summary') === 'entries'
+                ) {
+                    $this->invalid(
+                        'actual_output',
+                        'Open Achievement to update this quarter or its dated production entries.'
+                    );
+                }
+                // Dated quarters must use their dedicated workflow.
+                // This prevents another endpoint from overwriting the calculated total.
+                if (
+                    $type === 'production'
+                    && ($original->tracking_mode ?? 'summary') === 'entries'
+                ) {
+                    $this->invalid(
+                        'actual_output',
+                        'Open Achievement to manage this quarter and its dated entries.'
+                    );
+                }
 
                 if ($type !== 'materials') {
                     // A correction updates values within the original reporting period.
@@ -396,7 +417,11 @@ final class MonitoringService
         unset($data['project_id']);
     }
 
-    private function confirmProductionUnit(object $project, array $data): void
+    /**
+     * Call within a transaction after locking the project and association.
+     * Both summary reporting and dated reporting use the same unit rules.
+     */
+    public function confirmProductionUnit(object $project, array $data): void
     {
         $code = $data['output_unit_code'];
         $spec = $data['output_unit_spec'];
