@@ -85,10 +85,10 @@
             <span id="{{ $prefix }}-name-error" data-field-error="name" class="mt-1 block text-xs text-red-700">{{ $fieldError('name') }}</span>
         </label>
 
-        {{-- Municipality --}}
+        {{-- City / Municipality --}}
         <label class="block">
             <span class="text-sm font-medium text-slate-700">
-                Municipality
+                City / Municipality
                 <span class="text-red-600" aria-hidden="true">*</span>
             </span>
 
@@ -106,7 +106,7 @@
                 required
                 class="{{ $inputClass }}"
             >
-                <option value="">Select municipality</option>
+                <option value="">Select city / municipality</option>
 
                 @foreach ($municipalities as $municipality)
                     <option
@@ -150,7 +150,7 @@
                 required
                 class="{{ $inputClass }}"
             >
-                <option value="">Select municipality first</option>
+                <option value="">Select city / municipality first</option>
             </select>
             <span id="{{ $prefix }}-sub_unit_id-error" data-field-error="sub_unit_id" class="mt-1 block text-xs text-red-700">{{ $fieldError('sub_unit_id') }}</span>
         </label>

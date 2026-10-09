@@ -23,10 +23,10 @@
 
     <section class="od-metrics" aria-label="Current assignment summary">
         @foreach ([
-            ['Assigned areas', $areas->count(), 'Municipalities in your coverage', 'officer.areas.index', 'M12 21s7-6 7-11a7 7 0 0 0-14 0c0 5 7 11 7 11ZM9 10a3 3 0 1 0 6 0 3 3 0 0 0-6 0'],
+            ['Assigned areas', $areas->count(), 'Cities / Municipalities in your coverage', 'officer.areas.index', 'M12 21s7-6 7-11a7 7 0 0 0-14 0c0 5 7 11 7 11ZM9 10a3 3 0 1 0 6 0 3 3 0 0 0-6 0'],
             ['Assigned associations', $counts['My Associations'], 'Current association records', 'officer.associations.index', 'M4 21V10l8-6 8 6v11M9 21v-6h6v6'],
             ['Members', $counts['My Members'], 'Non-archived member records', 'membership.index', 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-4'],
-            ['Pending applications', $pendingApplications, 'Awaiting representative review', 'membership.index', 'M9 3h6v4H9zM9 5H5v16h14V5h-4M8 12h8M8 16h5']
+            ['Pending applications', $pendingApplications, 'Awaiting Field Officer review', 'membership.index', 'M9 3h6v4H9zM9 5H5v16h14V5h-4M8 12h8M8 16h5']
         ] as [$label, $value, $context, $destination, $icon])
             <a class="od-metric" href="{{ route($destination) }}">
                 <div class="od-metric-heading">

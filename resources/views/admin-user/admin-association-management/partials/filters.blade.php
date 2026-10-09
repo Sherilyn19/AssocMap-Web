@@ -25,11 +25,11 @@
                 </label>
 
                 <label class="block">
-                    <span class="text-sm font-medium text-slate-700">Municipality</span>
+                    <span class="text-sm font-medium text-slate-700">City / Municipality</span>
                     <select name="area_unit_id" data-filter-municipality
                             class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2
                                    text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200">
-                        <option value="">All municipalities</option>
+                        <option value="">All cities / municipalities</option>
                         @foreach ($filterMunicipalities as $municipality)
                             <option value="{{ $municipality->id }}"
                                 @selected((string) ($filters['area_unit_id'] ?? '') === (string) $municipality->id)>

@@ -142,15 +142,18 @@ final class GisReadService
         abort_unless(
             in_array(
                 $role,
-                [
-                    'System Administrator',
-                    'Field Officer',
-                    'Association Member',
-                ],
+                ['System Administrator', 'Field Officer', 'Association Member'],
                 true
             ),
             403
         );
+
+        if ($role === 'Association Member') {
+            // Apply publication and ownership rules to records and filter choices.
+            return $query
+                ->publiclyVisible()
+                ->where('gis_locations.association_id', $actor->association_id ?? 0);
+        }
 
         $query->whereHas(
             'association',
@@ -159,9 +162,6 @@ final class GisReadService
 
                 if ($role === 'Field Officer') {
                     $association->where('field_officer_id', $actor->id);
-                } elseif ($role === 'Association Member') {
-                    // An unassigned account must never receive all associations.
-                    $association->whereKey($actor->association_id ?? 0);
                 }
             }
         );

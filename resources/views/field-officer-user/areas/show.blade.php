@@ -1,8 +1,14 @@
-<x-dashboard-layout title="Assigned Area Details">
-<div class="space-y-5">
-    <a href="{{ route('officer.areas.index') }}"
+@php
+    $memberAreaView = request()->routeIs('member.areas.*');
+    $areaRoutes = $memberAreaView ? 'member.areas' : 'officer.areas';
+    $areaPageTitle = $memberAreaView ? 'Association Area Details' : 'Assigned Area Details';
+@endphp
+
+<x-dashboard-layout :title="$areaPageTitle">
+<div class="am-area-page space-y-5">
+    <a href="{{ route($areaRoutes.'.index') }}"
        class="am-user-button am-user-button-secondary">
-        Back to Assigned Areas
+        {{ $memberAreaView ? 'Back to View Area Records' : 'Back to Assigned Areas' }}
     </a>
 
     {{-- This section is also loaded into the coverage dialog. --}}
@@ -20,15 +26,15 @@
             </div>
 
             <div class="min-w-0">
-                <p class="fo-eyebrow">Municipality coverage</p>
+                <p class="fo-eyebrow">City / Municipality coverage</p>
                 <h2 class="mt-1 text-2xl font-bold">{{ $area->name }}</h2>
 
                 <div class="mt-3 flex flex-wrap gap-2">
                     <span class="fo-pill fo-pill-slate" data-tone="info">
                         {{ number_format($associations->total()) }}
-                        {{ $associations->total() === 1 ? 'assigned association' : 'assigned associations' }}
+                        {{ $associations->total() === 1 ? 'association' : 'associations' }}
                     </span>
-                    <span class="fo-pill fo-pill-slate">All assigned records</span>
+                    <span class="fo-pill fo-pill-slate">{{ $memberAreaView ? 'Your association only' : 'All assigned records' }}</span>
                     <span class="fo-pill fo-pill-slate"
                           data-tone="{{ $area->is_archived ? 'warning' : 'success' }}">
                         {{ $area->is_archived ? 'Area record archived' : 'Area record not archived' }}
@@ -38,10 +44,10 @@
         </header>
 
         <div class="fo-table-card overflow-x-auto" tabindex="0"
-             role="region" aria-label="Assigned associations">
+             role="region" aria-label="Associations available to your account">
             <table class="fo-table">
                 <caption class="sr-only">
-                    Assigned associations in {{ $area->name }}
+                    Associations available to your account in {{ $area->name }}
                 </caption>
                 <thead>
                     <tr>
@@ -55,7 +61,7 @@
                 <tbody>
                     @forelse($associations as $association)
                         @php
-                            $details = fn ($section) => route('officer.areas.details', [
+                            $details = fn ($section) => route($areaRoutes.'.details', [
                                 'areaUnit' => $area->id,
                                 'association' => $association->id,
                                 'section' => $section,
@@ -118,7 +124,10 @@
                             @foreach([
                                 'members' => ['current_members_count', 'Non-archived members'],
                                 'projects' => ['retained_projects_count', 'Non-archived projects'],
-                                'gis' => ['mapped_locations_count', 'Saved locations'],
+                                'gis' => [
+                                    'mapped_locations_count',
+                                    $memberAreaView ? 'Published locations' : 'Saved locations',
+                                ],
                             ] as $section => [$countField, $label])
                                 <td>
                                     <a data-area-drawer
@@ -147,7 +156,7 @@
                     @empty
                         <tr>
                             <td colspan="8" class="text-center text-slate-500">
-                                No assigned associations are available.
+                                No associations are available to your account in this municipality.
                             </td>
                         </tr>
                     @endforelse
@@ -157,7 +166,7 @@
 
         <div data-area-pagination>
             <x-management-pagination :records="$associations"
-                                     label="Assigned associations pagination"/>
+                                     label="Association records pagination"/>
         </div>
     </section>
 </div>

@@ -42,11 +42,13 @@
         foreach ([
             'dashboard.member' => ['Dashboard', 'dashboard.admin'],
             'member.information' => ['Association Profile', 'admin.associations.index'],
+            'member.areas.index' => ['View Area Records', 'areas.index'],
             'member.members' => ['Members', 'members.index'],
             'member.applications' => ['Applications', 'members.index'],
             'member.projects' => ['Projects', 'projects.index'],
             'member.trainings' => ['Trainings', 'trainings.index'],
             'member.production' => ['Production Records', 'monitoring.index'],
+            'member.reports.index' => ['Reports & Analytics', 'reports.index'],
             'gis.viewer' => ['Association Map', 'gis.index'],
         ] as $route => [$label, $icon]) {
             $navItems[] = ['route' => $route, 'label' => $label, 'icon' => $moduleIcons[$icon]];
@@ -87,8 +89,25 @@
                 $isActive = $hasRoute && request()->routeIs(implode('.', $routeParts) . '.*');
                 if (session('auth_user.role_name') === 'Association Member') {
                     $isActive = request()->routeIs($item['route'], $item['route'].'.*');
-                    if ($item['route'] === 'member.members') $isActive = $isActive || request()->routeIs('membership.members.*');
-                    if ($item['route'] === 'member.applications') $isActive = $isActive || request()->routeIs('membership.applications.*');
+                    // Keep the area menu highlighted while opening coverage and record details.
+                    if ($item['route'] === 'member.areas.index') {
+                        $isActive = request()->routeIs('member.areas.*');
+                    }
+
+                // Keep the Members menu highlighted when viewing a member record.
+                if ($item['route'] === 'member.members') {
+                    $isActive = $isActive || request()->routeIs('membership.members.*');
+                }
+
+                // Keep Applications highlighted when submitting or viewing an application.
+                if ($item['route'] === 'member.applications') {
+                    $isActive = $isActive || request()->routeIs('membership.applications.*');
+                }
+
+                // Group the report page and its download under Reports & Analytics.
+                if ($item['route'] === 'member.reports.index') {
+                    $isActive = request()->routeIs('member.reports.*');
+                }
                 }
                 $href = $hasRoute ? route($item['route']) : '#';
             @endphp

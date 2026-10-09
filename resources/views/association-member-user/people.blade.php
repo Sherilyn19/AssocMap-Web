@@ -1,7 +1,7 @@
 @php($title = $applicationsPage ? 'Applications' : 'Members')
 <x-dashboard-layout :title="$title" :topbar-title="$title">
 <div data-member-workspace class="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-    @include('association-member-user.partials.header', ['heading' => $title, 'description' => $applicationsPage ? 'Track membership applications and their review status. Only the designated representative may record a decision.' : 'Official members of your association. Records are read-only.'])
+    @include('association-member-user.partials.header', ['heading' => $title, 'description' => $applicationsPage ? 'Track membership applications and their review status. Only the assigned Field Officer may approve or reject an application.' : 'Official members of your association. Records are read-only.'])
     @if ($applicationsPage && $association && !$association->is_archived)
         <a class="am-user-button am-user-button-primary" href="{{ route('membership.applications.create') }}">Submit application</a>
     @endif

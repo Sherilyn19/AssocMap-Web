@@ -1,7 +1,7 @@
 @php
     $keys = $tab === 'municipalities'
         ? ['search' => 'Search', 'status' => 'Archive state', 'muni_sort' => 'Sort']
-        : ['brgy_search' => 'Search', 'area_unit_id' => 'Municipality', 'brgy_status' => 'Archive state', 'brgy_sort' => 'Sort'];
+        : ['brgy_search' => 'Search', 'area_unit_id' => 'City / Municipality', 'brgy_status' => 'Archive state', 'brgy_sort' => 'Sort'];
 @endphp
 {{-- Show applied filters above the results. Removing one filter keeps
      the other valid filters selected. --}}

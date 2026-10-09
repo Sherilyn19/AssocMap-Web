@@ -86,9 +86,9 @@
                 </label>
 
                 <label>
-                    Municipality
+                    City / Municipality
                     <select data-filter="municipality" class="gis-input">
-                        <option value="">All municipalities</option>
+                        <option value="">All cities / municipalities</option>
                     </select>
                 </label>
 

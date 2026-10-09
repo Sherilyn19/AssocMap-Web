@@ -39,7 +39,7 @@
             </label>
 
             @foreach([
-                'area_unit_id' => ['Municipality', $areas, 'name'],
+                'area_unit_id' => ['City / Municipality', $areas, 'name'],
                 'program_component_id' => ['Program component', $components, 'name'],
                 'status_id' => ['Status', $statuses, 'status_name'],
             ] as $key => [$label, $options, $name])

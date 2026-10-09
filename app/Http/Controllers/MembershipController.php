@@ -7,7 +7,6 @@ namespace App\Http\Controllers;
 use App\Exceptions\MembershipRuleException;
 use App\Http\Requests\Membership\MemberFiltersRequest;
 use App\Http\Requests\Membership\ReviewMemberApplicationRequest;
-use App\Http\Requests\Membership\SetReviewPassphraseRequest;
 use App\Http\Requests\Membership\SubmitMemberApplicationRequest;
 use App\Models\Association;
 use App\Models\Member;
@@ -183,65 +182,85 @@ final class MembershipController extends Controller
         $actor = $this->sessionUser->resolve($request);
         return $this->mutate($request, function () use ($request, $actor): RedirectResponse {
             $application = $this->workflow->submit($actor, $request->validated());
-            return redirect()->route('membership.applications.show', $application)->with('success', 'Representative verified. Application approved and official member registered..');
+            return redirect()->route('membership.applications.show', $application)->with('success', 'Application submitted. It is pending Field Officer review; no official member has been created yet.');
         });
     }
 
-    public function show(Request $request, MemberApplication $application): View
-    {
+    public function show(
+        Request $request,
+        MemberApplication $application
+    ): \Illuminate\Http\Response {
         $actor = $this->sessionUser->resolve($request);
+
         Gate::forUser($actor)->authorize('view', $application);
-        // The Field Officer dialog consumes the same authorized record as the full page.
-        return view($actor->role?->role_name === 'Field Officer'
-            ? 'field-officer-user.members.record'
-            : 'shared.membership.application', [
-            'application' => $application->load(['association.representative', 'status', 'sex', 'reviewer', 'member']),
-            'canReview' => app(\App\Services\RepresentativeReviewAccess::class)->allows($request, $actor, $application),
-            'canUnlockReview' => Gate::forUser($actor)->allows('review', $application),
+
+        $application->load([
+            'association.representative',
+            'status',
+            'sex',
+            'reviewer',
+            'officerReviewer',
+            'member',
         ]);
+
+        $canReview = Gate::forUser($actor)->allows('review', $application);
+
+        return response()->view(
+            $actor->role?->role_name === 'Field Officer'
+                ? 'field-officer-user.members.record'
+                : 'shared.membership.application',
+            [
+                'application' => $application,
+                'canReview' => $canReview,
+                'canUnlockReview' => false,
+                'showPrivateProfile' =>
+                    $actor->role?->role_name !== 'Association Member',
+            ]
+        )->header('Cache-Control', 'no-store, private');
     }
 
-    public function member(Request $request, Member $member): View
-    {
+    public function member(
+        Request $request,
+        Member $member
+    ): \Illuminate\Http\Response {
         $actor = $this->sessionUser->resolve($request);
         Gate::forUser($actor)->authorize('view', $member);
-        // Reuse the loaded profile without exposing editing or approval controls.
-        return view($actor->role?->role_name === 'Field Officer'
-            ? 'field-officer-user.members.record'
-            : 'shared.membership.member', [
+
+        return response()->view(
+            $actor->role?->role_name === 'Field Officer'
+                ? 'field-officer-user.members.record'
+                : 'shared.membership.member',
+            [
                 'member' => $member->load(['association', 'sex']),
-            ]);
+                'showPrivateProfile' =>
+                    $actor->role?->role_name !== 'Association Member',
+            ]
+        )->header('Cache-Control', 'no-store, private');
     }
 
-    public function unlockReview(Request $request, MemberApplication $application): RedirectResponse
+    public function review(ReviewMemberApplicationRequest $request, MemberApplication $application): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $actor = $this->sessionUser->resolve($request);
-        Gate::forUser($actor)->authorize('review', $application);
-        $data = $request->validate(['review_passphrase' => ['required', 'string', 'max:72']]);
-        $allowed = app(\App\Services\RepresentativeReviewAccess::class)->unlock($request, $actor, $application, $data['review_passphrase']);
-        return redirect()->route('membership.applications.show', $application)
-            ->with($allowed ? 'success' : 'error', $allowed
-                ? 'Representative verified. Review access expires in 10 minutes. Confirm your private passphrase again when recording the decision.'
-                : 'Review access could not be verified. Use the current representative’s private passphrase.');
-    }
-
-    public function review(ReviewMemberApplicationRequest $request, MemberApplication $application): RedirectResponse
-    {
-        $actor = $this->sessionUser->resolve($request);
-        return $this->mutate($request, function () use ($request, $actor, $application): RedirectResponse {
+        try {
             $this->workflow->review($actor, $application, $request->validated());
             $request->session()->forget('representative_review');
-            return redirect()->route('membership.applications.show', $application)->with('success', 'Review recorded successfully.');
-        });
-    }
-
-    public function credential(SetReviewPassphraseRequest $request, Member $member): RedirectResponse
-    {
-        $actor = $this->sessionUser->resolve($request);
-        return $this->mutate($request, function () use ($request, $actor, $member): RedirectResponse {
-            $this->workflow->setReviewPassphrase($actor, $member, $request->validated('review_passphrase'));
-            return back()->with('success', 'Review passphrase saved. Communicate it privately to the designated representative.');
-        });
+            $url = route('membership.applications.show', $application);
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Review recorded successfully.', 'url' => $url]);
+            }
+            return redirect($url)->with('success', 'Review recorded successfully.');
+        } catch (Throwable $exception) {
+            if (!$exception instanceof MembershipRuleException) {
+                report($exception);
+            }
+            $message = $exception instanceof MembershipRuleException
+                ? $exception->getMessage()
+                : 'The decision could not be saved. Refresh the application before trying again.';
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message], $exception instanceof MembershipRuleException ? 409 : 500);
+            }
+            return back()->withInput($request->except(['review_passphrase']))->with('error', $message);
+        }
     }
 
     private function mutate(Request $request, \Closure $operation): RedirectResponse

@@ -1,4 +1,49 @@
 /* Scope these styles to Assigned Areas and its detail pages. */
+/* Member pages normally supply their own padding; shared area pages need it too. */
+.am-member .am-content > .am-area-page {
+    padding: clamp(1rem, 2.5vw, 2rem);
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+.am-area-page { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.am-area-page :is(.grid, .flex) > * { min-width: 0; }
+.am-area-page .overflow-x-auto { max-width: 100%; }
+.am-area-page.fo-coverage > header {
+    padding: clamp(1rem, 2vw, 1.5rem);
+    border: 1px solid #d8e6dd;
+    border-radius: 1rem;
+    background: white;
+}
+.am-area-page.fo-coverage > header h1 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    line-height: 1.2;
+}
+/* Use the content width, including when the sidebar is open. */
+.am-area-page.fo-coverage > section.grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+}
+.am-area-page .fo-filter-card > .grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+}
+.am-area-page .fo-filter-card :is(input, select) {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+    padding: .65rem .75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: .5rem;
+    background-color: white;
+    font-size: .875rem;
+}
+@media (max-width: 639px) {
+    .am-area-page.fo-coverage > header > a { width: 100%; }
+    .am-area-page .fo-dialog-header { flex-wrap: wrap; }
+    .am-area-page .fo-side-header { flex-wrap: wrap; }
+    .am-area-page .fo-definition > div { min-width: 0; }
+}
+
 .fo-areas {
     --fo-navy: #0f172a;
     --fo-border: #d8e6dd;

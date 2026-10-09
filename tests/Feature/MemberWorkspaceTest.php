@@ -111,7 +111,7 @@ final class MemberWorkspaceTest extends MembershipDatabaseTestCase
         $this->withSession($session)->get('/member/dashboard')->assertRedirect('/login');
     }
 
-    public function test_review_actions_need_private_verification_and_replacement_revokes_unlock(): void
+    public function test_shared_account_cannot_unlock_officer_review(): void
     {
         $workflow = app(MembershipWorkflowService::class);
         $workflow->setReviewPassphrase(User::findOrFail(1), Member::findOrFail(1), 'Member-review-private');
@@ -133,12 +133,9 @@ final class MemberWorkspaceTest extends MembershipDatabaseTestCase
         );
         $url = '/membership/applications/'.$application->id;
         $this->get($url)->assertOk()->assertDontSee('data-representative-review', false);
-        $this->post($url.'/review-access', ['review_passphrase' => 'wrong'])->assertSessionHas('error');
-        $this->get($url)->assertDontSee('data-representative-review', false);
-        $this->post($url.'/review-access', ['review_passphrase' => 'Member-review-private'])->assertSessionHas('success');
-        $this->get($url)->assertSee('data-representative-review', false)->assertDontSee('Member-review-private');
-        DB::table('members')->where('id', 1)->update(['review_passphrase_hash' => null]);
-        $this->get($url)->assertDontSee('data-representative-review', false);
+        $this->post($url.'/review-access', ['review_passphrase' => 'Member-review-private'])->assertNotFound();
+        $this->get($url)->assertDontSee('data-officer-review', false);
+
     }
 
     public function test_database_failure_has_a_safe_recovery_page(): void

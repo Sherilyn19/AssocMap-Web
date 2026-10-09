@@ -25,7 +25,7 @@
                     ['label' => 'Current associations', 'value' => $counts['associations'], 'note' => 'Non-archived association records', 'url' => route('admin.associations.index', ['archive_state' => 'current']), 'icon' => 'M3 21V9l9-6 9 6v12M9 21v-7h6v7M7 10h1m8 0h1'],
                     ['label' => 'Current members', 'value' => $counts['members'], 'note' => 'Non-archived official members', 'url' => route('members.index', ['record_state' => 'current']), 'icon' => 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'],
                     ['label' => 'Current projects', 'value' => $counts['projects'], 'note' => 'Across all implementation statuses', 'url' => route('projects.index'), 'icon' => 'M3 7h18v14H3zM8 7V3h8v4M3 12h18M10 12v3h4v-3'],
-                    ['label' => 'Pending applications', 'value' => $counts['pending'], 'note' => 'Awaiting representative review', 'url' => $pendingUrl, 'icon' => 'M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0'],
+                    ['label' => 'Pending applications', 'value' => $counts['pending'], 'note' => 'Awaiting Field Officer review', 'url' => $pendingUrl, 'icon' => 'M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0'],
                 ];
             @endphp
             <section aria-label="Dashboard summary" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -51,7 +51,7 @@
                     <ul class="divide-y divide-slate-100">
                         @forelse ($recentAssociations as $association)
                             <li><a href="{{ route('admin.associations.show', $association->id) }}" class="flex flex-col gap-2 px-5 py-4 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between">
-                                <div class="min-w-0"><p class="break-words text-sm font-semibold text-slate-800">{{ $association->name }}</p><p class="mt-1 break-words text-xs text-slate-500">{{ $association->municipality ?? 'Municipality not assigned' }}</p></div>
+                                <div class="min-w-0"><p class="break-words text-sm font-semibold text-slate-800">{{ $association->name }}</p><p class="mt-1 break-words text-xs text-slate-500">{{ $association->municipality ?? 'City / Municipality not assigned' }}</p></div>
                                 <span class="w-fit shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{{ $association->status_name ?? 'Status not set' }}</span>
                             </a></li>
                         @empty
@@ -79,7 +79,7 @@
 
                 <section aria-labelledby="applications-heading" class="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm xl:col-span-2">
                     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-5">
-                        <div><h2 id="applications-heading" class="font-semibold text-slate-900">Awaiting representative review</h2><p class="mt-1 text-xs leading-5 text-slate-500">Five oldest pending applications. Administrators can view application details.</p></div>
+                        <div><h2 id="applications-heading" class="font-semibold text-slate-900">Awaiting Field Officer review</h2><p class="mt-1 text-xs leading-5 text-slate-500">Five oldest pending applications. Administrators can view application details.</p></div>
                         <a href="{{ $pendingUrl }}" class="text-sm font-semibold text-assocmap-primary hover:underline">View pending <span aria-hidden="true">&rarr;</span></a>
                     </div>
                     <ul class="divide-y divide-slate-100">

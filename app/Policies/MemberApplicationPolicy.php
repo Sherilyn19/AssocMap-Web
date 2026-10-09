@@ -25,14 +25,13 @@ final class MemberApplicationPolicy
             && \App\Models\Association::whereKey($user->association_id)->where('is_archived', false)->exists();
     }
 
-    /** This allows reaching the review form; the service MUST also verify the secret. */
+    /** Review authority follows the association's current officer assignment. */
     public function review(User $user, MemberApplication $application): bool
     {
-        return $user->is_active && $user->role?->role_name === 'Association Member'
-            && $user->association_id !== null
-            && (int) $user->association_id === (int) $application->association_id
-            && $application->association && !$application->association->is_archived
-            && $application->association->representative_member_id !== null;
+        return $user->is_active && $user->role?->role_name === 'Field Officer'
+            && \App\Models\Association::whereKey($application->association_id)
+                ->where('field_officer_id', $user->id)
+                ->where('is_archived', false)->exists();
     }
 
     public function viewAny(User $user): bool

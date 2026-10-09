@@ -62,17 +62,12 @@ final class FieldOfficerMemberWorkflowTest extends MembershipDatabaseTestCase
         $this->assertSame(3, User::count());
     }
 
-    public function test_missing_representative_credential_blocks_submission(): void
+    public function test_draft_submission_does_not_require_representative_credentials(): void
     {
         $draft = $this->service()->create($this->officer(), 1, $this->profile());
-
-        try {
-            $this->service()->submit($this->officer(), $draft, 1);
-            $this->fail('Submission should be blocked.');
-        } catch (MembershipRuleException) {
-            $this->assertSame('draft', $draft->fresh()->state);
-            $this->assertSame(0, MemberApplication::count());
-        }
+        $application = $this->service()->submit($this->officer(), $draft, 1);
+        $this->assertSame('Pending', $application->status->status_name);
+        $this->assertSame('submitted', $draft->fresh()->state);
     }
 
     public function test_incomplete_draft_cannot_be_submitted(): void
@@ -101,7 +96,7 @@ final class FieldOfficerMemberWorkflowTest extends MembershipDatabaseTestCase
         $this->assertSame(2, Member::count());
 
         $approved = app(MembershipWorkflowService::class)->review(
-            User::findOrFail(3),
+            User::findOrFail(2),
             $application,
             ['decision' => 'Approved', 'review_passphrase' => self::SECRET]
         );
@@ -164,36 +159,39 @@ final class FieldOfficerMemberWorkflowTest extends MembershipDatabaseTestCase
         }
     }
 
-    public function test_wrong_representative_secret_rolls_back_direct_registration(): void
+    public function test_shared_account_cannot_review_application(): void
     {
         $this->provision();
 
-        try {
-            app(MembershipWorkflowService::class)->submit(
-                User::findOrFail(3),
-                $this->profile() + ['review_passphrase' => 'wrong secret']
-            );
+        $workflow = app(MembershipWorkflowService::class);
+        $actor = User::findOrFail(3);
+        $application = $workflow->submit($actor, $this->profile());
 
-            $this->fail('Wrong passphrase should fail.');
+        try {
+            $workflow->review($actor, $application, [
+                'decision' => 'Approved',
+                'review_passphrase' => 'wrong secret',
+            ]);
+
+            $this->fail('Wrong passphrase should prevent approval.');
         } catch (MembershipRuleException) {
-            $this->assertSame(0, MemberApplication::count());
-            $this->assertSame(2, Member::count());
+            $this->assertSame('Pending', $application->fresh()->status->status_name);
+            $this->assertSame(0, Member::where('application_id', $application->id)->count());
+            $this->assertNull($application->fresh()->reviewed_at);
         }
     }
 
-    public function test_direct_registration_does_not_require_an_assigned_officer(): void
+    public function test_association_submission_does_not_require_an_assigned_officer(): void
     {
-        $this->provision();
-
         DB::table('associations')->where('id', 1)->update(['field_officer_id' => null]);
 
         $application = app(MembershipWorkflowService::class)->submit(
             User::findOrFail(3),
-            $this->profile() + ['review_passphrase' => self::SECRET]
+            $this->profile()
         );
 
-        $this->assertSame('Approved', $application->status->status_name);
-        $this->assertSame(1, Member::where('application_id', $application->id)->count());
+        $this->assertSame('Pending', $application->status->status_name);
+        $this->assertSame(0, Member::where('application_id', $application->id)->count());
         $this->assertSame(3, User::count());
     }
 

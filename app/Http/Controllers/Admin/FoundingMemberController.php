@@ -42,6 +42,6 @@ final class FoundingMemberController extends Controller
         app(\App\Support\AssociationRequestContext::class)->mutationCompleted = true;
 
         return redirect()->route('admin.associations.show', $association)->with('success',
-            'Founding member registered. Assign the representative separately, then provision their private review passphrase.');
+            'Founding member registered. Assign the association representative separately.');
     }
 }

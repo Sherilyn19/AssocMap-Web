@@ -98,7 +98,7 @@
             @php
                 $applied = [];
                 if (filled($filters['search'] ?? null)) $applied['search'] = 'Search: '.$filters['search'];
-                foreach (['area_unit_id' => ['Municipality', $filterMunicipalities, 'name'], 'sub_unit_id' => ['Barangay', $filterBarangays, 'name'], 'program_component_id' => ['Component', $programComponents, 'name'], 'field_officer_id' => ['Officer', $filterOfficers, 'name'], 'status_id' => ['Status', $associationStatuses, 'status_name']] as $field => [$label, $options, $column]) {
+                foreach (['area_unit_id' => ['City / Municipality', $filterMunicipalities, 'name'], 'sub_unit_id' => ['Barangay', $filterBarangays, 'name'], 'program_component_id' => ['Component', $programComponents, 'name'], 'field_officer_id' => ['Officer', $filterOfficers, 'name'], 'status_id' => ['Status', $associationStatuses, 'status_name']] as $field => [$label, $options, $column]) {
                     if (filled($filters[$field] ?? null)) $applied[$field] = $label.': '.($options->firstWhere('id', $filters[$field])?->$column ?? 'Unavailable');
                 }
                 if (($filters['archive_state'] ?? 'current') !== 'current') $applied['archive_state'] = 'Records: '.ucfirst($filters['archive_state']);

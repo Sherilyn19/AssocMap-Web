@@ -2,17 +2,21 @@
     @php
         $options = $options ?? [];
         $mapRoute = $internal ? 'gis.viewer' : 'gis.public';
+        $memberMap = $internal
+    && session('auth_user.role_name') === 'Association Member';
     @endphp
 
     <main data-gis-viewer class="gis-page gis-explorer">
         <header class="gis-explorer-header">
             <div>
                 <span class="gis-explorer-eyebrow">BFAR SAAD PHASE II · CEBU</span>
-                <h1>{{ $internal ? 'Internal GIS Map' : 'Explore association locations' }}</h1>
+                <h1>{{ $memberMap ? 'Association Map' : ($internal ? 'Internal GIS Map' : 'Explore association locations') }}</h1>
                 <p>
-                    {{ $internal
-                        ? 'Locations available within your current access.'
-                        : 'Discover published association sites and livelihood projects.' }}
+                    {{ $memberMap
+                        ? 'Published locations for your association.'
+                        : ($internal
+                            ? 'Locations available within your current access.'
+                            : 'Discover published association sites and livelihood projects.') }}
                 </p>
             </div>
 
@@ -35,7 +39,7 @@
             </label>
 
             @foreach([
-                'municipality' => 'Municipality',
+                'municipality' => 'City / Municipality',
                 'barangay' => 'Barangay',
                 'component' => 'Program component',
                 'commodity' => 'Commodity',
@@ -99,7 +103,7 @@
             <div class="gis-explorer-workspace">
                 <section class="gis-explorer-map-card" aria-label="Association map">
                     <header>
-                        <h2>{{ $internal ? 'Internal GIS Map' : 'Public GIS Map' }}</h2>
+                        <h2>{{ $memberMap ? 'Association Map' : ($internal ? 'Internal GIS Map' : 'Public GIS Map') }}</h2>
                         <button data-viewer-reset type="button"
                                 class="gis-button" disabled>Reset view</button>
                     </header>

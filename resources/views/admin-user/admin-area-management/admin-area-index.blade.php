@@ -39,7 +39,7 @@
             [
                 'key' => 'municipalities',
                 'url' => route('areas.index', ['tab' => 'municipalities']),
-                'label' => 'Total Municipalities',
+                'label' => 'Total Cities / Municipalities',
                 'value' => $summary['total_municipalities'],
                 'note' => $summary['active_municipalities'] . ' current · ' . $summary['archived_municipalities'] . ' archived',
             ],
@@ -89,7 +89,7 @@
     <div class="mb-6 inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-assocmap-border bg-white p-1 shadow-card" role="tablist" aria-label="Area registers">
         <button type="button" id="am-tab-municipalities" role="tab" aria-controls="am-panel-municipalities" data-am-tab="municipalities" aria-selected="true"
                 class="rounded-lg bg-assocmap-primary px-4 py-2 text-sm font-semibold text-white">
-            Municipalities
+            Cities / Municipalities
         </button>
         <button type="button" id="am-tab-barangays" role="tab" aria-controls="am-panel-barangays" data-am-tab="barangays" aria-selected="false"
                 class="rounded-lg px-4 py-2 text-sm font-semibold text-assocmap-text hover:bg-assocmap-bg">
@@ -103,7 +103,7 @@
 {{-- Clear filter and record headings help users find each section.
              Keep headings in h1, h2, h3 order for screen reader navigation. --}}
         <form data-area-filters="municipalities" aria-labelledby="am-municipality-filters-title" method="GET" action="{{ route('areas.index') }}" class="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <h2 id="am-municipality-filters-title" class="mb-4 text-lg font-bold text-slate-900">Filter Municipalities</h2>
+            <h2 id="am-municipality-filters-title" class="mb-4 text-lg font-bold text-slate-900">Filter Cities / Municipalities</h2>
 {{-- Leave page numbers out of the filter form so filter or page-size changes
                  start on page one. Page links keep the valid filters selected. --}}
             <input type="hidden" name="tab" value="municipalities">
@@ -157,10 +157,10 @@
             <header class="space-y-3 border-b border-slate-200 p-4 sm:p-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <h2 id="am-municipality-records-title" class="text-lg font-bold text-slate-900">Municipality Records</h2>
+                        <h2 id="am-municipality-records-title" class="text-lg font-bold text-slate-900">City / Municipality Records</h2>
                         <p class="mt-1 text-sm text-slate-600">{{ number_format($municipalities->total()) }} matching records</p>
                     </div>
-                    <button type="button" data-municipality-modal-open="create" class="inline-flex min-h-11 items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2">+ Add Municipality</button>
+                    <button type="button" data-municipality-modal-open="create" class="inline-flex min-h-11 items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2">+ Add City / Municipality</button>
                 </div>
                 @include('admin-user.admin-area-management.filter-chips', ['tab' => 'municipalities'])
             </header>
@@ -250,10 +250,10 @@
                 </div>
             </div>
 
-{{-- Use the shared page buttons. Municipality page links keep the selected
+{{-- Use the shared page buttons. City / Municipality page links keep the selected
                  tab and filters. Show the record range even when there is only one page. --}}
             <div class="overflow-hidden rounded-b-xl">
-                <x-management-pagination :records="$municipalities" :numbered="true" label="Municipality pagination" />
+                <x-management-pagination :records="$municipalities" :numbered="true" label="City / Municipality pagination" />
             </div>
         </section>
     </section>
@@ -274,9 +274,9 @@
                            class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200">
                 </div>
                 <div>
-                    <label for="area-filter-area_unit_id" class="text-sm font-medium text-slate-700">Municipality</label>
+                    <label for="area-filter-area_unit_id" class="text-sm font-medium text-slate-700">City / Municipality</label>
                     <select id="area-filter-area_unit_id" name="area_unit_id" aria-describedby="area-filter-parent-preview" class="mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200">
-                        <option value="">All Municipalities</option>
+                        <option value="">All Cities / Municipalities</option>
                         @foreach ($filterMunicipalities as $muniOption)
                             <option value="{{ $muniOption->id }}" @selected(($filters['area_unit_id'] ?? '') == $muniOption->id)>{{ $muniOption->name }}{{ $muniOption->is_archived ? ' (Archived)' : '' }}</option>
                         @endforeach
@@ -340,7 +340,7 @@
                         <thead class="bg-assocmap-bg">
                             <tr>
                                 <th class="px-4 py-3 text-left font-semibold text-assocmap-text">Barangay</th>
-                                <th class="px-4 py-3 text-left font-semibold text-assocmap-text">Municipality</th>
+                                <th class="px-4 py-3 text-left font-semibold text-assocmap-text">City / Municipality</th>
                                 <th class="px-4 py-3 text-left font-semibold text-assocmap-text">Associations</th>
                                 <th class="px-4 py-3 text-left font-semibold text-assocmap-text">Status</th>
                                 <th class="px-4 py-3 text-left font-semibold text-assocmap-text">Created</th>

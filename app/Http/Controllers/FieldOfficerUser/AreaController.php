@@ -6,7 +6,7 @@ namespace App\Http\Controllers\FieldOfficerUser;
 
 use App\Http\Controllers\Controller;
 use App\Models\AreaUnit;
-use App\Services\FieldOfficerUserAccess;
+use App\Services\AreaRecordAccess;
 use App\Services\SessionUserResolver;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -17,7 +17,7 @@ final class AreaController extends Controller
     public function index(
         Request $request,
         SessionUserResolver $resolver,
-        FieldOfficerUserAccess $access
+        AreaRecordAccess $access
     ) {
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:150'],
@@ -130,7 +130,7 @@ final class AreaController extends Controller
     Request $request,
     int $areaUnit,
     SessionUserResolver $resolver,
-    FieldOfficerUserAccess $access
+    AreaRecordAccess $access
 ) {
     $request->validate(['page' => ['nullable', 'integer', 'min:1']]);
 
@@ -156,8 +156,12 @@ final class AreaController extends Controller
                 fn ($query) => $query->where('is_archived', false),
 
             // Count saved GIS locations that have not been archived.
-            'gisLocations as locations_count' =>
-                fn ($query) => $query->whereNull('archived_at'),
+            'gisLocations as mapped_locations_count' =>
+                fn ($query) => $query->when(
+                    $actor->role?->role_name === 'Association Member',
+                    fn ($query) => $query->publiclyVisible(),
+                    fn ($query) => $query->whereNull('archived_at')
+                ),
         ])
         ->orderBy('name')
         ->orderBy('id')
@@ -175,7 +179,7 @@ public function details(
     int $association,
     string $section,
     SessionUserResolver $resolver,
-    FieldOfficerUserAccess $access
+    AreaRecordAccess $access
 ) {
     $request->validate([
         'page' => ['nullable', 'integer', 'min:1'],
@@ -200,7 +204,11 @@ public function details(
             'projects as retained_projects_count' =>
                 fn ($query) => $query->where('is_archived', false),
             'gisLocations as mapped_locations_count' =>
-                fn ($query) => $query->whereNull('archived_at'),
+                fn ($query) => $query->when(
+                    $actor->role?->role_name === 'Association Member',
+                    fn ($query) => $query->publiclyVisible(),
+                    fn ($query) => $query->whereNull('archived_at')
+                ),
         ])
         ->findOrFail($association);
 
@@ -218,7 +226,11 @@ public function details(
             ->paginate(8)->withQueryString(),
 
         'gis' => $association->gisLocations()
-            ->whereNull('archived_at')
+            ->when(
+    $actor->role?->role_name === 'Association Member',
+    fn ($query) => $query->publiclyVisible(),
+    fn ($query) => $query->whereNull('archived_at')
+)
             ->orderBy('location_name')->orderBy('id')
             ->paginate(8)->withQueryString(),
 
@@ -228,7 +240,11 @@ public function details(
     // A small GIS preview is included in the association overview.
     $locations = $section === 'association'
         ? $association->gisLocations()
-            ->whereNull('archived_at')
+            ->when(
+                $actor->role?->role_name === 'Association Member',
+                fn ($query) => $query->publiclyVisible(),
+                fn ($query) => $query->whereNull('archived_at')
+            )
             ->orderBy('location_name')->orderBy('id')
             ->limit(3)->get()
         : collect();

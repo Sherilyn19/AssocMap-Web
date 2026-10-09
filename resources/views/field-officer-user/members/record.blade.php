@@ -116,7 +116,7 @@
                         <div>
                             <dt class="text-sm text-slate-500">Reviewed by</dt>
                             <dd class="mt-1 font-medium">
-                                {{ trim(($application->reviewer?->first_name ?? '').' '.($application->reviewer?->last_name ?? '')) ?: 'Not recorded' }}
+                                {{ $application->reviewer_name ?: 'Not recorded' }}
                             </dd>
                         </div>
                     @endif
@@ -152,6 +152,10 @@
                 @endif
             </dl>
         </section>
+
+        @if($isApplication && ($canReview ?? false) && $recordStatus === 'Pending')
+            @include('shared.membership.partials.review-form')
+        @endif
 
         {{-- Follow the existing authorized member route without stacking dialogs. --}}
         @if($isApplication && $application->member)

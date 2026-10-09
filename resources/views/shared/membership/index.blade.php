@@ -17,7 +17,7 @@
     </form>
     <section class="rounded-xl border bg-white p-5">
         <h2 class="text-lg font-bold">Applications <span class="text-slate-500">({{ $applications->total() }})</span></h2>
-        <p class="mt-1 text-sm text-slate-600">Pending applications require the designated representative's private review passphrase.</p>
+        <p class="mt-1 text-sm text-slate-600">Pending applications are reviewed by the assigned Field Officer.</p>
         <ul class="mt-4 divide-y">
             @forelse ($applications as $application)
                 <li class="flex flex-wrap items-center justify-between gap-3 py-4">

@@ -17,8 +17,8 @@
     <dialog id="am-municipality-modal" aria-labelledby="am-municipality-modal-title" class="am-area-dialog m-auto max-w-lg rounded-xl border border-slate-200 p-0 backdrop:bg-slate-900/50">
         <div class="am-area-dialog-panel !p-0 bg-white text-slate-900 shadow-xl">
             <div class="shrink-0 border-b border-slate-200 px-5 py-4 sm:px-6">
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-600">Municipality Record</p>
-                <h2 id="am-municipality-modal-title" class="mt-1 text-lg font-bold text-slate-900">Add Municipality</h2>
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-600">City / Municipality Record</p>
+                <h2 id="am-municipality-modal-title" class="mt-1 text-lg font-bold text-slate-900">Add City / Municipality</h2>
             </div>
 
             <form id="am-municipality-form" class="am-area-dialog-form" method="POST" action="{{ route('areas.municipalities.store') }}">
@@ -36,9 +36,9 @@
 
                     <div class="space-y-4">
                         <div class="flex flex-col gap-1.5">
-                            <label for="am-municipality-name" class="{{ $areaModalLabelClass }}">Municipality Name <span aria-hidden="true" class="text-red-600">*</span></label>
+                            <label for="am-municipality-name" class="{{ $areaModalLabelClass }}">City / Municipality Name <span aria-hidden="true" class="text-red-600">*</span></label>
                             <select id="am-municipality-name" name="name" required aria-describedby="am-municipality-name-preview" class="{{ $areaModalFieldClass }}">
-                                <option value="">Select municipality</option>
+                                <option value="">Select city / municipality</option>
                                 @foreach(config('cebu-municipalities') as $municipalityName)
                                     <option value="{{ $municipalityName }}">{{ $municipalityName }}</option>
                                 @endforeach
@@ -93,11 +93,11 @@
                     <div class="space-y-4">
                         <div class="flex flex-col gap-1.5">
                             <label for="am-barangay-area-unit" class="{{ $areaModalLabelClass }}">
-                                Municipality <span aria-hidden="true" class="ml-0.5 text-red-600">*</span>
+                                City / Municipality <span aria-hidden="true" class="ml-0.5 text-red-600">*</span>
                             </label>
                             <select id="am-barangay-area-unit" name="area_unit_id" required aria-describedby="am-barangay-parent-preview"
                                     class="{{ $areaModalFieldClass }}">
-                                <option value="">Select a municipality</option>
+                                <option value="">Select a city / municipality</option>
                                 @foreach ($activeMunicipalities as $muniOption)
                                     <option value="{{ $muniOption->id }}">{{ $muniOption->name }}</option>
                                 @endforeach

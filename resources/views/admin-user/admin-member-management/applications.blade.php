@@ -60,7 +60,7 @@
         $applicationCards = [
             ['key' => 'total', 'label' => 'Total Applications', 'hint' => 'All retained requests', 'status' => null,
              'explanation' => 'All retained membership applications, including Pending, Approved, and Rejected requests.'],
-            ['key' => 'pending', 'label' => 'Pending', 'hint' => 'Awaiting representative review', 'status' => 'Pending',
+            ['key' => 'pending', 'label' => 'Pending', 'hint' => 'Awaiting Field Officer review', 'status' => 'Pending',
              'explanation' => 'These applications are awaiting a decision from the designated Association Representative. Pending applicants are not official members.'],
             ['key' => 'approved', 'label' => 'Approved', 'hint' => 'Converted through the approved workflow', 'status' => 'Approved',
              'explanation' => 'These applications have an Approved status. Open an application record to inspect its reviewer, review date, and linked official member.'],
@@ -221,6 +221,7 @@
                                         $application->reviewer->last_name,
                                     ], fn ($part) => filled($part))))
                                     : null;
+    $reviewerName = $application->reviewer_name ?: $reviewerName;
                                 $representativeName = $application->association?->representative
                                     ? trim(implode(' ', array_filter([
                                         $application->association->representative->first_name,

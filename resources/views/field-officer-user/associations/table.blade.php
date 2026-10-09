@@ -5,7 +5,7 @@
         <thead>
             <tr>
                 <th scope="col">Association / ID</th>
-                <th scope="col">Municipality / Program</th>
+                <th scope="col">City / Municipality / Program</th>
                 <th scope="col">Members</th>
                 <th scope="col">Status</th>
                 <th scope="col">Details</th>

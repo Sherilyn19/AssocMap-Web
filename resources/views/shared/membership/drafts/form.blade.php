@@ -185,7 +185,7 @@
                     <label class="flex items-start gap-2">
                         <input type="checkbox" name="confirm" value="1" required
                                @disabled((bool) $blockReason)>
-                        <span>I confirm that the saved profile is ready for representative review.</span>
+                        <span>I confirm that the saved profile is ready for Field Officer review.</span>
                     </label>
 
                     <button class="fo-action am-button-green disabled:opacity-50"

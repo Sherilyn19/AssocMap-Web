@@ -47,14 +47,14 @@
                 </label>
 
                 <label class="block">
-                    <span class="text-sm font-semibold text-slate-700">Municipality</span>
+                    <span class="text-sm font-semibold text-slate-700">City / Municipality</span>
                     <select
                         name="area_unit_id"
                         data-filter-municipality
                         class="mt-1.5 min-h-11 w-full transition duration-150 hover:border-slate-400 disabled:hover:border-slate-300 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
                                focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
                     >
-                        <option value="">All municipalities</option>
+                        <option value="">All cities / municipalities</option>
                         @foreach ($municipalities as $municipality)
                             <option value="{{ $municipality->id }}" @selected((string) ($filters['area_unit_id'] ?? '') === (string) $municipality->id)>
                                 {{ $municipality->name }}{{ $municipality->is_archived ? ' (Archived)' : '' }}
@@ -73,7 +73,7 @@
                                disabled:bg-slate-100 disabled:text-slate-400
                                focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
                     >
-                        <option value="">Select municipality first</option>
+                        <option value="">Select city / municipality first</option>
                     </select>
                 </label>
 

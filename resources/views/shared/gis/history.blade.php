@@ -13,7 +13,7 @@
         'archived_at' => 'Archived at',
         // These values come from recorded changes, not reconstructed history.
         'association_name' => 'Association name',
-        'municipality_id' => 'Municipality ID',
+        'municipality_id' => 'City / Municipality ID',
         'barangay_id' => 'Barangay ID',
         'program_component_id' => 'Program component ID',
         'association_status_id' => 'Association status ID',
@@ -21,7 +21,7 @@
         'commodity' => 'Commodity',
         'project_archived' => 'Project archived',
         'association_name' => 'Association name',
-        'municipality_id' => 'Municipality ID',
+        'municipality_id' => 'City / Municipality ID',
         'barangay_id' => 'Barangay ID',
         'program_component_id' => 'Program component ID',
         'association_status_id' => 'Association status ID',

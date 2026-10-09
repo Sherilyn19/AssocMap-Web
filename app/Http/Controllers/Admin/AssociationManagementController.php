@@ -108,7 +108,7 @@ final class AssociationManagementController extends Controller
         $this->authorizeAction($request, 'update', $association);
         $value = $request->validated('representative_member_id');
 
-        return $this->mutate($request, fn () => $this->service->assignRepresentative($association, $value === null ? null : (int) $value, $this->actorId($request)), 'Representative selection saved. A newly appointed representative needs a private review passphrase provisioned from their member record.');
+        return $this->mutate($request, fn () => $this->service->assignRepresentative($association, $value === null ? null : (int) $value, $this->actorId($request)), 'Representative selection saved. Membership approval remains with the assigned Field Officer.');
     }
 
     private function read(Request $request, \Closure $operation): mixed

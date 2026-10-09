@@ -9,7 +9,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
-/** A shared login alone is not review authority; the service verifies the private secret. */
+/** Only the assigned Field Officer can submit a decision. */
 final class ReviewMemberApplicationRequest extends FormRequest
 {
     public function authorize(): bool
@@ -23,7 +23,9 @@ final class ReviewMemberApplicationRequest extends FormRequest
         return [
             'decision' => ['required', Rule::in(['Approved', 'Rejected'])],
             'rejection_reason' => ['required_if:decision,Rejected', 'nullable', 'string', 'max:2000'],
-            'review_passphrase' => ['required', 'string', 'max:72'],
+            'review_passphrase' => ['prohibited'],
+            'reviewed_by_user_id' => ['prohibited'],
+            'decision_confirmed' => ['accepted'],
             'reviewed_by_member_id' => ['prohibited'],
             'association_id' => ['prohibited'],
             'status_id' => ['prohibited'],

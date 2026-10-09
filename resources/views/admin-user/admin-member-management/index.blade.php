@@ -173,6 +173,7 @@
                     $member->application->reviewer->last_name,
                 ], fn ($part) => filled($part))))
                 : null;
+    $reviewerName = $member->application?->reviewer_name ?: $reviewerName;
 
             $detailPayload = [
                 'id' => $member->id,
@@ -610,7 +611,7 @@
                 ],
                 'Membership' => [
                     ['Association', 'association'],
-                    ['Municipality', 'municipality'],
+                    ['City / Municipality', 'municipality'],
                     ['Barangay', 'barangay'],
                     ['Association role', 'role_in_assoc'],
                     ['Beneficiary type', 'beneficiary_type'],

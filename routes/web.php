@@ -68,7 +68,7 @@ Route::get('/officer/dashboard', [DashboardController::class, 'officer'])
 Route::middleware('assocmap.auth:Field Officer')->prefix('officer')->name('officer.')->group(function (): void {
     Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
     Route::get('/reports/export', [ReportsController::class, 'export'])->name('reports.export');
-    
+
     Route::get('/areas',
         [\App\Http\Controllers\FieldOfficerUser\AreaController::class, 'index']
     )->name('areas.index');
@@ -189,7 +189,7 @@ Route::middleware('assocmap.auth:Field Officer')->prefix('officer')->name('offic
         ->whereIn('type', ['production', 'income', 'materials'])
         ->whereNumber('record')
         ->name('monitoring.details');
-        
+
     // Production progress remains inside the authorized FO workspace.
     Route::get(
         '/monitoring/production-progress/create',
@@ -208,6 +208,29 @@ Route::middleware('assocmap.auth:Field Officer')->prefix('officer')->name('offic
 
 });
 
+// Shared association accounts reuse the area records interface.
+// The access service limits every request to the account's association.
+Route::middleware('assocmap.auth:Association Member')
+    ->prefix('member/areas')
+    ->name('member.areas.')
+    ->controller(\App\Http\Controllers\FieldOfficerUser\AreaController::class)
+    ->group(function (): void {
+        Route::get('/', 'index')->name('index');
+
+        Route::get('/{areaUnit}', 'show')
+            ->whereNumber('areaUnit')
+            ->name('show');
+
+        Route::get(
+            '/{areaUnit}/associations/{association}/{section}',
+            'details'
+        )
+            ->whereNumber('areaUnit')
+            ->whereNumber('association')
+            ->whereIn('section', ['association', 'members', 'projects', 'gis'])
+            ->name('details');
+    });
+
 Route::get('/member/dashboard', [\App\Http\Controllers\MemberWorkspaceController::class, 'dashboard'])
     ->middleware('assocmap.auth:Association Member')
     ->name('dashboard.member');
@@ -222,6 +245,15 @@ Route::middleware('assocmap.auth:Association Member')->prefix('member')->name('m
         Route::get('/trainings', 'trainings')->name('trainings');
         Route::get('/trainings/{training}', 'training')->whereNumber('training')->name('trainings.show');
         Route::get('/production', 'production')->name('production');
+    });
+
+Route::middleware('assocmap.auth:Association Member')
+    ->prefix('member/reports')
+    ->name('member.reports.')
+    ->controller(\App\Http\Controllers\MemberReportsController::class)
+    ->group(function (): void {
+        Route::get('/', 'index')->name('index');
+        Route::get('/export', 'export')->name('export');
     });
 
 // ============================================================
@@ -432,25 +464,18 @@ Route::middleware('assocmap.auth:Field Officer')
         Route::put('/{member}', 'update')->whereNumber('member')->name('update');
         Route::patch('/{member}/archive', 'archive')
             ->whereNumber('member')->name('archive');
-    });    
-// MEMBERSHIP-WORKFLOW: scoped viewing; only the association account can submit/review.
+    });
+// MEMBERSHIP-WORKFLOW: scoped viewing; association accounts submit; assigned Field Officers review.
 Route::middleware('assocmap.auth')->prefix('membership')->name('membership.')
     ->controller(MembershipController::class)->group(function (): void {
         Route::get('/', 'index')->name('index');
         Route::get('/applications/create', 'create')->name('applications.create');
         Route::post('/applications', 'store')->middleware('throttle:membership-submit')->name('applications.store');
         Route::get('/applications/{application}', 'show')->whereNumber('application')->name('applications.show');
-        Route::post('/applications/{application}/review-access', 'unlockReview')->whereNumber('application')
-            ->middleware('throttle:membership-review')->name('applications.review-access');
         Route::patch('/applications/{application}/review', 'review')->whereNumber('application')
             ->middleware('throttle:membership-review')->name('applications.review');
         Route::get('/members/{member}', 'member')->whereNumber('member')->name('members.show');
     });
-
-// Provisioning a credential does not give administrators an approval endpoint.
-Route::post('/admin/members/{member}/review-passphrase', [MembershipController::class, 'credential'])
-    ->whereNumber('member')->middleware(['assocmap.auth:System Administrator', 'throttle:membership-review'])
-    ->name('members.review-passphrase');
 
 // Allow only system administrators to open GIS Mapping.
 Route::middleware(['assocmap.auth:System Administrator', 'throttle:10,1'])->prefix('admin/gis')->group(function (): void {

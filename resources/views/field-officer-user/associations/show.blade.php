@@ -40,7 +40,7 @@
             </header>
             <dl class="grid gap-5 p-5 sm:grid-cols-2">
                 @foreach([
-                    'Municipality' => $association->areaUnit?->name,
+                    'City / Municipality' => $association->areaUnit?->name,
                     'Barangay' => $association->subUnit?->name,
                     'Program component' => $association->programComponent?->name,
                     'Address' => $association->address,

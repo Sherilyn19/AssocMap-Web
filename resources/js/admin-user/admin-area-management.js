@@ -56,7 +56,7 @@ function initForm(entity, recovery, activate) {
     const storeUrl = form.action;
     const title = document.getElementById("am-" + entity + "-modal-title");
     const method = document.getElementById("am-" + entity + "-form-method");
-    const label = entity === "municipality" ? "Municipality" : "Barangay";
+    const label = entity === "municipality" ? "City / Municipality" : "Barangay";
     const parent = form.elements.namedItem("area_unit_id");
     function open(record = {}, recover = false) {
         form.querySelectorAll('[data-legacy-municipality]').forEach(option => option.remove());
@@ -79,7 +79,7 @@ function initForm(entity, recovery, activate) {
             }
             if (name === "area_unit_id" && value && ![...field.options].some(option => option.value === String(value))) {
                 // Retain a stale parent visibly without making it eligible for assignment.
-                const option = new Option("Previous municipality unavailable — select a current municipality", String(value));
+                const option = new Option("Previous city / municipality unavailable — select a current location", String(value));
                 option.disabled = true;
                 option.dataset.unavailableParent = "";
                 field.add(option);
@@ -149,10 +149,10 @@ function initDetails() {
             const record = await response.json();
             if (activeRequest !== controller || !modal.open) return;
             title.textContent = record.name;
-            subtitle.textContent = (record.type === "municipality" ? "Municipality" : "Barangay") + " · " + record.status;
+            subtitle.textContent = (record.type === "municipality" ? "City / Municipality" : "Barangay") + " · " + record.status;
             const details = {
                 ...(record.type === "municipality" ? { "Address / Description": record.address, "Current Barangays": record.barangay_count, "Total Barangays": record.total_barangay_count }
-                    : { Municipality: record.municipality, "Municipality Archive State": record.municipality_status }),
+                    : { "City / Municipality": record.municipality, "City / Municipality Archive State": record.municipality_status }),
                 "Current Associations": record.association_count, Created: record.created_at, Updated: record.updated_at,
             };
 // Match the detail fields to the form styles.

@@ -23,7 +23,7 @@ final class MembershipConcurrencyTest extends MembershipDatabaseTestCase
     {
         return array_map(fn ($operation) => [$operation], [
             'duplicate-submit', 'duplicate-review', 'deactivate-submit', 'reassign-submit',
-            'deactivate-review', 'replace-representative', 'password-credential', 'duplicate-founding',
+            'deactivate-review', 'reassign-review', 'password-credential', 'duplicate-founding',
         ]);
     }
 
@@ -44,7 +44,7 @@ final class MembershipConcurrencyTest extends MembershipDatabaseTestCase
             'reassign-submit',
             'duplicate-review',
             'deactivate-review',
-            'replace-representative',
+            'reassign-review',
         ], true)) {
             $service->setReviewPassphrase(
                 User::findOrFail(1),
@@ -56,7 +56,7 @@ final class MembershipConcurrencyTest extends MembershipDatabaseTestCase
         if (in_array($operation, [
             'duplicate-review',
             'deactivate-review',
-            'replace-representative',
+            'reassign-review',
         ], true)) {
             // Review races must start with a Pending FO application.
             $officer = User::findOrFail(2);
@@ -86,15 +86,15 @@ final class MembershipConcurrencyTest extends MembershipDatabaseTestCase
                 'review_passphrase' => 'Race-private-secret',
             ]);
             } elseif ($operation === 'duplicate-review') {
-                $service->review($actor, $application, ['decision' => 'Approved', 'review_passphrase' => 'Race-private-secret']);
+                $service->review(User::findOrFail(2), $application, ['decision' => 'Approved', 'review_passphrase' => 'Race-private-secret']);
                 $workerOperation = 'review';
             } elseif (in_array($operation, ['deactivate-submit', 'deactivate-review'], true)) {
-                $accounts->setActive(3, false, 1);
+                $accounts->setActive($operation === 'deactivate-review' ? 2 : 3, false, 1);
                 $workerOperation = $operation === 'deactivate-review' ? 'review' : 'submit';
             } elseif ($operation === 'reassign-submit') {
                 $accounts->update(3, ['name' => $actor->name, 'email' => $actor->email, 'role_id' => 3, 'association_id' => 2], 1);
-            } elseif ($operation === 'replace-representative') {
-                app(AssociationManagementService::class)->assignRepresentative(Association::findOrFail(1), null, 1);
+            } elseif ($operation === 'reassign-review') {
+                DB::table('associations')->where('id', 1)->update(['field_officer_id' => null]);
                 $workerOperation = 'review';
             } elseif ($operation === 'password-credential') {
                 $accounts->update(3, ['name' => $actor->name, 'email' => $actor->email, 'role_id' => 3, 'association_id' => 1, 'password' => 'Race-private-secret'], 1);
@@ -124,11 +124,16 @@ final class MembershipConcurrencyTest extends MembershipDatabaseTestCase
             $worker->wait();
             $this->assertSame(0, $worker->getExitCode(), $worker->getOutput().$worker->getErrorOutput());
             $this->assertStringContainsString('RESULT:rejected', $worker->getOutput());
-            $this->assertSame(in_array($operation, ['duplicate-submit', 'duplicate-review', 'deactivate-review', 'replace-representative'], true) ? 1 : 0, DB::table('member_applications')->count());
-            // Both successful direct registration and approval create one official member.
+            $this->assertSame(in_array($operation, ['duplicate-submit', 'duplicate-review', 'deactivate-review', 'reassign-review'], true) ? 1 : 0, DB::table('member_applications')->count());
+            // Duplicate submission must leave one pending application and no official member.
+            // Only the successful approval scenario creates a member.
+            $this->assertSame(
+                $operation === 'duplicate-review' ? 1 : 0,
+                Member::whereNotNull('application_id')->count()
+            );
             // The competing request must never create a second member.
             $this->assertSame(
-                in_array($operation, ['duplicate-submit', 'duplicate-review'], true)
+                $operation === 'duplicate-review'
                     ? 1
                     : 0,
                 Member::whereNotNull('application_id')->count()

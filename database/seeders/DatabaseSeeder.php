@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
             // The transaction rolls back before safe feedback replaces database diagnostics.
             throw new RuntimeException('Lookup seeding failed. Check the database connection and migration status.');
         }
+        $this->call(CebuGeographySeeder::class);
         $this->command?->info('Reference values are ready. Existing accounts were not changed.');
     }
 }

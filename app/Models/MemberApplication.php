@@ -54,6 +54,17 @@ final class MemberApplication extends Model
         return $this->belongsTo(Status::class);
     }
 
+    public function officerReviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by_user_id');
+    }
+
+    public function getReviewerNameAttribute(): string
+    {
+        return $this->officerReviewer?->name
+            ?? trim(($this->reviewer?->first_name ?? '').' '.($this->reviewer?->last_name ?? ''));
+    }
+
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(Member::class, 'reviewed_by_member_id');

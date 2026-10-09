@@ -26,29 +26,28 @@ final class MembershipWorkflowService
     {
     }
 
-    public function submit(User $actor, array $data): MemberApplication
+   public function submit(User $actor, array $data): MemberApplication
     {
         return DB::transaction(function () use ($actor, $data): MemberApplication {
             if (!$actor->is_active
                 || $actor->role?->role_name !== 'Association Member'
                 || !$actor->association_id) {
                 throw new MembershipRuleException(
-                    'Only the association account may use representative registration.'
+                    'Only an assigned association account may submit an application.'
                 );
             }
 
             $association = Association::query()
-                ->lockForUpdate()->findOrFail($actor->association_id);
+                ->lockForUpdate()
+                ->findOrFail($actor->association_id);
 
             $actor = $this->lockAssociationAccount($actor, $association);
             $this->requireCurrentAssociation($association);
 
-            // Validate inside the service too, so non-HTTP callers cannot bypass it.
+            // Validate here as well so service callers cannot skip profile validation.
             $validated = validator(
                 MemberProfile::normalize($data),
-                MemberProfile::rules() + [
-                    'review_passphrase' => ['required', 'string', 'max:72'],
-                ]
+                MemberProfile::rules()
             )->validate();
 
             foreach (['members', 'member_applications'] as $table) {
@@ -61,31 +60,26 @@ final class MembershipWorkflowService
 
             $application = new MemberApplication();
 
+            // Ownership, submission attribution, and status always come from the server.
             $application->forceFill(
                 Arr::only($validated, MemberProfile::FIELDS) + [
                     'association_id' => $association->id,
                     'status_id' => $this->statusId('Pending'),
                     'submitted_by_user_id' => $actor->id,
-                    'submission_source' => 'representative',
+                    'submission_source' => 'association_account',
                 ]
             )->save();
 
-            // Reuse existing private-passphrase verification and approval logic.
-            // The outer transaction rolls everything back if verification fails.
-            $approved = $this->review($actor, $application, [
-                'decision' => 'Approved',
-                'review_passphrase' => $validated['review_passphrase'],
-            ]);
-
+            // Approval remains a separate operation requiring assigned Field Officer authorization.
             $this->audit(
                 $actor->id,
-                'REGISTER',
+                'SUBMIT',
                 'Member Application',
-                $approved->id,
-                'Direct registration completed by the verified association representative.'
+                $application->id,
+                'Pending application submitted through the association account.'
             );
 
-            return $approved;
+            return $application;
         }, 3);
     }
 
@@ -94,23 +88,20 @@ final class MembershipWorkflowService
         return DB::transaction(function () use ($actor, $application, $data): MemberApplication {
             $association = Association::query()->lockForUpdate()->findOrFail($application->association_id);
             $this->requireCurrentAssociation($association);
-            $actor = $this->lockAssociationAccount($actor, $association);
-
-            // Resolve reviewer from the locked association, never from a form selection.
-            $representative = Member::query()->whereKey($association->representative_member_id)
-                ->where('association_id', $association->id)->where('is_archived', false)->lockForUpdate()->first();
-            if (!$representative || !$representative->review_passphrase_hash) {
-                throw new MembershipRuleException('An administrator must provision the current representative’s review passphrase first.');
+            // Recheck account and assignment while locks protect the decision.
+            $current = User::with('role')->lockForUpdate()->find($actor->id);
+            if (!$current?->is_active || $current->role?->role_name !== 'Field Officer'
+                || (int) $association->field_officer_id !== (int) $current->id
+                || $current->password !== $actor->password) {
+                throw new MembershipRuleException('Only the currently assigned Field Officer may review this application.');
             }
-            if (!Hash::check($data['review_passphrase'], $representative->review_passphrase_hash)) {
-                throw new MembershipRuleException('The representative review passphrase is incorrect.');
-            }
+            $actor = $current;
 
             $locked = MemberApplication::query()->lockForUpdate()->findOrFail($application->id);
             if ((int) $locked->association_id !== (int) $association->id || (int) $locked->status_id !== $this->statusId('Pending')) {
                 throw new MembershipRuleException('This application has already been reviewed. Refresh the record to see the decision.');
             }
-            $decision = $data['decision'];
+            $decision = $data['decision'] ?? null;
             if (!in_array($decision, ['Approved', 'Rejected'], true)) {
                 throw new MembershipRuleException('Choose Approve or Reject.');
             }
@@ -128,15 +119,15 @@ final class MembershipWorkflowService
                     'association_id' => $association->id, 'application_id' => $locked->id,
                     'date_registered' => now()->toDateString(), 'role_in_assoc' => 'Member', 'is_archived' => false,
                 ]);
-                $this->audit($actor->id, 'CREATE', 'Member', $member->id, "Created from approved application #{$locked->id}; representative member #{$representative->id}.");
+                $this->audit($actor->id, 'CREATE', 'Member', $member->id, "Created from approved application #{$locked->id}; Field Officer user #{$actor->id}.");
             }
 
             $locked->forceFill([
-                'status_id' => $this->statusId($decision), 'reviewed_by_member_id' => $representative->id,
+                'status_id' => $this->statusId($decision), 'reviewed_by_user_id' => $actor->id, 'reviewed_by_member_id' => null,
                 'reviewed_at' => now(), 'rejection_reason' => $decision === 'Rejected' ? $reason : null,
             ])->save();
             $this->audit($actor->id, $decision === 'Approved' ? 'APPROVE' : 'REJECT', 'Member Application', $locked->id,
-                "{$decision} by representative member #{$representative->id}; private review passphrase verified.");
+                "{$decision} by assigned Field Officer user #{$actor->id}.");
             return $locked->fresh();
         }, 3);
     }

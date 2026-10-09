@@ -371,7 +371,7 @@
                             This is the last active System Administrator. The system will block any change that leaves zero admins.
                         </p>
                     </div>
-                    {{-- Shared accounts use this link for record access; representative approval remains separate. --}}
+                    {{-- Shared accounts use this link for record access; Field Officer approval remains separate. --}}
                     <div id="admin-user-association-section" class="hidden">
                         <label for="admin-user-association" class="text-sm font-medium text-assocmap-text">Association</label>
                         <select id="admin-user-association" name="association_id" data-member-role="{{ $memberRoleId }}"
@@ -393,7 +393,7 @@
                         </select>
                         <p id="admin-user-association-hint" class="mt-1 text-xs text-slate-500" aria-live="polite"></p>
                         <p id="admin-user-association-error" @if ($errors->has('association_id')) role="alert" @endif class="mt-1 text-xs text-red-700">{{ $errors->first('association_id') }}</p>
-                        <p class="mt-1 text-xs text-assocmap-secondary">Each association has one shared account. Its assigned representative approves applications using a separate private review passphrase.</p>
+                        <p class="mt-1 text-xs text-assocmap-secondary">Each association has one shared account. Its assigned Field Officer approves or rejects membership applications.</p>
                     </div>
                 </div>
 

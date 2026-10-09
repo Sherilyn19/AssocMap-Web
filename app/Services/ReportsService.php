@@ -9,6 +9,35 @@ use Illuminate\Support\Facades\DB;
 
 final class ReportsService
 {
+    public function forMember(\App\Models\User $actor, int $year): array
+    {
+        abort_unless(
+            $actor->is_active
+            && $actor->role?->role_name === 'Association Member'
+            && (int) $actor->association_id > 0,
+            403
+        );
+
+        // Browser filters cannot replace the account's association.
+        $data = $this->overview([
+            'year' => $year,
+            'association_id' => (int) $actor->association_id,
+        ]);
+
+        // Member reports contain summary values, without internal free-text remarks.
+        $data['production'] = $data['production']->map(
+            static fn ($record): object => (object) [
+                'association' => $record->association,
+                'title' => $record->title,
+                'quarter_name' => $record->quarter_name,
+                'target_output' => $record->target_output,
+                'actual_output' => $record->actual_output,
+            ]
+        );
+
+        return $data;
+    }
+
     public function overview(array $filters, ?\App\Models\User $officer = null): array
     {
         $year = (int) $filters['year'];

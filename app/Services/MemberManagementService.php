@@ -31,9 +31,10 @@ final class MemberManagementService
                 'association.areaUnit:id,name',
                 'association.subUnit:id,area_unit_id,name',
                 'sex:id,sex_name',
-                'application:id,association_id,status_id,reviewed_by_member_id,reviewed_at,created_at',
+                'application:id,association_id,status_id,reviewed_by_member_id,reviewed_by_user_id,reviewed_at,created_at',
                 'application.status:id,status_name',
                 'application.reviewer:id,first_name,middle_name,last_name',
+                'application.officerReviewer:id,name',
             ]);
 
         $search = trim((string) ($filters['search'] ?? ''));
@@ -301,9 +302,10 @@ final class MemberManagementService
             'association.areaUnit:id,name',
             'association.subUnit:id,area_unit_id,name',
             'sex:id,sex_name',
-            'application:id,association_id,status_id,reviewed_by_member_id,reviewed_at,rejection_reason,created_at',
+            'application:id,association_id,status_id,reviewed_by_member_id,reviewed_by_user_id,reviewed_at,rejection_reason,created_at',
             'application.status:id,status_name',
             'application.reviewer:id,first_name,middle_name,last_name',
+                'application.officerReviewer:id,name',
             'user:id,name,email,is_active',
         ]);
     }

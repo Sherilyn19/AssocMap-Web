@@ -2,7 +2,7 @@
      Keep the dialog controls and PATCH forms connected to the existing checks
      for archived records and valid input. --}}
 @php
-    $entityLabel = $entity === 'municipality' ? 'Municipality' : 'Barangay';
+    $entityLabel = $entity === 'municipality' ? 'City / Municipality' : 'Barangay';
     $routeGroup = $entity === 'municipality' ? 'municipalities' : 'barangays';
     $archiveAction = $record->is_archived ? 'restore' : 'archive';
     // Desktop and mobile barangay controls coexist in the DOM, so callers supply

@@ -40,7 +40,7 @@
             <label class="gis-search">Search locations
                 <input data-filter="search" type="search" maxlength="200" placeholder="Association, site, municipality, barangay" class="gis-input">
             </label>
-            <label>Municipality<select data-filter="municipality" class="gis-input"><option value="">All municipalities</option></select></label>
+            <label>City / Municipality<select data-filter="municipality" class="gis-input"><option value="">All cities / municipalities</option></select></label>
             <label>Barangay<select data-filter="barangay" class="gis-input"><option value="">All barangays</option></select></label>
             <label>Program component<select data-filter="component" class="gis-input"><option value="">All components</option></select></label>
             <label>Publication<select data-filter="publication" class="gis-input"><option value="">All locations</option><option value="published">Published</option><option value="unpublished">Unpublished</option></select></label>

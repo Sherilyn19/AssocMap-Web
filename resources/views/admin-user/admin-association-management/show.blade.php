@@ -94,7 +94,7 @@
                 'value' => $association->name,
             ],
             [
-                'label' => 'Municipality',
+                'label' => 'City / Municipality',
                 'value' => $association->areaUnit?->name,
             ],
             [
@@ -343,7 +343,7 @@
                 </p>
 
                 @if ($association->representative_member_id)
-                    <p class="mt-3 text-sm"><a class="font-semibold underline" href="{{ route('members.show', $association->representative_member_id) }}">Open representative member record to provision their private review passphrase</a></p>
+                    <p class="mt-3 text-sm"><a class="font-semibold underline" href="{{ route('members.show', $association->representative_member_id) }}">Open representative member record</a></p>
                 @endif
                 {{-- Representative changes are disabled while archived --}}
                 @unless ($association->is_archived)

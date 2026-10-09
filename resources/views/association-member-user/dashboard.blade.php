@@ -6,7 +6,7 @@
         @foreach ($counts as $label => $count)
             <a class="am-user-summary" href="{{ [route('member.members'), route('member.applications', ['status' => 'Pending']), route('member.projects'), route('member.trainings')][$loop->index] }}">
                 <span class="text-sm font-medium text-slate-600">{{ $label }}</span><strong data-count-up class="mt-2 block text-3xl tabular-nums">{{ number_format($count) }}</strong>
-                <span class="mt-2 block text-xs text-slate-500">{{ $label === 'Pending applications' ? 'Awaiting representative review' : 'Non-archived records' }}</span>
+                <span class="mt-2 block text-xs text-slate-500">{{ $label === 'Pending applications' ? 'Awaiting Field Officer review' : 'Non-archived records' }}</span>
             </a>
         @endforeach
     </section>

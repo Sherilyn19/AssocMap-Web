@@ -125,22 +125,12 @@ final class MemberDraftController extends Controller
 
         $draft->load(['association.representative', 'creator']);
 
-        $representative = $draft->association?->representative;
-
-        // This checks reviewer readiness, not the representative's secret itself.
-        $ready = $representative
-            && !$representative->is_archived
-            && (int) $representative->association_id === (int) $draft->association_id
-            && filled($representative->review_passphrase_hash);
-
         return view('shared.membership.drafts.form', [
             'draft' => $draft,
 
             'canEdit' => Gate::forUser($actor)->allows('update', $draft),
 
-            'blockReason' => $ready
-                ? null
-                : 'Submission is blocked until a current representative and review passphrase are configured.',
+            'blockReason' => null,
 
             'associations' => collect(),
 
@@ -219,7 +209,7 @@ final class MemberDraftController extends Controller
                 ->route('membership.applications.show', $application)
                 ->with(
                     'success',
-                    'Application submitted for representative review.'
+                    'Application submitted for Field Officer review.'
                 );
         });
     }

@@ -23,7 +23,7 @@ final class MunicipalityNames
     public static function validate(string $name, ?int $id = null): void
     {
         if (!in_array($name, self::allowed($id), true)) {
-            throw ValidationException::withMessages(['name' => 'Select a municipality from the controlled list.']);
+            throw ValidationException::withMessages(['name' => 'Select a city or municipality from the controlled list.']);
         }
     }
 }

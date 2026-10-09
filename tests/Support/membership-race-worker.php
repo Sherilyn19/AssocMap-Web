@@ -30,7 +30,7 @@ try {
         'submit' => $service->submit($actor, $profile + [
             'review_passphrase' => 'Race-private-secret',
         ]),
-        'review' => $service->review($actor, MemberApplication::findOrFail(1), ['decision' => 'Approved', 'review_passphrase' => 'Race-private-secret']),
+        'review' => $service->review(User::findOrFail(2), MemberApplication::findOrFail(1), ['decision' => 'Approved', 'review_passphrase' => 'Race-private-secret']),
         'credential' => $service->setReviewPassphrase(User::findOrFail(1), Member::findOrFail(1), 'Race-private-secret'),
         'founding' => app(FoundingMemberService::class)->create(User::findOrFail(1), Association::findOrFail(3), $profile + ['justification' => 'Verified founding record', 'profile_verified' => true]),
         default => throw new RuntimeException('Unsupported test operation'),

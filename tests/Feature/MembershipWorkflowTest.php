@@ -76,66 +76,47 @@ final class MembershipWorkflowTest extends MembershipDatabaseTestCase
         );
     }
 
-        public function test_verified_direct_registration_creates_approved_member(): void
+    public function test_association_submission_waits_for_officer_approval(): void
     {
-        $this->provision();
+        $membersBefore = Member::count();
         $accountsBefore = User::count();
 
         $application = app(MembershipWorkflowService::class)->submit(
             User::findOrFail(3),
-            $this->profile() + [
-                'review_passphrase' => self::SECRET,
-            ]
+            $this->profile()
         );
 
-        // Verified direct registration completes approval in one transaction.
-        $this->assertSame(
-            'Approved',
-            $application->fresh()->status->status_name
-        );
-
-        $this->assertSame(
-            1,
-            Member::where('application_id', $application->id)->count()
-        );
-
-        $this->assertSame(
-            1,
-            (int) $application->reviewed_by_member_id
-        );
-
-        $this->assertNotNull($application->reviewed_at);
+        $this->assertSame('Pending', $application->fresh()->status->status_name);
+        $this->assertSame($membersBefore, Member::count());
         $this->assertSame($accountsBefore, User::count());
+        $this->assertNull($application->reviewed_by_member_id);
+        $this->assertNull($application->reviewed_at);
+
+        $this->assertDatabaseHas('member_applications', [
+            'id' => $application->id,
+            'association_id' => 1,
+            'submitted_by_user_id' => 3,
+            'submission_source' => 'association_account',
+        ]);
 
         $this->assertDatabaseHas('audit_logs', [
             'module' => 'Member Application',
             'record_id' => $application->id,
-            'action_type' => 'REGISTER',
+            'action_type' => 'SUBMIT',
         ]);
     }
 
-    public function test_direct_registration_requires_private_passphrase(): void
+    public function test_submission_cannot_include_a_review_decision_or_secret(): void
     {
-        $this->provision();
-        $membersBefore = Member::count();
+        $this->withSession($this->sessionFor(3, 'Association Member'))
+            ->post('/membership/applications', $this->profile() + [
+                'decision' => 'Approved',
+                'review_passphrase' => 'private secret',
+            ])
+            ->assertSessionHasErrors(['decision', 'review_passphrase']);
 
-        try {
-            app(MembershipWorkflowService::class)->submit(
-                User::findOrFail(3),
-                $this->profile()
-            );
-
-            $this->fail('Registration without a passphrase must fail.');
-        } catch (\Illuminate\Validation\ValidationException $error) {
-            $this->assertArrayHasKey(
-                'review_passphrase',
-                $error->errors()
-            );
-        }
-
-        // Missing verification must not create an application or official member.
         $this->assertSame(0, MemberApplication::count());
-        $this->assertSame($membersBefore, Member::count());
+        $this->assertSame(2, Member::count());
     }
 
     public function test_submission_rejects_browser_controlled_ownership_and_status(): void
@@ -167,17 +148,17 @@ final class MembershipWorkflowTest extends MembershipDatabaseTestCase
     {
         $this->provision();
         $application = $this->pending();
-        $this->withSession($this->sessionFor(3, 'Association Member'))
-            ->patch('/membership/applications/'.$application->id.'/review', ['decision' => 'Approved', 'review_passphrase' => self::SECRET])
+        $this->withSession($this->sessionFor(2, 'Field Officer'))
+            ->patch('/membership/applications/'.$application->id.'/review', ['decision' => 'Approved', 'decision_confirmed' => '1'])
             ->assertRedirect(route('membership.applications.show', $application))->assertSessionHas('success');
         $application->refresh();
         $this->assertSame('Approved', $application->status->status_name);
-        $this->assertSame(1, (int) $application->reviewed_by_member_id);
+        $this->assertSame(2, (int) $application->reviewed_by_user_id);
         $this->assertNotNull($application->reviewed_at);
         $this->assertSame(1, Member::where('application_id', $application->id)->count());
         $this->assertSame(1, DB::table('audit_logs')->where('action_type', 'APPROVE')->count());
         try {
-            app(MembershipWorkflowService::class)->review(User::findOrFail(3), $application, ['decision' => 'Approved', 'review_passphrase' => self::SECRET]);
+            app(MembershipWorkflowService::class)->review(User::findOrFail(2), $application, ['decision' => 'Approved', 'decision_confirmed' => '1']);
             $this->fail('Repeated approval must fail.');
         } catch (MembershipRuleException $exception) {
             $this->assertStringContainsString('already been reviewed', $exception->getMessage());
@@ -189,11 +170,11 @@ final class MembershipWorkflowTest extends MembershipDatabaseTestCase
     {
         $this->provision();
         $application = $this->pending();
-        $this->withSession($this->sessionFor(3, 'Association Member'))
-            ->patch('/membership/applications/'.$application->id.'/review', ['decision' => 'Rejected', 'review_passphrase' => self::SECRET])
+        $this->withSession($this->sessionFor(2, 'Field Officer'))
+            ->patch('/membership/applications/'.$application->id.'/review', ['decision' => 'Rejected', 'decision_confirmed' => '1'])
             ->assertSessionHasErrors('rejection_reason')->assertSessionMissing('_old_input.review_passphrase');
-        app(MembershipWorkflowService::class)->review(User::findOrFail(3), $application, [
-            'decision' => 'Rejected', 'rejection_reason' => 'Eligibility documents are incomplete.', 'review_passphrase' => self::SECRET,
+        app(MembershipWorkflowService::class)->review(User::findOrFail(2), $application, [
+            'decision' => 'Rejected', 'rejection_reason' => 'Eligibility documents are incomplete.', 'decision_confirmed' => '1',
         ]);
         $this->assertSame('Rejected', $application->fresh()->status->status_name);
         $this->assertSame('Eligibility documents are incomplete.', $application->fresh()->rejection_reason);
@@ -204,9 +185,9 @@ final class MembershipWorkflowTest extends MembershipDatabaseTestCase
     {
         $this->provision();
         $application = $this->pending();
-        $this->withSession($this->sessionFor(3, 'Association Member'))->from('/membership/applications/'.$application->id)
+        $this->withSession($this->sessionFor(2, 'Field Officer'))->from('/membership/applications/'.$application->id)
             ->patch('/membership/applications/'.$application->id.'/review', ['decision' => 'Approved', 'review_passphrase' => 'wrong secret'])
-            ->assertSessionHas('error')->assertSessionMissing('_old_input.review_passphrase');
+            ->assertSessionHasErrors('review_passphrase')->assertSessionMissing('_old_input.review_passphrase');
         $this->assertSame('Pending', $application->fresh()->status->status_name);
     }
 
@@ -216,7 +197,7 @@ final class MembershipWorkflowTest extends MembershipDatabaseTestCase
         $application = $this->pending();
         DB::statement("ALTER TABLE audit_logs ADD CONSTRAINT reject_review_audit CHECK (action_type <> 'APPROVE')");
         try {
-            app(MembershipWorkflowService::class)->review(User::findOrFail(3), $application, ['decision' => 'Approved', 'review_passphrase' => self::SECRET]);
+            app(MembershipWorkflowService::class)->review(User::findOrFail(2), $application, ['decision' => 'Approved', 'decision_confirmed' => '1']);
             $this->fail('Review audit should fail.');
         } catch (\Illuminate\Database\QueryException $exception) {
             $this->assertSame('Pending', $application->fresh()->status->status_name);
@@ -233,13 +214,13 @@ final class MembershipWorkflowTest extends MembershipDatabaseTestCase
         }
     }
 
-    public function test_admin_and_officer_cannot_review_even_with_correct_passphrase(): void
+    public function test_admin_and_shared_account_cannot_review(): void
     {
         $this->provision();
         $application = $this->pending();
-        foreach ([1 => 'System Administrator', 2 => 'Field Officer'] as $id => $role) {
+        foreach ([1 => 'System Administrator', 3 => 'Association Member'] as $id => $role) {
             $this->withSession($this->sessionFor($id, $role))->patch('/membership/applications/'.$application->id.'/review', [
-                'decision' => 'Approved', 'review_passphrase' => self::SECRET,
+                'decision' => 'Approved', 'decision_confirmed' => '1',
             ])->assertForbidden();
         }
     }
@@ -272,10 +253,10 @@ final class MembershipWorkflowTest extends MembershipDatabaseTestCase
         $this->provision();
         $application = $this->pending();
         for ($attempt = 0; $attempt < 5; $attempt++) {
-            $this->withSession($this->sessionFor(3, 'Association Member'))->patch('/membership/applications/'.$application->id.'/review', [
+            $this->withSession($this->sessionFor(2, 'Field Officer'))->patch('/membership/applications/'.$application->id.'/review', [
                 'decision' => 'Approved', 'review_passphrase' => 'incorrect',
             ])->assertRedirect();
         }
-        $this->patch('/membership/applications/'.$application->id.'/review', ['decision' => 'Approved', 'review_passphrase' => self::SECRET])->assertStatus(429);
+        $this->patch('/membership/applications/'.$application->id.'/review', ['decision' => 'Approved', 'decision_confirmed' => '1'])->assertStatus(429);
     }
 }

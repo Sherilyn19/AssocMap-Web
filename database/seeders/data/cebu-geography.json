@@ -1,0 +1,1015 @@
+{
+  "source": "https://psgc.gitlab.io/api/provinces/072200000/",
+  "reference": "https://psa.gov.ph/classification/psgc/citimuni/0702200000",
+  "retrieved_on": "2026-10-09",
+  "selection": "First three barangays alphabetically per city or municipality; geographic Cebu includes its three highly urbanized cities.",
+  "localities": [
+    {
+      "name": "Alcantara",
+      "type": "municipality",
+      "psgc_code": "0702201000",
+      "barangays": [
+        {
+          "name": "Cabadiangan",
+          "psgc_code": "0702201001"
+        },
+        {
+          "name": "Cabil-isan",
+          "psgc_code": "0702201002"
+        },
+        {
+          "name": "Candabong",
+          "psgc_code": "0702201003"
+        }
+      ]
+    },
+    {
+      "name": "Alcoy",
+      "type": "municipality",
+      "psgc_code": "0702202000",
+      "barangays": [
+        {
+          "name": "Atabay",
+          "psgc_code": "0702202001"
+        },
+        {
+          "name": "Daan-Lungsod",
+          "psgc_code": "0702202002"
+        },
+        {
+          "name": "Guiwang",
+          "psgc_code": "0702202003"
+        }
+      ]
+    },
+    {
+      "name": "Alegria",
+      "type": "municipality",
+      "psgc_code": "0702203000",
+      "barangays": [
+        {
+          "name": "Compostela",
+          "psgc_code": "0702203001"
+        },
+        {
+          "name": "Guadalupe",
+          "psgc_code": "0702203002"
+        },
+        {
+          "name": "Legaspi",
+          "psgc_code": "0702203003"
+        }
+      ]
+    },
+    {
+      "name": "Aloguinsan",
+      "type": "municipality",
+      "psgc_code": "0702204000",
+      "barangays": [
+        {
+          "name": "Angilan",
+          "psgc_code": "0702204001"
+        },
+        {
+          "name": "Bojo",
+          "psgc_code": "0702204002"
+        },
+        {
+          "name": "Bonbon",
+          "psgc_code": "0702204003"
+        }
+      ]
+    },
+    {
+      "name": "Argao",
+      "type": "municipality",
+      "psgc_code": "0702205000",
+      "barangays": [
+        {
+          "name": "Alambijud",
+          "psgc_code": "0702205001"
+        },
+        {
+          "name": "Anajao",
+          "psgc_code": "0702205002"
+        },
+        {
+          "name": "Apo",
+          "psgc_code": "0702205003"
+        }
+      ]
+    },
+    {
+      "name": "Asturias",
+      "type": "municipality",
+      "psgc_code": "0702206000",
+      "barangays": [
+        {
+          "name": "Agbanga",
+          "psgc_code": "0702206001"
+        },
+        {
+          "name": "Agtugop",
+          "psgc_code": "0702206002"
+        },
+        {
+          "name": "Bago",
+          "psgc_code": "0702206003"
+        }
+      ]
+    },
+    {
+      "name": "Badian",
+      "type": "municipality",
+      "psgc_code": "0702207000",
+      "barangays": [
+        {
+          "name": "Alawijao",
+          "psgc_code": "0702207001"
+        },
+        {
+          "name": "Balhaan",
+          "psgc_code": "0702207002"
+        },
+        {
+          "name": "Banhigan",
+          "psgc_code": "0702207003"
+        }
+      ]
+    },
+    {
+      "name": "Balamban",
+      "type": "municipality",
+      "psgc_code": "0702208000",
+      "barangays": [
+        {
+          "name": "Abucayan",
+          "psgc_code": "0702208001"
+        },
+        {
+          "name": "Aliwanay",
+          "psgc_code": "0702208002"
+        },
+        {
+          "name": "Arpili",
+          "psgc_code": "0702208003"
+        }
+      ]
+    },
+    {
+      "name": "Bantayan",
+      "type": "municipality",
+      "psgc_code": "0702209000",
+      "barangays": [
+        {
+          "name": "Atop-atop",
+          "psgc_code": "0702209001"
+        },
+        {
+          "name": "Baigad",
+          "psgc_code": "0702209002"
+        },
+        {
+          "name": "Bantigue (Pob.)",
+          "psgc_code": "0702209025"
+        }
+      ]
+    },
+    {
+      "name": "Barili",
+      "type": "municipality",
+      "psgc_code": "0702210000",
+      "barangays": [
+        {
+          "name": "Azucena",
+          "psgc_code": "0702210001"
+        },
+        {
+          "name": "Bagakay",
+          "psgc_code": "0702210002"
+        },
+        {
+          "name": "Balao",
+          "psgc_code": "0702210003"
+        }
+      ]
+    },
+    {
+      "name": "Bogo City",
+      "type": "city",
+      "psgc_code": "0702211000",
+      "barangays": [
+        {
+          "name": "Anonang Norte",
+          "psgc_code": "0702211002"
+        },
+        {
+          "name": "Anonang Sur",
+          "psgc_code": "0702211003"
+        },
+        {
+          "name": "Banban",
+          "psgc_code": "0702211004"
+        }
+      ]
+    },
+    {
+      "name": "Boljoon",
+      "type": "municipality",
+      "psgc_code": "0702212000",
+      "barangays": [
+        {
+          "name": "Arbor",
+          "psgc_code": "0702212008"
+        },
+        {
+          "name": "Baclayan",
+          "psgc_code": "0702212001"
+        },
+        {
+          "name": "El Pardo",
+          "psgc_code": "0702212002"
+        }
+      ]
+    },
+    {
+      "name": "Borbon",
+      "type": "municipality",
+      "psgc_code": "0702213000",
+      "barangays": [
+        {
+          "name": "Bagacay",
+          "psgc_code": "0702213001"
+        },
+        {
+          "name": "Bili",
+          "psgc_code": "0702213002"
+        },
+        {
+          "name": "Bingay",
+          "psgc_code": "0702213003"
+        }
+      ]
+    },
+    {
+      "name": "Carcar City",
+      "type": "city",
+      "psgc_code": "0702214000",
+      "barangays": [
+        {
+          "name": "Bolinawan",
+          "psgc_code": "0702214001"
+        },
+        {
+          "name": "Buenavista",
+          "psgc_code": "0702214002"
+        },
+        {
+          "name": "Calidngan",
+          "psgc_code": "0702214003"
+        }
+      ]
+    },
+    {
+      "name": "Carmen",
+      "type": "municipality",
+      "psgc_code": "0702215000",
+      "barangays": [
+        {
+          "name": "Baring",
+          "psgc_code": "0702215001"
+        },
+        {
+          "name": "Cantipay",
+          "psgc_code": "0702215002"
+        },
+        {
+          "name": "Cantukong",
+          "psgc_code": "0702215004"
+        }
+      ]
+    },
+    {
+      "name": "Catmon",
+      "type": "municipality",
+      "psgc_code": "0702216000",
+      "barangays": [
+        {
+          "name": "Agsuwao",
+          "psgc_code": "0702216001"
+        },
+        {
+          "name": "Amancion",
+          "psgc_code": "0702216002"
+        },
+        {
+          "name": "Anapog",
+          "psgc_code": "0702216003"
+        }
+      ]
+    },
+    {
+      "name": "Cebu City",
+      "type": "city",
+      "psgc_code": "0730600000",
+      "barangays": [
+        {
+          "name": "Adlaon",
+          "psgc_code": "0730600001"
+        },
+        {
+          "name": "Agsungot",
+          "psgc_code": "0730600002"
+        },
+        {
+          "name": "Apas",
+          "psgc_code": "0730600003"
+        }
+      ]
+    },
+    {
+      "name": "Compostela",
+      "type": "municipality",
+      "psgc_code": "0702218000",
+      "barangays": [
+        {
+          "name": "Bagalnga",
+          "psgc_code": "0702218001"
+        },
+        {
+          "name": "Basak",
+          "psgc_code": "0702218002"
+        },
+        {
+          "name": "Buluang",
+          "psgc_code": "0702218003"
+        }
+      ]
+    },
+    {
+      "name": "Consolacion",
+      "type": "municipality",
+      "psgc_code": "0702219000",
+      "barangays": [
+        {
+          "name": "Cabangahan",
+          "psgc_code": "0702219001"
+        },
+        {
+          "name": "Cansaga",
+          "psgc_code": "0702219002"
+        },
+        {
+          "name": "Casili",
+          "psgc_code": "0702219003"
+        }
+      ]
+    },
+    {
+      "name": "Cordova",
+      "type": "municipality",
+      "psgc_code": "0702220000",
+      "barangays": [
+        {
+          "name": "Alegria",
+          "psgc_code": "0702220001"
+        },
+        {
+          "name": "Bangbang",
+          "psgc_code": "0702220002"
+        },
+        {
+          "name": "Buagsong",
+          "psgc_code": "0702220003"
+        }
+      ]
+    },
+    {
+      "name": "Daanbantayan",
+      "type": "municipality",
+      "psgc_code": "0702221000",
+      "barangays": [
+        {
+          "name": "Aguho",
+          "psgc_code": "0702221001"
+        },
+        {
+          "name": "Bagay",
+          "psgc_code": "0702221002"
+        },
+        {
+          "name": "Bakhawan",
+          "psgc_code": "0702221003"
+        }
+      ]
+    },
+    {
+      "name": "Dalaguete",
+      "type": "municipality",
+      "psgc_code": "0702222000",
+      "barangays": [
+        {
+          "name": "Ablayan",
+          "psgc_code": "0702222001"
+        },
+        {
+          "name": "Babayongan",
+          "psgc_code": "0702222002"
+        },
+        {
+          "name": "Balud",
+          "psgc_code": "0702222003"
+        }
+      ]
+    },
+    {
+      "name": "Danao City",
+      "type": "city",
+      "psgc_code": "0702223000",
+      "barangays": [
+        {
+          "name": "Baliang",
+          "psgc_code": "0702223001"
+        },
+        {
+          "name": "Bayabas",
+          "psgc_code": "0702223002"
+        },
+        {
+          "name": "Binaliw",
+          "psgc_code": "0702223004"
+        }
+      ]
+    },
+    {
+      "name": "Dumanjug",
+      "type": "municipality",
+      "psgc_code": "0702224000",
+      "barangays": [
+        {
+          "name": "Balaygtiki",
+          "psgc_code": "0702224001"
+        },
+        {
+          "name": "Bitoon",
+          "psgc_code": "0702224002"
+        },
+        {
+          "name": "Bulak",
+          "psgc_code": "0702224003"
+        }
+      ]
+    },
+    {
+      "name": "Ginatilan",
+      "type": "municipality",
+      "psgc_code": "0702225000",
+      "barangays": [
+        {
+          "name": "Anao",
+          "psgc_code": "0702225001"
+        },
+        {
+          "name": "Cagsing",
+          "psgc_code": "0702225002"
+        },
+        {
+          "name": "Calabawan",
+          "psgc_code": "0702225003"
+        }
+      ]
+    },
+    {
+      "name": "Lapu-Lapu City",
+      "type": "city",
+      "psgc_code": "0731100000",
+      "barangays": [
+        {
+          "name": "Agus",
+          "psgc_code": "0731100001"
+        },
+        {
+          "name": "Babag",
+          "psgc_code": "0731100002"
+        },
+        {
+          "name": "Bankal",
+          "psgc_code": "0731100003"
+        }
+      ]
+    },
+    {
+      "name": "Liloan",
+      "type": "municipality",
+      "psgc_code": "0702227000",
+      "barangays": [
+        {
+          "name": "Cabadiangan",
+          "psgc_code": "0702227001"
+        },
+        {
+          "name": "Calero",
+          "psgc_code": "0702227002"
+        },
+        {
+          "name": "Catarman",
+          "psgc_code": "0702227003"
+        }
+      ]
+    },
+    {
+      "name": "Madridejos",
+      "type": "municipality",
+      "psgc_code": "0702228000",
+      "barangays": [
+        {
+          "name": "Bunakan",
+          "psgc_code": "0702228001"
+        },
+        {
+          "name": "Kangwayan",
+          "psgc_code": "0702228002"
+        },
+        {
+          "name": "Kaongkod",
+          "psgc_code": "0702228003"
+        }
+      ]
+    },
+    {
+      "name": "Malabuyoc",
+      "type": "municipality",
+      "psgc_code": "0702229000",
+      "barangays": [
+        {
+          "name": "Armeña",
+          "psgc_code": "0702229001"
+        },
+        {
+          "name": "Barangay I (Pob.)",
+          "psgc_code": "0702229015"
+        },
+        {
+          "name": "Barangay II (Pob.)",
+          "psgc_code": "0702229016"
+        }
+      ]
+    },
+    {
+      "name": "Mandaue City",
+      "type": "city",
+      "psgc_code": "0731300000",
+      "barangays": [
+        {
+          "name": "Alang-alang",
+          "psgc_code": "0731300001"
+        },
+        {
+          "name": "Bakilid",
+          "psgc_code": "0731300002"
+        },
+        {
+          "name": "Banilad",
+          "psgc_code": "0731300003"
+        }
+      ]
+    },
+    {
+      "name": "Medellin",
+      "type": "municipality",
+      "psgc_code": "0702231000",
+      "barangays": [
+        {
+          "name": "Antipolo",
+          "psgc_code": "0702231001"
+        },
+        {
+          "name": "Canhabagat",
+          "psgc_code": "0702231007"
+        },
+        {
+          "name": "Caputatan Norte",
+          "psgc_code": "0702231008"
+        }
+      ]
+    },
+    {
+      "name": "Minglanilla",
+      "type": "municipality",
+      "psgc_code": "0702232000",
+      "barangays": [
+        {
+          "name": "Cadulawan",
+          "psgc_code": "0702232001"
+        },
+        {
+          "name": "Calajo-an",
+          "psgc_code": "0702232002"
+        },
+        {
+          "name": "Camp 7",
+          "psgc_code": "0702232003"
+        }
+      ]
+    },
+    {
+      "name": "Moalboal",
+      "type": "municipality",
+      "psgc_code": "0702233000",
+      "barangays": [
+        {
+          "name": "Agbalanga",
+          "psgc_code": "0702233001"
+        },
+        {
+          "name": "Bala",
+          "psgc_code": "0702233002"
+        },
+        {
+          "name": "Balabagon",
+          "psgc_code": "0702233003"
+        }
+      ]
+    },
+    {
+      "name": "Naga City",
+      "type": "city",
+      "psgc_code": "0702234000",
+      "barangays": [
+        {
+          "name": "Alfaco",
+          "psgc_code": "0702234001"
+        },
+        {
+          "name": "Bairan",
+          "psgc_code": "0702234002"
+        },
+        {
+          "name": "Balirong",
+          "psgc_code": "0702234003"
+        }
+      ]
+    },
+    {
+      "name": "Oslob",
+      "type": "municipality",
+      "psgc_code": "0702235000",
+      "barangays": [
+        {
+          "name": "Alo",
+          "psgc_code": "0702235001"
+        },
+        {
+          "name": "Bangcogon",
+          "psgc_code": "0702235002"
+        },
+        {
+          "name": "Bonbon",
+          "psgc_code": "0702235003"
+        }
+      ]
+    },
+    {
+      "name": "Pilar",
+      "type": "municipality",
+      "psgc_code": "0702236000",
+      "barangays": [
+        {
+          "name": "Biasong",
+          "psgc_code": "0702236001"
+        },
+        {
+          "name": "Cawit",
+          "psgc_code": "0702236002"
+        },
+        {
+          "name": "Dapdap",
+          "psgc_code": "0702236003"
+        }
+      ]
+    },
+    {
+      "name": "Pinamungajan",
+      "type": "municipality",
+      "psgc_code": "0702237000",
+      "barangays": [
+        {
+          "name": "Anislag",
+          "psgc_code": "0702237001"
+        },
+        {
+          "name": "Anopog",
+          "psgc_code": "0702237002"
+        },
+        {
+          "name": "Binabag",
+          "psgc_code": "0702237003"
+        }
+      ]
+    },
+    {
+      "name": "Poro",
+      "type": "municipality",
+      "psgc_code": "0702238000",
+      "barangays": [
+        {
+          "name": "Adela",
+          "psgc_code": "0702238001"
+        },
+        {
+          "name": "Altavista",
+          "psgc_code": "0702238002"
+        },
+        {
+          "name": "Cagcagan",
+          "psgc_code": "0702238003"
+        }
+      ]
+    },
+    {
+      "name": "Ronda",
+      "type": "municipality",
+      "psgc_code": "0702239000",
+      "barangays": [
+        {
+          "name": "Butong",
+          "psgc_code": "0702239001"
+        },
+        {
+          "name": "Can-abuhon",
+          "psgc_code": "0702239002"
+        },
+        {
+          "name": "Canduling",
+          "psgc_code": "0702239003"
+        }
+      ]
+    },
+    {
+      "name": "Samboan",
+      "type": "municipality",
+      "psgc_code": "0702240000",
+      "barangays": [
+        {
+          "name": "Basak",
+          "psgc_code": "0702240001"
+        },
+        {
+          "name": "Bonbon",
+          "psgc_code": "0702240002"
+        },
+        {
+          "name": "Bulangsuran",
+          "psgc_code": "0702240003"
+        }
+      ]
+    },
+    {
+      "name": "San Fernando",
+      "type": "municipality",
+      "psgc_code": "0702241000",
+      "barangays": [
+        {
+          "name": "Balud",
+          "psgc_code": "0702241002"
+        },
+        {
+          "name": "Balungag",
+          "psgc_code": "0702241003"
+        },
+        {
+          "name": "Basak",
+          "psgc_code": "0702241005"
+        }
+      ]
+    },
+    {
+      "name": "San Francisco",
+      "type": "municipality",
+      "psgc_code": "0702242000",
+      "barangays": [
+        {
+          "name": "Cabunga-an",
+          "psgc_code": "0702242002"
+        },
+        {
+          "name": "Campo",
+          "psgc_code": "0702242003"
+        },
+        {
+          "name": "Consuelo",
+          "psgc_code": "0702242004"
+        }
+      ]
+    },
+    {
+      "name": "San Remigio",
+      "type": "municipality",
+      "psgc_code": "0702243000",
+      "barangays": [
+        {
+          "name": "Anapog",
+          "psgc_code": "0702243001"
+        },
+        {
+          "name": "Argawanon",
+          "psgc_code": "0702243002"
+        },
+        {
+          "name": "Bagtic",
+          "psgc_code": "0702243003"
+        }
+      ]
+    },
+    {
+      "name": "Santa Fe",
+      "type": "municipality",
+      "psgc_code": "0702244000",
+      "barangays": [
+        {
+          "name": "Balidbid",
+          "psgc_code": "0702244009"
+        },
+        {
+          "name": "Hagdan",
+          "psgc_code": "0702244002"
+        },
+        {
+          "name": "Hilantagaan",
+          "psgc_code": "0702244003"
+        }
+      ]
+    },
+    {
+      "name": "Santander",
+      "type": "municipality",
+      "psgc_code": "0702245000",
+      "barangays": [
+        {
+          "name": "Bunlan",
+          "psgc_code": "0702245001"
+        },
+        {
+          "name": "Cabutongan",
+          "psgc_code": "0702245002"
+        },
+        {
+          "name": "Candamiang",
+          "psgc_code": "0702245003"
+        }
+      ]
+    },
+    {
+      "name": "Sibonga",
+      "type": "municipality",
+      "psgc_code": "0702246000",
+      "barangays": [
+        {
+          "name": "Abugon",
+          "psgc_code": "0702246001"
+        },
+        {
+          "name": "Bae",
+          "psgc_code": "0702246002"
+        },
+        {
+          "name": "Bagacay",
+          "psgc_code": "0702246003"
+        }
+      ]
+    },
+    {
+      "name": "Sogod",
+      "type": "municipality",
+      "psgc_code": "0702247000",
+      "barangays": [
+        {
+          "name": "Ampongol",
+          "psgc_code": "0702247001"
+        },
+        {
+          "name": "Bagakay",
+          "psgc_code": "0702247002"
+        },
+        {
+          "name": "Bagatayam",
+          "psgc_code": "0702247003"
+        }
+      ]
+    },
+    {
+      "name": "Tabogon",
+      "type": "municipality",
+      "psgc_code": "0702248000",
+      "barangays": [
+        {
+          "name": "Alang-alang",
+          "psgc_code": "0702248001"
+        },
+        {
+          "name": "Caduawan",
+          "psgc_code": "0702248002"
+        },
+        {
+          "name": "Camoboan",
+          "psgc_code": "0702248004"
+        }
+      ]
+    },
+    {
+      "name": "Tabuelan",
+      "type": "municipality",
+      "psgc_code": "0702249000",
+      "barangays": [
+        {
+          "name": "Bongon",
+          "psgc_code": "0702249001"
+        },
+        {
+          "name": "Dalid",
+          "psgc_code": "0702249010"
+        },
+        {
+          "name": "Kanlim-ao",
+          "psgc_code": "0702249005"
+        }
+      ]
+    },
+    {
+      "name": "Talisay City",
+      "type": "city",
+      "psgc_code": "0702250000",
+      "barangays": [
+        {
+          "name": "Biasong",
+          "psgc_code": "0702250019"
+        },
+        {
+          "name": "Bulacao",
+          "psgc_code": "0702250001"
+        },
+        {
+          "name": "Cadulawan",
+          "psgc_code": "0702250002"
+        }
+      ]
+    },
+    {
+      "name": "Toledo City",
+      "type": "city",
+      "psgc_code": "0702251000",
+      "barangays": [
+        {
+          "name": "Awihao",
+          "psgc_code": "0702251001"
+        },
+        {
+          "name": "Bagakay",
+          "psgc_code": "0702251002"
+        },
+        {
+          "name": "Bato",
+          "psgc_code": "0702251003"
+        }
+      ]
+    },
+    {
+      "name": "Tuburan",
+      "type": "municipality",
+      "psgc_code": "0702252000",
+      "barangays": [
+        {
+          "name": "Alegria",
+          "psgc_code": "0702252001"
+        },
+        {
+          "name": "Amatugan",
+          "psgc_code": "0702252002"
+        },
+        {
+          "name": "Antipolo",
+          "psgc_code": "0702252003"
+        }
+      ]
+    },
+    {
+      "name": "Tudela",
+      "type": "municipality",
+      "psgc_code": "0702253000",
+      "barangays": [
+        {
+          "name": "Buenavista",
+          "psgc_code": "0702253001"
+        },
+        {
+          "name": "Calmante",
+          "psgc_code": "0702253002"
+        },
+        {
+          "name": "Daan Secante",
+          "psgc_code": "0702253003"
+        }
+      ]
+    }
+  ]
+}

@@ -61,6 +61,8 @@ abstract class MembershipDatabaseTestCase extends TestCase
             'database/migrations/2026_10_05_000001_add_member_drafts.php'
         ))->up();
 
+        (require base_path('database/migrations/2026_10_09_000001_add_application_officer_reviewer.php'))->up();
+
         $this->withoutVite();
     }
 

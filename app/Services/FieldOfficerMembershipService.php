@@ -148,23 +148,6 @@ final class FieldOfficerMembershipService
                 'submit'
             );
 
-            // The FO never provides or verifies the representative's private secret.
-            // Submission only checks that an eligible reviewer is configured.
-            $representative = Member::query()
-                ->whereKey($association->representative_member_id)
-                ->where('association_id', $association->id)
-                ->where('is_archived', false)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$representative || !$representative->review_passphrase_hash) {
-                throw new MembershipRuleException(
-                    'Submission is blocked. This association needs a current '
-                    .'representative with a configured review passphrase. '
-                    .'Your draft remains saved.'
-                );
-            }
-
             // Saved drafts can be incomplete; submitted applications cannot.
             $profile = $this->profile($locked->profile, true);
 
@@ -213,7 +196,7 @@ final class FieldOfficerMembershipService
                 'action_type' => 'SUBMIT',
                 'module' => 'Member Application',
                 'record_id' => $application->id,
-                'details' => "Submitted from draft #{$locked->id}; pending representative review.",
+                'details' => "Submitted from draft #{$locked->id}; pending Field Officer review.",
                 'performed_at' => now(),
             ]);
 

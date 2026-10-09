@@ -45,7 +45,7 @@
                 <dl class="fo-definition mt-4">
                     @foreach([
                         'Address' => $association->address,
-                        'Municipality' => $association->areaUnit?->name,
+                        'City / Municipality' => $association->areaUnit?->name,
                         'Barangay' => $association->subUnit?->name,
                     ] as $label => $value)
                         <div>

@@ -30,6 +30,7 @@ final class MemberApplicationManagementService
                 'sex:id,sex_name',
                 'status:id,status_name',
                 'reviewer:id,association_id,first_name,middle_name,last_name',
+                'officerReviewer:id,name',
                 'member:id,association_id,application_id,first_name,middle_name,last_name,is_archived',
             ]);
 
@@ -142,6 +143,7 @@ final class MemberApplicationManagementService
             'sex:id,sex_name',
             'status:id,status_name',
             'reviewer:id,association_id,first_name,middle_name,last_name',
+                'officerReviewer:id,name',
             'member:id,association_id,application_id,first_name,middle_name,last_name,is_archived',
         ]);
     }

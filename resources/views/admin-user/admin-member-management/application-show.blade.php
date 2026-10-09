@@ -17,6 +17,7 @@
             $application->reviewer->last_name,
         ], fn ($part) => filled($part))))
         : null;
+    $reviewerName = $application->reviewer_name ?: $reviewerName;
 
     $representativeName = $application->association?->representative
         ? trim(implode(' ', array_filter([
@@ -88,7 +89,7 @@
             <dl class="mt-4 grid gap-4 sm:grid-cols-2">
                 @foreach ([
                     ['Association', $application->association?->name],
-                    ['Municipality', $application->association?->areaUnit?->name],
+                    ['City / Municipality', $application->association?->areaUnit?->name],
                     ['Barangay', $application->association?->subUnit?->name],
                     ['Current representative', $representativeName],
                     ['Application status', $statusName],

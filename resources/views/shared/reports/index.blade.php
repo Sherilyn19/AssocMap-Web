@@ -28,9 +28,9 @@
                     <label class="block text-sm font-medium text-slate-700">Reporting year
                         <input type="number" name="year" min="1900" max="2100" required value="{{ $filters['year'] }}" class="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2">
                     </label>
-                    <label class="block text-sm font-medium text-slate-700">Municipality
+                    <label class="block text-sm font-medium text-slate-700">City / Municipality
                         <select name="area_unit_id" class="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2">
-                            <option value="">All municipalities</option>
+                            <option value="">All cities / municipalities</option>
                             @foreach ($areas as $area)
                                 <option value="{{ $area->id }}" @selected(($filters['area_unit_id'] ?? '') == $area->id)>{{ $area->name }}</option>
                             @endforeach
@@ -104,7 +104,7 @@
                 <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Scrollable records">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-slate-50 text-xs text-slate-600"><tr>
-                            @foreach (['Association', 'Municipality', 'Members', 'Projects', 'Trainings', 'Gross income (PHP)'] as $heading)<th scope="col" class="px-5 py-3">{{ $heading }}</th>@endforeach
+                            @foreach (['Association', 'City / Municipality', 'Members', 'Projects', 'Trainings', 'Gross income (PHP)'] as $heading)<th scope="col" class="px-5 py-3">{{ $heading }}</th>@endforeach
                         </tr></thead>
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($rows as $row)
