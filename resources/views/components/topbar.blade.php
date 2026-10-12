@@ -36,9 +36,16 @@
 
     <div class="am-topbar__right">
         @php
-        // The bell is available to authenticated workspace users.
-        $notificationUser = app(\App\Services\SessionUserResolver::class)->resolve(request());
-        $unreadNotifications = $notificationUser?->unreadNotifications()->count() ?? 0;
+        // The bell is available to authenticated workspace users. A failed
+        // page query may leave a PostgreSQL transaction unusable, so the
+        // shared top bar must still render without querying notifications.
+        $unreadNotifications = 0;
+        try {
+            $notificationUser = app(\App\Services\SessionUserResolver::class)->resolve(request());
+            $unreadNotifications = $notificationUser?->unreadNotifications()->count() ?? 0;
+        } catch (\Illuminate\Database\QueryException $exception) {
+            report($exception);
+        }
     @endphp
 
     <div class="am-notification-wrap" data-notification-root>
