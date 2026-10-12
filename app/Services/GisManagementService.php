@@ -113,7 +113,7 @@ final class GisManagementService
                 ->lockForUpdate()
                 ->first();
 
-            abort_if(!$location, 404);
+            abort_if(! $location, 404);
             abort_if((int) $location->association_id !== (int) $parentId, 409);
             abort_if(
                 $location->archived_at !== null,
@@ -133,10 +133,9 @@ final class GisManagementService
                     )
                     ->exists();
 
-                if (!$active) {
+                if (! $active) {
                     throw ValidationException::withMessages([
-                        'association_id' =>
-                            'Only an Active, non-archived association can publish a location.',
+                        'association_id' => 'Only an Active, non-archived association can publish a location.',
                     ]);
                 }
 
@@ -152,10 +151,9 @@ final class GisManagementService
                         && abs((float) $value) <= $limit;
                 }
 
-                if (!$valid) {
+                if (! $valid) {
                     throw ValidationException::withMessages([
-                        'publication' =>
-                            'Correct the location name and coordinates before publishing.',
+                        'publication' => 'Correct the location name and coordinates before publishing.',
                     ]);
                 }
             }
@@ -213,12 +211,12 @@ final class GisManagementService
                 ->lockForUpdate()
                 ->first();
 
-            abort_if(!$location, 404);
+            abort_if(! $location, 404);
             abort_if($location->archived_at !== null, 409, 'Archived locations cannot be edited.');
 
             abort_if(
                 (int) $location->association_id !== (int) $parentId
-                || !hash_equals($location->revision, $data['revision']),
+                || ! hash_equals($location->revision, $data['revision']),
                 409,
                 'This location changed. Reload GIS Mapping before editing again.'
             );

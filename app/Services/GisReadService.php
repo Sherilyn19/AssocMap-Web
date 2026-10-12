@@ -87,7 +87,7 @@ final class GisReadService
                 $association = $location->association;
                 $project = $location->project;
 
-                $showProject = $project !== null && !$project->is_archived;
+                $showProject = $project !== null && ! $project->is_archived;
 
                 // Return an explicit allowlist, never models or management data.
                 $record = [

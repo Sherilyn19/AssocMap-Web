@@ -76,9 +76,9 @@ final class GisIndexService
             ->select(['id', 'association_id', 'project_id', 'location_name', 'latitude', 'longitude', 'is_published', 'created_at', 'updated_at'])
             ->selectRaw(GisRevision::SQL)
             ->selectRaw(
-            'gis_locations.id IN ('.$publicLocations->toSql().') AS public_visible',
-            $publicLocations->getBindings()
-        )
+                'gis_locations.id IN ('.$publicLocations->toSql().') AS public_visible',
+                $publicLocations->getBindings()
+            )
             ->with([
                 'association:id,name,area_unit_id,sub_unit_id,program_component_id,status_id,is_archived',
                 'association.areaUnit:id,name',
@@ -117,7 +117,7 @@ final class GisIndexService
                     $location->id
                 ),
                 'can_publish' => $association !== null
-                    && !$association->is_archived
+                    && ! $association->is_archived
                     && $association->status?->status_name === 'Active',
                 'association_id' => $location->association_id,
                 'project_id' => $location->project_id,
