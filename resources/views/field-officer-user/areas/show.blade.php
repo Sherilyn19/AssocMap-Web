@@ -6,7 +6,8 @@
 
 <x-dashboard-layout :title="$areaPageTitle">
 <div class="am-area-page space-y-5">
-    <a href="{{ route($areaRoutes.'.index') }}"
+    {{-- Return to the register with the same selected filters. --}}
+    <a href="{{ route($areaRoutes.'.index', $coverageQuery) }}"
        class="am-user-button am-user-button-secondary">
         {{ $memberAreaView ? 'Back to View Area Records' : 'Back to Assigned Areas' }}
     </a>
@@ -34,7 +35,6 @@
                         {{ number_format($associations->total()) }}
                         {{ $associations->total() === 1 ? 'association' : 'associations' }}
                     </span>
-                    <span class="fo-pill fo-pill-slate">{{ $memberAreaView ? 'Your association only' : 'All assigned records' }}</span>
                     <span class="fo-pill fo-pill-slate"
                           data-tone="{{ $area->is_archived ? 'warning' : 'success' }}">
                         {{ $area->is_archived ? 'Area record archived' : 'Area record not archived' }}
@@ -110,15 +110,31 @@
                                 @endif
                             </td>
                             <td>
-                                {{-- Native disclosure also works by keyboard and touch. --}}
-                                <details class="fo-status">
-                                    <summary class="fo-pill fo-pill-slate"
-                                             data-tone="{{ $tone }}">
-                                        {{ $status }}
-                                        <span aria-hidden="true">ⓘ</span>
-                                    </summary>
-                                    <p class="fo-status-help">{{ $statusHelp }}</p>
-                                </details>
+                                {{-- Status help overlays the page instead of expanding the table row. --}}
+                                <button type="button"
+                                        class="fo-pill fo-pill-slate area-status-help"
+                                        data-tone="{{ $tone }}"
+                                        data-area-help="area-status-{{ $association->id }}"
+                                        aria-label="{{ $status }}: more information"
+                                        aria-describedby="area-status-{{ $association->id }}"
+                                        aria-expanded="false">
+                                    {{ $status }}
+
+                                    {{-- Heroicons outline information-circle. --}}
+                                    <svg width="18" height="18" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="1.5"
+                                        aria-hidden="true" focusable="false">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.852l.041-.02M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM12 8.25h.008v.008H12V8.25Z"/>
+                                    </svg>
+                                </button>
+
+                                <div id="area-status-{{ $association->id }}"
+                                    class="area-help"
+                                    role="tooltip"
+                                    popover="manual">
+                                    {{ $statusHelp }}
+                                </div>
                             </td>
 
                             @foreach([
@@ -156,7 +172,7 @@
                     @empty
                         <tr>
                             <td colspan="8" class="text-center text-slate-500">
-                                No associations are available to your account in this municipality.
+                                No associations match the selected filters in this municipality.
                             </td>
                         </tr>
                     @endforelse

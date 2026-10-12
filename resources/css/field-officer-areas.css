@@ -130,7 +130,21 @@
 .fo-table tbody tr + tr { border-top: 1px solid #e2e8f0; }
 .fo-table tbody tr:hover { background: #f8fafc; }
 /* Keep short controls readable; the table scrolls inside its own card. */
-.fo-area-detail .fo-table { table-layout: auto; }
+/* Keep columns readable; the existing table container handles horizontal scrolling. */
+.am-area-page .fo-area-detail .fo-table {
+    min-width: 64rem;
+    table-layout: auto;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+/* Prevent headings from breaking into narrow vertical text. */
+.fo-area-detail .fo-table thead th { white-space: nowrap; }
+
+/* Keep the status label and information icon together. */
+.area-status-help { white-space: nowrap; cursor: pointer; }
+.area-status-help svg { flex: none; }
+
 .fo-area-detail .fo-table th[scope="row"] { min-width: 13rem; }
 .fo-area-detail .fo-table-card { overflow-x: auto; }
 .fo-status summary, .fo-action, .fo-count { white-space: nowrap; }
@@ -271,3 +285,278 @@
 .fo-pill[data-tone="info"] { color: #115e59; background: #f0fdfa; border-color: #bce5dd; }
 .fo-side-header svg { width: 1.1rem; height: 1.1rem; }
 .fo-dialog-header .fo-eyebrow { color: #cbd5e1; }
+
+/* Filtered analytics adapt from one column to four without cramped labels. */
+.area-analytics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: 1rem;
+}
+
+.area-metric {
+    position: relative;
+    min-width: 0;
+    border: 1px solid #d8e2df;
+    border-top: 3px solid #207443;
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 2px 6px rgb(15 23 42 / 4%);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.area-metric:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 22px rgb(15 23 42 / 9%);
+}
+
+.area-metric--warning {
+    border-top-color: #d97706;
+    background: #fffdf5;
+}
+
+/* The card action occupies the card; the independent help button sits above it. */
+.area-metric__open {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+    color: #0f172a;
+    text-align: left;
+    cursor: pointer;
+}
+
+.area-metric__label {
+    min-height: 2.75rem;
+    padding-right: 2.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.area-metric__value {
+    font-size: 2.25rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.area-metric__link {
+    color: #0f766e;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.area-metric__info {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #52736b;
+    cursor: pointer;
+}
+
+.area-metric__info:hover,
+.area-metric__info[aria-expanded="true"] {
+    background: #eaf5ef;
+    color: #166534;
+}
+
+/* Top-layer help overlays content without affecting document layout. */
+.area-help {
+    position: fixed;
+    inset: auto;
+    width: min(20rem, calc(100vw - 1.5rem));
+    max-height: calc(100dvh - 1.5rem);
+    overflow: auto;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0.875rem 1rem;
+    border: 1px solid #334155;
+    border-radius: 0.75rem;
+    background: #0f172a;
+    color: #fff;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    box-shadow: 0 8px 24px rgb(15 23 42 / 18%);
+}
+
+.area-help:popover-open {
+    animation: area-analytics-enter 160ms ease-out;
+}
+
+/* Native modal remains bounded and scrollable on small screens. */
+.area-analytics-dialog {
+    width: min(36rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    margin: auto;
+    padding: 0;
+    overflow: auto;
+    border: 1px solid #d8e2df;
+    border-radius: 1rem;
+    background: #fff;
+    color: #0f172a;
+    box-shadow: 0 20px 60px rgb(15 23 42 / 20%);
+}
+
+.area-analytics-dialog[open] {
+    animation: area-analytics-enter 180ms ease-out;
+}
+
+.area-analytics-dialog::backdrop {
+    background: rgb(15 23 42 / 40%);
+}
+
+.area-analytics-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.area-analytics-heading h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+.area-analytics-body {
+    max-height: 55dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1.25rem;
+}
+
+.area-analytics-context,
+.area-analytics-empty,
+.area-analytics-record p {
+    color: #64748b;
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+.area-analytics-record {
+    padding: 1rem 0;
+    border-bottom: 1px solid #e2e8f0;
+    overflow-wrap: anywhere;
+}
+
+.area-analytics-record h3 {
+    margin: 0 0 0.25rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+.area-analytics-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 1rem 1.25rem;
+}
+
+.area-analytics-footer [hidden] {
+    display: none;
+}
+
+.area-metric__open:focus-visible,
+.area-metric__info:focus-visible,
+.area-analytics-dialog button:focus-visible {
+    outline: 3px solid #0f766e;
+    outline-offset: 3px;
+}
+
+/* Leave breathing room when a section is scrolled into view. */
+#area-filtered-coverage,
+#area-geographic-issues {
+    scroll-margin-top: 6rem;
+}
+
+.area-analytics-highlight {
+    animation: area-analytics-highlight 2s ease-out;
+}
+
+@keyframes area-analytics-enter {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes area-analytics-highlight {
+    0%, 65% { outline: 3px solid #0f766e; outline-offset: 5px; }
+    100% { outline: 3px solid transparent; outline-offset: 5px; }
+}
+
+/* Retain the visual cue without motion for users requesting reduced animation. */
+@media (prefers-reduced-motion: reduce) {
+    .area-metric {
+        transition: none;
+    }
+
+    .area-metric:hover {
+        transform: none;
+    }
+
+    .area-help:popover-open,
+    .area-analytics-dialog[open] {
+        animation: none;
+    }
+
+    .area-analytics-highlight {
+        animation: none;
+        outline: 3px solid #0f766e;
+        outline-offset: 5px;
+    }
+}
+
+/* Reuse card-icon styling, hover, and focus; position this icon beside the heading. */
+.area-metric__info.area-table-info {
+    position: static;
+    width: 2rem;
+    height: 2rem;
+}
+
+/* Space the GIS preview and keep each record readable. */
+.area-gis-preview { display: grid; gap: 1rem; }
+.area-gis-preview .fo-list-record {
+    display: grid;
+    justify-items: start;
+    gap: .5rem;
+    padding-block: .75rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+.area-gis-preview .fo-list-record > strong { line-height: 1.5; overflow-wrap: anywhere; }
+.area-gis-preview .fo-record-id { margin-top: 0; line-height: 1.7; }
+
+/* Keep navigation buttons compact and allow wrapping on narrow screens. */
+.am-area-page :is(.area-compact-action, .area-gis-preview > .fo-action) {
+    width: fit-content;
+    max-width: 100%;
+    justify-self: start;
+    white-space: normal;
+    text-align: left;
+}
+
+/* Keep both actions side by side, including in narrow panels. */
+.area-detail-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .5rem;
+}
+.am-area-page .area-detail-actions > .fo-action {
+    width: auto;
+    min-width: 0;
+    min-height: 2.75rem;
+    padding: .5rem .75rem;
+    font-size: .875rem;
+    line-height: 1.25;
+    white-space: normal;
+}

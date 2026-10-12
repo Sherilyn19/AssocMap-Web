@@ -11,6 +11,58 @@ use App\Support\GisRevision;
 
 final class GisIndexService
 {
+    /**
+     * Describe the first known public-visibility restriction.
+     * The publication flag alone does not prove public eligibility.
+     */
+    private function visibilityReason(
+        GisLocation $location,
+        ?Association $association
+    ): string {
+        if (! $location->is_published) {
+            return 'Not marked for publication.';
+        }
+
+        if ($location->archived_at !== null) {
+            return 'The location is archived.';
+        }
+
+        if (! $association || $association->is_archived) {
+            return 'The association is archived or unavailable.';
+        }
+
+        if ($association->status?->status_name !== 'Active') {
+            return 'The association is not Active.';
+        }
+
+        // Missing or nonnumeric coordinates cannot identify a valid map position.
+        if (! is_numeric($location->latitude)
+            || ! is_numeric($location->longitude)) {
+            return 'Latitude and longitude must contain valid numbers.';
+        }
+
+        $latitude = (float) $location->latitude;
+        $longitude = (float) $location->longitude;
+
+        // Reject infinite values and coordinates outside geographic limits.
+        // Zero remains a valid coordinate.
+        if (! is_finite($latitude)
+            || ! is_finite($longitude)
+            || $latitude < -90
+            || $latitude > 90
+            || $longitude < -180
+            || $longitude > 180) {
+            return 'Latitude must be between -90 and 90, and longitude between -180 and 180.';
+        }
+
+        if (! is_string($location->location_name)
+            || trim($location->location_name) === '') {
+            return 'A location name is required.';
+        }
+
+        return 'The location does not meet current public GIS eligibility rules.';
+    }
+
     public function overview(?int $officerId = null): array
     {
         // Load related names together. The map never needs member or account details.
@@ -51,6 +103,14 @@ final class GisIndexService
                 'id' => $location->id,
                 // A saved publication flag alone does not prove public visibility.
                 'public_visible' => (bool) $location->public_visible,
+                // Explain why a saved location is not currently visible on the public map.
+                'visibility_reason' => $location->public_visible
+                    ? null
+                    : $this->visibilityReason($location, $association),
+                // Effective public visibility is separate from the saved publish flag.
+                'visibility_state' => $location->public_visible
+                    ? 'public'
+                    : ($location->is_published ? 'marked_hidden' : 'unmarked'),
                 // Management metadata remains internal; public readers use GisReadService.
                 'history_url' => route(
                     $officerId === null ? 'gis.history' : 'gis.officer.history',

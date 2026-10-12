@@ -45,30 +45,99 @@
         </a>
     </header>
 
-    {{-- Overall totals remain stable when table filters change. --}}
-    <section aria-label="Area coverage summary"
-             class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        @foreach([
-            'municipalities' => 'Cities / Municipalities covered',
-            'barangays' => 'Barangays covered',
-            'associations' => $memberAreaView ? 'Your association' : 'Assigned associations',
-            'issues' => 'Area information issues',
-        ] as $key => $label)
-            <div class="fo-summary-card {{ $key === 'issues' ? 'fo-summary-warning' : '' }}">
-                <p class="text-sm font-medium uppercase 1 text-slate-600">{{ $label }}</p>
-                <p data-count-up class="mt-3 text-3xl font-bold tabular-nums text-slate-900">
-                    {{ number_format($summary[$key]) }}
-                </p>
-                <p class="mt-2 text-xs leading-5 text-slate-500">
-                    {{ $key === 'issues'
-                        ? 'Missing or inconsistent geographic records.'
-                        : ($memberAreaView
-                        ? 'For your association, including retained archived records.'
-                        : 'Across all assigned associations, including archived records.') }}
-                </p>
-            </div>
+    @php
+        // Keep descriptions out of the visual card while retaining accessible help.
+        $analyticsLabels = [
+            'municipalities' => 'Cities / Municipalities',
+            'barangays' => 'Barangays',
+            'associations' => 'Associations',
+            'issues' => 'Geographic record issues',
+        ];
+
+        $analyticsHelp = [
+            'municipalities' => 'Distinct recorded municipalities in your current filtered results. Access remains limited to associations available to your account.',
+            'barangays' => 'Distinct barangays in your filtered results with a valid municipality relationship. Missing or mismatched geographic records are excluded.',
+            'associations' => 'Associations matching your current search, archive state, and geographic-information filters.',
+            'issues' => 'Matching associations with missing municipality or barangay records, or a barangay linked to another municipality. Zero issues does not verify field addresses, GPS coordinates, or boundaries.',
+        ];
+    @endphp
+
+    <section class="area-analytics" aria-label="Filtered area coverage">
+        @foreach($analyticsLabels as $key => $label)
+            <article class="area-metric {{ $key === 'issues' ? 'area-metric--warning' : '' }}">
+                {{-- Keep the main action and information button as separate controls. --}}
+                <button type="button"
+                        class="area-metric__open"
+                        data-area-metric="{{ $key }}"
+                        aria-haspopup="dialog"
+                        aria-controls="area-analytics-dialog">
+                    <span class="area-metric__label">{{ $label }}</span>
+                    <strong class="area-metric__value">
+                        {{ number_format($summary[$key]) }}
+                    </strong>
+                    <span class="area-metric__link">
+                        View details <span aria-hidden="true">↗</span>
+                    </span>
+                </button>
+
+                {{-- Heroicons outline information-circle, accessible by hover, focus, or tap. --}}
+                <button type="button"
+                        class="area-metric__info"
+                        data-area-help="area-help-{{ $key }}"
+                        aria-label="About {{ strtolower($label) }}"
+                        aria-describedby="area-help-{{ $key }}"
+                        aria-expanded="false">
+                    <svg width="22" height="22" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="1.5"
+                        aria-hidden="true" focusable="false">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.852l.041-.02M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM12 8.25h.008v.008H12V8.25Z"/>
+                    </svg>
+                </button>
+
+                {{-- Popovers use the browser top layer, avoiding clipping and layout shifts. --}}
+                <div id="area-help-{{ $key }}"
+                    class="area-help"
+                    role="tooltip"
+                    popover="manual">
+                    {{ $analyticsHelp[$key] }}
+                </div>
+            </article>
+
+            {{-- Blade escapes all record text before it enters the modal. --}}
+            <template id="area-metric-template-{{ $key }}">
+                <p class="area-analytics-context">Matches the current filters.</p>
+                @forelse($analytics[$key] as $record)
+                    <article class="area-analytics-record">
+                        <h3>{{ $record['title'] }}</h3>
+                        <p>{{ $record['detail'] }}</p>
+                    </article>
+                @empty
+                    <p class="area-analytics-empty">No matching records.</p>
+                @endforelse
+            </template>
         @endforeach
     </section>
+
+    {{-- One reusable read-only modal; existing coverage dialogs remain separate. --}}
+    <dialog id="area-analytics-dialog"
+            class="area-analytics-dialog"
+            aria-labelledby="area-analytics-title">
+        <header class="area-analytics-heading">
+            <h2 id="area-analytics-title">Coverage details</h2>
+            <button type="button" data-area-analytics-close
+                    class="fo-action" autofocus>Close</button>
+        </header>
+
+        <div class="area-analytics-body" data-area-analytics-body></div>
+
+        <footer class="area-analytics-footer">
+            <button type="button" class="fo-primary am-button-green"
+                    data-area-analytics-jump>
+                View related records
+            </button>
+        </footer>
+    </dialog>
 
     {{-- Filters apply only to the signed-in officer's assigned associations. --}}
     <form method="GET"
@@ -161,7 +230,10 @@
 
     @if($issues->isNotEmpty())
         {{-- Missing information stays visible even without a municipality. --}}
-        <details class="rounded-xl border border-amber-200 bg-amber-50 p-5">
+        {{-- The analytics action opens and highlights this issue list. --}}
+        <details id="area-geographic-issues"
+                class="rounded-xl border border-amber-200 bg-amber-50 p-5"
+                tabindex="-1">
             <summary class="min-h-11 cursor-pointer font-semibold text-amber-950">
                 {{ $issues->count() }} matching associations need area review
             </summary>
@@ -200,7 +272,9 @@
         </details>
     @endif
 
-    <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    {{-- Analytics actions focus and highlight this filtered coverage section. --}}
+    <section id="area-filtered-coverage" tabindex="-1"
+             class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div class="border-b border-slate-200 p-5">
             <h2 class="text-lg font-semibold">City / Municipality coverage</h2>
             <p class="mt-1 text-sm leading-6 text-slate-600">
@@ -217,7 +291,42 @@
                     <tr>
                         @foreach(['City / Municipality', 'Barangays', 'Associations',
                             'Members', 'Projects', 'Area issues', 'Details'] as $heading)
-                            <th scope="col" class="px-5 py-4 font-semibold">{{ $heading }}</th>
+                            <th scope="col" class="px-5 py-4 font-semibold">
+                                <span class="inline-flex items-center gap-1">
+                                    {{ $heading }}
+
+                                    @if($heading === 'Area issues')
+                                        {{-- Reuse the existing overlay tooltip behavior. --}}
+                                        <button type="button"
+                                                class="area-metric__info area-table-info"
+                                                data-area-help="area-table-issues-help"
+                                                aria-label="About area issues"
+                                                aria-describedby="area-table-issues-help"
+                                                aria-expanded="false">
+                                            {{-- Heroicons outline: information-circle. --}}
+                                            <svg width="18" height="18" viewBox="0 0 24 24"
+                                                fill="none" stroke="currentColor" stroke-width="1.5"
+                                                aria-hidden="true" focusable="false">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.852l.041-.02M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM12 8.25h.008v.008H12V8.25Z"/>
+                                            </svg>
+                                        </button>
+                                    @endif
+                                </span>
+
+                                @if($heading === 'Area issues')
+                                    {{-- The top-layer bubble is not clipped by the scrollable table. --}}
+                                    <div id="area-table-issues-help"
+                                        class="area-help"
+                                        role="tooltip"
+                                        popover="manual">
+                                        Number of matching associations in this municipality with missing
+                                        or inconsistent geographic records. Zero means no missing
+                                        municipality/barangay or municipality–barangay mismatch was detected.
+                                        It does not verify addresses, GPS coordinates, or boundaries.
+                                    </div>
+                                @endif
+                            </th>
                         @endforeach
                     </tr>
                 </thead>
@@ -249,7 +358,12 @@
                             <td class="px-5 py-4">
                                 {{-- Works as a normal link when JavaScript is unavailable. --}}
                                 <a data-area-details
-                                   href="{{ route($areaRoutes.'.show', $area['id']) }}"
+                                   href="{{ route($areaRoutes.'.show', [
+                                    'areaUnit' => $area['id'],
+                                    'search' => $search,
+                                    'archive' => $archive,
+                                    'quality' => $quality,
+                                ]) }}"
                                    class="am-user-button am-user-button-secondary whitespace-nowrap"
                                    aria-label="View coverage for {{ $area['name'] }}">
                                     View coverage
@@ -259,11 +373,8 @@
                     @empty
                         <tr>
                             <td colspan="7" class="px-5 py-12 text-center text-slate-600">
-                                {{ $summary['associations'] === 0
-                                    ? ($memberAreaView
-                                    ? 'No association is linked to this account. Contact the System Administrator.'
-                                    : 'No associations are currently assigned to you.')
-                                    : 'No municipalities match these filters. Check area issues or reset the filters.' }}
+                                {{-- Filtered zero results do not imply that the account has no assignments. --}}
+                                No municipalities match these filters. Check area issues or reset the filters.
                             </td>
                         </tr>
                     @endforelse

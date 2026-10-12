@@ -9,6 +9,7 @@ use App\Models\Association;
 use App\Models\Member;
 use App\Models\MemberApplication;
 use App\Models\User;
+use App\Notifications\MembershipApplicationNotification;
 use App\Support\MemberProfile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -70,7 +71,7 @@ final class MembershipWorkflowService
                 ]
             )->save();
 
-            // Approval remains a separate operation requiring assigned Field Officer authorization.
+            // Record submission before sending notifications in the same transaction.
             $this->audit(
                 $actor->id,
                 'SUBMIT',
@@ -78,6 +79,9 @@ final class MembershipWorkflowService
                 $application->id,
                 'Pending application submitted through the association account.'
             );
+
+            // Notify the assigned officer once using the existing helper.
+$this->notifyAssignedOfficer($association, $application->id);
 
             return $application;
         }, 3);
@@ -128,7 +132,9 @@ final class MembershipWorkflowService
             ])->save();
             $this->audit($actor->id, $decision === 'Approved' ? 'APPROVE' : 'REJECT', 'Member Application', $locked->id,
                 "{$decision} by assigned Field Officer user #{$actor->id}.");
-            return $locked->fresh();
+
+                    $this->notifyReviewParties($locked, $actor, $decision, $reason);
+                    return $locked->fresh();
         }, 3);
     }
 
@@ -198,5 +204,39 @@ final class MembershipWorkflowService
             'user_id' => $actorId, 'action_type' => $action, 'module' => $module,
             'record_id' => $id, 'details' => $details, 'performed_at' => now(),
         ]);
+    }
+
+    private function notifyAssignedOfficer(Association $association, int $applicationId): void
+    {
+        $officer = User::query()->find($association->field_officer_id);
+        if ($officer?->is_active) {
+            $officer->notify(new MembershipApplicationNotification(
+                'New membership application',
+                'A membership application is ready for your review.',
+                route('membership.applications.show', $applicationId),
+            ));
+        }
+    }
+
+    private function notifyReviewParties(MemberApplication $application, User $officer, string $decision, string $reason): void
+    {
+        $message = $decision === 'Approved'
+            ? 'Your membership application was approved successfully.'
+            : 'Your membership application was rejected. Reason: '.$reason;
+
+        $applicant = User::query()->find($application->submitted_by_user_id);
+        if ($applicant?->is_active) {
+            $applicant->notify(new MembershipApplicationNotification(
+                'Membership application '.$decision,
+                $message,
+                route('membership.applications.show', $application),
+            ));
+        }
+
+        $officer->notify(new MembershipApplicationNotification(
+            'Membership decision recorded',
+            'You successfully recorded the '.$decision.' decision.',
+            route('membership.applications.show', $application),
+        ));
     }
 }

@@ -75,23 +75,8 @@
                     </div>
                 @endif
 
-                <div class="grid grid-cols-3 gap-3">
-                    @foreach ([
-                        'members' => ['current_members_count', 'Members'],
-                        'projects' => ['retained_projects_count', 'Projects'],
-                        'gis' => ['mapped_locations_count', $titles['gis']],
-                    ] as $key => [$field, $label])
-                        <a data-area-drawer
-                           href="{{ route($areaRoutes.'.details', $parameters + ['section' => $key]) }}">
-                            <strong data-count-up>
-                                {{ number_format($association->$field) }}
-                            </strong>
-                            <span>{{ $label }} →</span>
-                        </a>
-                    @endforeach
-                </div>
-
-                <section class="fo-card fo-card-padded">
+                {{-- Separate preview records and actions with consistent spacing. --}}
+                <section class="fo-card fo-card-padded area-gis-preview">
                     <h4 class="font-semibold">GIS mapping preview</h4>
 
                     @forelse ($locations as $location)
@@ -124,12 +109,6 @@
                     </a>
                 </section>
 
-                <a class="fo-action fo-primary"
-                   href="{{ $memberAreaView
-                       ? route('member.information')
-                       : route('officer.associations.show', $association->id) }}">
-                    Open complete association page
-                </a>
             @else
                 <div class="fo-section-heading">
                     <strong>
@@ -243,11 +222,22 @@
             @endif
 
             @if (in_array($section, ['association', 'gis'], true))
-                {{-- Open the map available to the current workspace. --}}
+            {{-- Keep related navigation together in one compact row. --}}
+            <div class="area-detail-actions">
+                @if ($section === 'association')
+                    <a class="fo-action fo-primary"
+                    href="{{ $memberAreaView
+                        ? route('member.information')
+                        : route('officer.associations.show', $association->id) }}">
+                        View association
+                    </a>
+                @endif
+
                 <a class="fo-action" href="{{ route($areaMapRoute) }}">
-                    Open GIS Mapping →
+                    Open GIS map →
                 </a>
-            @endif
+            </div>
+        @endif
         </section>
     </div>
 </x-dashboard-layout>

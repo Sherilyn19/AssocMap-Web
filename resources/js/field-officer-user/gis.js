@@ -128,16 +128,29 @@ async function initialize(root) {
         actions.replaceChildren();
 
         const context = element('div', '', 'fo-gis-detail-context');
+
+        // Store the badge element so its description can be configured safely.
+        const badge = element(
+            'span',
+            record.public_visible ? 'Publicly visible' : 'Not publicly visible',
+            `gis-badge ${record.public_visible
+                ? 'gis-badge-published'
+                : 'gis-badge-unpublished'}`,
+        );
+
+        // Explain hidden status without changing publication permissions.
+        if (!record.public_visible && record.visibility_reason) {
+            badge.title = record.visibility_reason;
+            badge.setAttribute(
+                'aria-label',
+                `Not publicly visible. ${record.visibility_reason}`,
+            );
+        }
+
         context.append(
             element('h3', record.name),
             element('p', record.association),
-            element(
-                'span',
-                record.public_visible ? 'Publicly visible' : 'Not publicly visible',
-                `gis-badge ${record.public_visible
-                    ? 'gis-badge-published'
-                    : 'gis-badge-unpublished'}`,
-            ),
+            badge,
         );
 
         content.append(context);
@@ -167,11 +180,9 @@ async function initialize(root) {
 
         // Keep an important eligibility warning visible instead of hiding it in a tooltip.
         if (!record.public_visible) {
-            const explanation = !record.can_publish
-                ? 'Publication is unavailable while this association is inactive or archived.'
-                : !record.valid
-                    ? 'Correct the coordinates before publishing.'
-                    : 'Review this location and select Publish to make it publicly visible.';
+            // Display the backend's reason using safe text rendering.
+            const explanation = record.visibility_reason
+                || 'This location does not meet current public GIS visibility requirements.';
 
             content.append(element('p', explanation, 'fo-gis-notice'));
         }
@@ -228,7 +239,8 @@ async function initialize(root) {
             (!state.association
                 || String(record.association_id) === state.association)
             && (!state.visibility
-                || record.public_visible === (state.visibility === 'public')),
+                || (state.visibility === 'public' && record.visibility_state === 'public')
+                || (state.visibility === 'hidden' && record.visibility_state !== 'public')),
         );
 
         const ids = new Set(visible.map(record => record.id));

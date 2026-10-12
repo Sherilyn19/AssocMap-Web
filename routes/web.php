@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AssociationManagementController;
 use App\Http\Controllers\Admin\GisController;
 use App\Http\Controllers\Admin\ProjectManagementController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\NotificationController;
 
 /*
  * ============================================================
@@ -466,6 +467,15 @@ Route::middleware('assocmap.auth:Field Officer')
             ->whereNumber('member')->name('archive');
     });
 // MEMBERSHIP-WORKFLOW: scoped viewing; association accounts submit; assigned Field Officers review.
+// Notifications are available only to authenticated active users.
+Route::middleware('assocmap.auth')->prefix('notifications')->name('notifications.')
+    ->controller(\App\Http\Controllers\NotificationController::class)
+    ->group(function (): void {
+        Route::get('/', 'index')->name('index');
+        Route::patch('/{notification}/read', 'read')->name('read');
+        Route::patch('/read-all', 'readAll')->name('read-all');
+    });
+
 Route::middleware('assocmap.auth')->prefix('membership')->name('membership.')
     ->controller(MembershipController::class)->group(function (): void {
         Route::get('/', 'index')->name('index');

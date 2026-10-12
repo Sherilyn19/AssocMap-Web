@@ -1,0 +1,170 @@
+/* Notification bell and rolling-paper dropdown. */
+.am-notification-wrap {
+    position: relative;
+}
+
+/* Keep the bell centered in a consistent 44px touch target. */
+.am-notification-button {
+    position: relative;
+    display: inline-flex;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid #d8e2df;
+    border-radius: 0.75rem;
+    background: #ffffff;
+    color: #0f766e;
+    cursor: pointer;
+    transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+/* Preserve the icon proportions regardless of surrounding text styles. */
+.am-notification-icon {
+    display: block;
+    width: 1.5rem;
+    height: 1.5rem;
+    flex: none;
+}
+
+/* Show hover and open states without a permanent focus-like ring. */
+.am-notification-button:hover,
+.am-notification-button[aria-expanded="true"] {
+    background: #f0fdfa;
+    border-color: #0f766e;
+}
+
+.am-notification-button:focus-visible,
+.am-notification-item:focus-visible,
+.am-notification-header button:focus-visible {
+    outline: 3px solid #f59e0b;
+    outline-offset: 3px;
+}
+
+.am-notification-count {
+    position: absolute;
+    top: -0.25rem;
+    right: -0.25rem;
+    min-width: 1.35rem;
+    padding: 0.1rem 0.3rem;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.am-notification-panel {
+    position: absolute;
+    z-index: 80;
+    top: calc(100% + 0.75rem);
+    right: 0;
+    width: min(23rem, calc(100vw - 2rem));
+    overflow: hidden;
+    border: 1px solid #d8e2df;
+    border-radius: 1rem;
+    background: #ffffff;
+    /* Separate the dropdown from the page without a heavy shadow. */
+    box-shadow: 0 12px 32px rgb(15 23 42 / 12%);
+    transform-origin: top right;
+    animation: am-notification-drop 220ms ease-out;
+}
+
+/* Keep older notifications reachable without extending beyond the screen. */
+.am-notification-panel [data-notification-list] {
+    max-height: min(24rem, 60dvh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* Keep long names and messages inside the notification card. */
+.am-notification-item {
+    overflow-wrap: anywhere;
+}
+
+/* Align the heading and action with consistent spacing. */
+.am-notification-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* Keep the action readable and comfortable to click. */
+.am-notification-header button {
+    min-height: 2.75rem;
+    padding: 0.375rem 0;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.am-notification-header h2 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.am-notification-header button {
+    color: #0f766e;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.am-notification-item {
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid #eef2f1;
+    color: #334155;
+    text-decoration: none;
+}
+
+.am-notification-item:hover,
+.am-notification-item.is-unread {
+    background: #f0fdfa;
+}
+
+.am-notification-item strong {
+    color: #0f172a;
+    font-size: 0.85rem;
+}
+
+.am-notification-item span,
+.am-notification-item time {
+    font-size: 0.78rem;
+}
+
+.am-notification-item time {
+    color: #64748b;
+}
+
+.am-notification-empty {
+    padding: 1.25rem;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+@keyframes am-notification-drop {
+    from {
+        opacity: 0;
+        transform: translateY(-0.75rem) scaleY(0.92);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scaleY(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .am-notification-panel {
+        animation: none;
+    }
+}

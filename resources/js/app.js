@@ -51,6 +51,12 @@ import './admin-user/admin-audit-log';
 import './shared/management-ui';
 import './admin-user/admin-gis-transfer';
 
+// Load the shared notification bell behavior for FO and Association Member pages.
+import './shared/notifications.js';
+
+// Load styles used only by the shared notification bell.
+import '../css/notifications.css';
+
 /* ==========================================================================
    2. PROFILE NAME HOVER ANIMATION
    ========================================================================== */

@@ -10,6 +10,7 @@ use App\Models\Member;
 use App\Models\MemberApplication;
 use App\Models\MemberDraft;
 use App\Models\User;
+use App\Notifications\MembershipApplicationNotification;
 use App\Support\MemberProfile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -177,6 +178,8 @@ final class FieldOfficerMembershipService
                 'submission_source' => 'field_officer',
             ])->save();
 
+            $this->notifyAssociationAccount($association->id, $application->id);
+
             $locked->forceFill([
                 'state' => 'submitted',
                 'application_id' => $application->id,
@@ -273,6 +276,20 @@ final class FieldOfficerMembershipService
         }
 
         return [$association, $current];
+    }
+
+    private function notifyAssociationAccount(int $associationId, int $applicationId): void
+    {
+        User::query()
+            ->where('association_id', $associationId)
+            ->whereHas('role', fn ($query) => $query->where('role_name', 'Association Member'))
+            ->where('is_active', true)
+            ->get()
+            ->each(fn (User $user) => $user->notify(new MembershipApplicationNotification(
+                'Membership application submitted',
+                'A Field Officer submitted a membership application for your association.',
+                route('membership.applications.show', $applicationId),
+            )));
     }
 
     private function lockDraft(

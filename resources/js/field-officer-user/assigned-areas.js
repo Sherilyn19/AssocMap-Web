@@ -186,3 +186,211 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// Area analytics: accessible detail modal, overlay help, and section highlighting.
+(() => {
+    const root = document.querySelector('[data-officer-areas]');
+    const dialog = document.getElementById('area-analytics-dialog');
+
+    if (!root || !dialog) return;
+
+    const body = dialog.querySelector('[data-area-analytics-body]');
+    const title = dialog.querySelector('#area-analytics-title');
+    const jump = dialog.querySelector('[data-area-analytics-jump]');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    let trigger = null;
+    let destination = null;
+    let helpButton = null;
+    let helpBubble = null;
+    let pinnedHelp = false;
+    let hideTimer;
+    let highlightTimer;
+    let highlighted = null;
+
+    // Native popovers appear above normal page stacking contexts.
+    function closeHelp() {
+        clearTimeout(hideTimer);
+        if (helpBubble?.matches(':popover-open')) helpBubble.hidePopover();
+        helpButton?.setAttribute('aria-expanded', 'false');
+        helpButton = null;
+        helpBubble = null;
+        pinnedHelp = false;
+    }
+
+    function positionHelp() {
+        if (!helpButton || !helpBubble) return;
+
+        const anchor = helpButton.getBoundingClientRect();
+        const bubble = helpBubble.getBoundingClientRect();
+        const gap = 10;
+        const left = Math.max(12, Math.min(
+            anchor.left + anchor.width / 2 - bubble.width / 2,
+            window.innerWidth - bubble.width - 12
+        ));
+
+        // Prefer above the icon; flip below when the top edge has insufficient room.
+        const preferredTop = anchor.top - bubble.height - gap;
+        const top = preferredTop >= 12
+            ? preferredTop
+            : anchor.bottom + gap;
+
+        helpBubble.style.left = `${left}px`;
+        helpBubble.style.top = `${Math.max(12, Math.min(
+            top, window.innerHeight - bubble.height - 12
+        ))}px`;
+    }
+
+    function showHelp(button) {
+        clearTimeout(hideTimer);
+        if (helpButton === button) return;
+        closeHelp();
+
+        helpButton = button;
+        helpBubble = document.getElementById(button.dataset.areaHelp);
+        helpBubble.showPopover();
+        helpButton.setAttribute('aria-expanded', 'true');
+        positionHelp();
+    }
+
+    // Allow the pointer to move from the icon onto the bubble without dismissing it.
+    function scheduleHelpClose() {
+        clearTimeout(hideTimer);
+        hideTimer = window.setTimeout(() => {
+            if (!pinnedHelp
+                && document.activeElement !== helpButton
+                && !helpButton?.matches(':hover')
+                && !helpBubble?.matches(':hover')) {
+                closeHelp();
+            }
+        }, 180);
+    }
+
+    // Connect tooltips on initial load and after coverage records arrive.
+    const boundHelpButtons = new WeakSet();
+
+    function bindAreaHelp() {
+        // Close a bubble if its record was replaced.
+        if (helpButton && !helpButton.isConnected) closeHelp();
+
+        root.querySelectorAll('[data-area-help]').forEach((button) => {
+            const bubble = document.getElementById(button.dataset.areaHelp);
+            if (!bubble || boundHelpButtons.has(button)) return;
+            boundHelpButtons.add(button); // Prevent duplicate listeners.
+
+            button.addEventListener('pointerenter', (event) => {
+                if (event.pointerType === 'mouse') showHelp(button);
+            });
+            button.addEventListener('pointerleave', scheduleHelpClose);
+            button.addEventListener('focus', () => showHelp(button));
+            button.addEventListener('blur', scheduleHelpClose);
+
+            // Support tapping the icon on mobile.
+            button.addEventListener('click', () => {
+                if (helpButton === button && pinnedHelp) {
+                    closeHelp();
+                } else {
+                    showHelp(button);
+                    pinnedHelp = true;
+                }
+            });
+
+            bubble.addEventListener('pointerenter', () => clearTimeout(hideTimer));
+            bubble.addEventListener('pointerleave', scheduleHelpClose);
+        });
+    }
+
+    bindAreaHelp();
+    new MutationObserver(bindAreaHelp).observe(root, {
+        childList: true,
+        subtree: true,
+    });
+
+    // Dismiss any open tooltip when coverage closes.
+    root.querySelector('[data-area-dialog]')?.addEventListener('close', closeHelp);
+
+    document.addEventListener('pointerdown', (event) => {
+        if (helpButton
+            && !helpButton.contains(event.target)
+            && !helpBubble.contains(event.target)) closeHelp();
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && helpButton) {
+            event.preventDefault();
+            closeHelp();
+        }
+    });
+
+    // Reposition overlays during scrolling, including nested content containers.
+    window.addEventListener('resize', positionHelp);
+    document.addEventListener('scroll', positionHelp, true);
+
+    root.querySelectorAll('[data-area-metric]').forEach((button) => {
+        button.addEventListener('click', () => {
+            closeHelp();
+            trigger = button;
+
+            const key = button.dataset.areaMetric;
+            const template = document.getElementById(`area-metric-template-${key}`);
+
+            title.textContent = button.querySelector('.area-metric__label').textContent;
+            body.replaceChildren(template.content.cloneNode(true));
+            body.scrollTop = 0;
+
+            destination = document.getElementById(
+                key === 'issues' ? 'area-geographic-issues' : 'area-filtered-coverage'
+            );
+
+            // Empty results have no meaningful related-record action.
+            jump.hidden = !body.querySelector('.area-analytics-record') || !destination;
+            dialog.showModal();
+        });
+    });
+
+    dialog.querySelector('[data-area-analytics-close]')
+        .addEventListener('click', () => dialog.close());
+
+    dialog.addEventListener('click', (event) => {
+        const box = dialog.getBoundingClientRect();
+        if (event.target === dialog && (
+            event.clientX < box.left || event.clientX > box.right
+            || event.clientY < box.top || event.clientY > box.bottom
+        )) dialog.close();
+    });
+
+    // Native dialog handles Escape and focus containment.
+    dialog.addEventListener('close', () => {
+        trigger?.focus({ preventScroll: true });
+
+        if (!dialog.dataset.jump) return;
+        delete dialog.dataset.jump;
+
+        const target = destination;
+        if (!target) return;
+        if (target instanceof HTMLDetailsElement) target.open = true;
+
+        requestAnimationFrame(() => {
+            target.focus({ preventScroll: true });
+            target.scrollIntoView({
+                behavior: reducedMotion.matches ? 'instant' : 'smooth',
+                block: 'start',
+            });
+
+            // Restart a two-second visual cue, including repeated selections.
+            clearTimeout(highlightTimer);
+            highlighted?.classList.remove('area-analytics-highlight');
+            highlighted = target;
+            void target.offsetWidth;
+            target.classList.add('area-analytics-highlight');
+            highlightTimer = window.setTimeout(() => {
+                target.classList.remove('area-analytics-highlight');
+            }, 2000);
+        });
+    });
+
+    jump.addEventListener('click', () => {
+        dialog.dataset.jump = 'true';
+        dialog.close();
+    });
+})();

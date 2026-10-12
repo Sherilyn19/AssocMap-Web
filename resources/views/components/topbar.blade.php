@@ -35,6 +35,71 @@
     </div>
 
     <div class="am-topbar__right">
+        @php
+        // The bell is available to authenticated workspace users.
+        $notificationUser = app(\App\Services\SessionUserResolver::class)->resolve(request());
+        $unreadNotifications = $notificationUser?->unreadNotifications()->count() ?? 0;
+    @endphp
+
+    <div class="am-notification-wrap" data-notification-root>
+        <button
+            type="button"
+            class="am-notification-button"
+            data-notification-toggle
+            aria-expanded="false"
+            aria-controls="am-notification-panel"
+            aria-label="Notifications{{ $unreadNotifications > 0 ? ', '.$unreadNotifications.' unread' : '' }}"
+        >
+            {{-- Heroicons outline bell; the parent button provides its accessible name. --}}
+            <svg
+                class="am-notification-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                aria-hidden="true"
+                focusable="false"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
+                />
+            </svg>
+
+            <span
+                class="am-notification-count {{ $unreadNotifications === 0 ? 'hidden' : '' }}"
+                data-notification-count
+            >
+                {{ $unreadNotifications }}
+            </span>
+        </button>
+
+        <section
+            id="am-notification-panel"
+            class="am-notification-panel"
+            data-notification-panel
+            hidden
+            aria-label="Notifications"
+        >
+            <div class="am-notification-header">
+                <h2>Notifications</h2>
+
+                <button type="button" data-notification-read-all>
+                    Mark all as read
+                </button>
+            </div>
+
+            <div data-notification-list>
+                <p class="am-notification-empty">
+                    Loading notifications...
+                </p>
+            </div>
+        </section>
+    </div>
         @php $authUser = session('auth_user'); @endphp
         @if(session('auth_user.role_name') === 'Association Member')
         <a href="{{ route('member.information') }}" class="am-topbar__user am-member-profile-link" aria-label="View association profile: {{ $authUser['name'] ?? 'My association' }}" title="View association profile">
