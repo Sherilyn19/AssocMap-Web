@@ -10,7 +10,7 @@ use Tests\TestCase;
 
 /**
  * PostgreSQL behavior needs PostgreSQL tests, not SQLite imitations.
- * Opt-in creates an isolated schema INSIDE a transaction and always rolls it back.
+ * Opt-in creates an isolated schema inside a transaction and always rolls it back.
  * No public tables are read, truncated, migrated or seeded by these tests.
  */
 abstract class MembershipDatabaseTestCase extends TestCase
@@ -20,17 +20,28 @@ abstract class MembershipDatabaseTestCase extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
         if (getenv('ASSOCMAP_MEMBERSHIP_TESTS') !== '1') {
-            $this->markTestSkipped('Set ASSOCMAP_MEMBERSHIP_TESTS=1 to run isolated PostgreSQL membership tests.');
+            $this->markTestSkipped(
+                'Set ASSOCMAP_MEMBERSHIP_TESTS=1 to run isolated PostgreSQL membership tests.'
+            );
         }
+
         $schema = $this->schema = 'assocmap_test_membership_'.bin2hex(random_bytes(8));
-        config(['database.default' => 'pgsql', 'database.connections.pgsql.search_path' => $schema]);
+
+        config([
+            'database.default' => 'pgsql',
+            'database.connections.pgsql.search_path' => $schema,
+        ]);
+
         DB::purge('pgsql');
         DB::beginTransaction();
+
         // Random server-generated identifier; never interpolate a user-supplied schema name.
         DB::statement('CREATE SCHEMA "'.$schema.'"');
         DB::statement('SET LOCAL search_path TO "'.$schema.'"');
         DB::statement("SET LOCAL statement_timeout = '15000ms'");
+
         DB::unprepared(<<<'SQL'
             CREATE TABLE roles (id bigserial PRIMARY KEY, role_name varchar NOT NULL);
             CREATE TABLE users (id bigserial PRIMARY KEY, name varchar NOT NULL, email varchar NOT NULL, password varchar, role_id bigint REFERENCES roles(id), association_id bigint, is_active boolean DEFAULT true, created_at timestamp, updated_at timestamp);
@@ -52,6 +63,11 @@ abstract class MembershipDatabaseTestCase extends TestCase
             INSERT INTO members (association_id,first_name,last_name,birthday,sex_id,date_registered) VALUES (1,'Representative','One','1980-01-01',1,'2020-01-01'), (2,'Other','Person','1980-01-01',2,'2020-01-01');
             UPDATE associations SET representative_member_id=1 WHERE id=1;
         SQL);
+
+        (require base_path(
+            'database/migrations/2026_10_12_000001_create_notifications_table.php'
+        ))->up();
+
         (require base_path('database/migrations/2026_08_08_083300_harden_member_management_integrity.php'))->up();
         (require base_path('database/migrations/2026_09_08_000001_add_member_review_passphrase.php'))->up();
 
@@ -69,11 +85,12 @@ abstract class MembershipDatabaseTestCase extends TestCase
     protected function tearDown(): void
     {
         try {
-            // Roll back the outer transaction even when an assertion/service throws.
+            // Roll back the outer transaction even when an assertion or service throws.
             if ($this->app && getenv('ASSOCMAP_MEMBERSHIP_TESTS') === '1') {
                 while (DB::transactionLevel() > 0) {
                     DB::rollBack();
                 }
+
                 DB::disconnect('pgsql');
             }
         } finally {
@@ -83,9 +100,15 @@ abstract class MembershipDatabaseTestCase extends TestCase
 
     protected function sessionFor(int $id, string $cachedRole): array
     {
-        return ['auth_user' => [
-            'id' => $id, 'role_name' => $cachedRole,
-            'credential_fingerprint' => SessionCredentials::fingerprint($id, DB::table('users')->where('id', $id)->value('password')),
-        ]];
+        return [
+            'auth_user' => [
+                'id' => $id,
+                'role_name' => $cachedRole,
+                'credential_fingerprint' => SessionCredentials::fingerprint(
+                    $id,
+                    DB::table('users')->where('id', $id)->value('password')
+                ),
+            ],
+        ];
     }
 }
