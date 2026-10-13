@@ -21,6 +21,9 @@ abstract class UserManagementDatabaseTestCase extends TestCase
         DB::beginTransaction();
         DB::statement("SET LOCAL statement_timeout = '15000ms'");
         UserManagementFixture::create($this->schema);
+        (require base_path(
+            'database/migrations/2026_10_12_000001_create_notifications_table.php'
+        ))->up();
         $this->withoutVite();
     }
 

@@ -73,8 +73,15 @@ final class GisReadTest extends GisDatabaseTestCase
         $this->getJson('/gis/locations')->assertRedirect(route('login'));
         foreach ([2 => 'Field Officer', 3 => 'Association Member'] as $id => $role) {
             $this->withSession($this->sessionFor($id, $role));
-            $this->getJson('/gis/locations?association_id=2&user_id=1')->assertOk()->assertJsonCount(2, 'records')
-                ->assertDontSee('Other site')->assertJsonPath('records.0.published', false);
+            $response = $this->getJson('/gis/locations?association_id=2&user_id=1')->assertOk()
+                ->assertDontSee('Other site');
+            if ($role === 'Field Officer') {
+                $response->assertJsonCount(2, 'records')
+                    ->assertJsonPath('records.0.published', false);
+            } else {
+                $response->assertJsonCount(1, 'records')
+                    ->assertJsonPath('records.0.published', true);
+            }
             $this->get('/gis')->assertOk()->assertDontSee('Other site');
             $this->putJson('/admin/gis/1', [])->assertRedirect();
         }
