@@ -61,7 +61,7 @@ jobs:
           app/Http/Requests/Admin/GisLocationRequest.php app/Http/Requests/Admin/StoreGisLocationRequest.php
           app/Http/Requests/Admin/UpdateGisLocationRequest.php app/Http/Requests/Admin/PublishGisLocationRequest.php
           app/Services/GisManagementService.php app/Services/GisIndexService.php app/Models/GisLocation.php
-          app/Support/GisRevision.php app/Support/GisErrors.php tests/Feature/Gis*Test.php
+          app/Support/GisRevision.php app/Support/GisErrors.php tests/Feature/Gis*Test.php tests/Feature/field-officer-user/Gis*Test.php
           app/Services/GisReadService.php app/Services/GisTransferService.php app/Services/GisFileProcessor.php
           app/Http/Controllers/GisMapController.php app/Http/Controllers/Admin/GisTransferController.php
           app/Support/GisCoordinate.php app/Console/Commands/GisCleanup.php tests/Unit/GisCoordinateTest.php
