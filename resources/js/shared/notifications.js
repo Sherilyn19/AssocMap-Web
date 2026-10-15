@@ -44,16 +44,46 @@
     };
 
     const load = async (playSound = false) => {
-        const response = await fetch('/notifications', {
-            headers: { Accept: 'application/json' },
-        });
+        let payload;
 
-        if (!response.ok) {
+        try {
+            const response = await fetch('/notifications', {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+                signal: AbortSignal.timeout(15000),
+            });
+
+            // Login redirects and server error pages may contain HTML.
+            // Do not interpret those responses as notification JSON.
+            const contentType = response.headers.get('content-type') ?? '';
+
+            if (
+                !response.ok
+                || response.redirected
+                || !contentType.includes('application/json')
+            ) {
+                throw new Error('Notifications unavailable');
+            }
+
+            payload = await response.json();
+
+            if (!Array.isArray(payload.notifications)) {
+                throw new Error('Invalid notification response');
+            }
+        } catch {
+            // Preserve existing records and counts during a temporary failure.
+            // Show feedback only when there are no previously loaded records.
+            if (!knownIds.size) {
+                list.innerHTML =
+                    '<p class="am-notification-empty" role="status">' +
+                    'Notifications are temporarily unavailable. Reopen this panel to retry.' +
+                    '</p>';
+            }
+
             return;
         }
 
-        const payload = await response.json();
-        const notifications = payload.notifications ?? [];
+        const notifications = payload.notifications;
 
         const hasNewNotification = notifications.some((item) => !knownIds.has(item.id));
 
