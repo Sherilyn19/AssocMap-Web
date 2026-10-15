@@ -5,3 +5,29 @@
 .am-assistance-feedback[data-tone="warning"] { border-color: #e8c97c; background: #fffbeb; color: #854d0e; }
 .am-assistance-mark { display: grid; place-items: center; width: 3rem; height: 3rem; margin-bottom: .75rem; border-radius: 50%; background: #e8f5ee; color: #216e41; }
 .am-assistance-dialog :focus-visible { outline: 2px solid #176c73; outline-offset: 3px; }
+
+/* Keep hidden sections hidden even when shared layout classes set display. */
+[data-assistance-form] [hidden] { display: none !important; }
+
+/* Status and date share a row; the date stays compact. */
+.am-assistance-fields { display: grid; grid-template-columns: minmax(0, 1fr) 12rem; gap: 1rem; align-items: end; }
+.am-assistance-fields > label { min-width: 0; }
+@media (max-width: 640px) { .am-assistance-fields { grid-template-columns: minmax(0, 1fr); } [data-assistance-date] { max-width: 12rem; } }
+
+.am-assistance-options { min-width: 0; margin: 0; padding: 0; border: 0; }
+.am-assistance-steps { display: flex; align-items: center; gap: .4rem; margin-top: .4rem; }
+.am-assistance-choice { position: relative; flex: 1; min-width: 0; cursor: pointer; }
+
+/* Keep native radio behavior while styling its visible label. */
+.am-assistance-choice > input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.am-assistance-chip { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 3rem; padding: .5rem .3rem; border: 1px solid #cce1e6; border-radius: .65rem; background: #fff; font-size: .85rem; transition: background .15s, border-color .15s; }
+.am-assistance-chip small { font-size: .7rem; }
+.am-assistance-choice > input:disabled + .am-assistance-chip { color: #64748b; background: #f1f5f9; border-style: dashed; cursor: not-allowed; }
+.am-assistance-choice > input:checked + .am-assistance-chip { color: #115e59; background: #ecfdf5; border-color: #0f766e; }
+.am-assistance-choice:focus-visible, .am-assistance-choice > input:focus-visible + .am-assistance-chip { outline: 2px solid #0f766e; outline-offset: 3px; }
+.am-assistance-arrow { color: #64748b; }
+
+/* Absolute positioning prevents the bubble from moving other fields. */
+.am-assistance-tip { position: absolute; bottom: calc(100% + .4rem); left: 50%; z-index: 20; width: max-content; max-width: 10rem; padding: .4rem .6rem; border-radius: .5rem; background: #1e293b; color: white; font-size: .75rem; text-align: center; pointer-events: none; opacity: 0; visibility: hidden; transform: translateX(-50%); transition: opacity .15s; }
+.am-assistance-choice:hover .am-assistance-tip, .am-assistance-choice:focus-within .am-assistance-tip { opacity: 1; visibility: visible; }
+@media (prefers-reduced-motion: reduce) { .am-assistance-chip, .am-assistance-tip { transition: none; } }

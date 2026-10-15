@@ -15,7 +15,9 @@ final class AssociationAssistanceController extends Controller
         $record = $service->authorized($resolver->resolve($request), $association);
         $counts = $service->pending($association);
         return response()->json([
-            'eligible' => !$record->is_archived && $record->assistance_status !== 'terminated' && array_sum($counts) === 0,
+            'eligible' => !$record->is_archived
+                && $record->assistance_status === 'accepted'
+                && array_sum($counts) === 0,
             'counts' => $counts,
         ])->header('Cache-Control', 'private, no-store');
     }
@@ -28,8 +30,9 @@ final class AssociationAssistanceController extends Controller
             'assistance_status' => ['required', Rule::in(array_keys(Association::ASSISTANCE_STATUSES))],
             'previous_status' => ['nullable', Rule::in(array_keys(Association::ASSISTANCE_STATUSES))],
             'reason' => ['required', 'string', 'max:2000', 'regex:/\S/u'],
-            'assessment_date' => ['exclude_unless:assistance_status,terminated', 'required', 'date_format:Y-m-d', 'before_or_equal:'.now('Asia/Manila')->toDateString()],
-            'assistance_confirmation' => ['exclude_unless:assistance_status,terminated', 'required', 'string'],
+            // Every assistance decision requires a date and exact confirmation.
+        'assessment_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now('Asia/Manila')->toDateString(),],
+        'assistance_confirmation' => ['required', 'string', 'max:100', ],
         ]);
         $service->update($actor, $association, $data);
         $url = route($actor->role?->role_name === 'System Administrator' ? 'admin.associations.show' : 'officer.associations.show', $association);
