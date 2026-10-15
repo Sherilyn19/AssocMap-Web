@@ -20,7 +20,9 @@ final class GisErrors
 
     public static function render(Throwable $error, Request $request): mixed
     {
-        if ($response = AssociationTerminationErrors::render($error, $request)) return $response;
+        if ($response = AssociationTerminationErrors::render($error, $request)) {
+            return $response;
+        }
         Log::error('GIS request could not be confirmed.', ['type' => $error::class]);
         if ($request->expectsJson()) {
             return response()->json(['message' => 'The save could not be confirmed. Refresh and check the location before trying again.', 'uncertain' => true], 503);
