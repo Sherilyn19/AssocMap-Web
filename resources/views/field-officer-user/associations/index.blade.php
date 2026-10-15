@@ -41,7 +41,7 @@
             @foreach([
                 'area_unit_id' => ['City / Municipality', $areas, 'name'],
                 'program_component_id' => ['Program component', $components, 'name'],
-                'status_id' => ['Status', $statuses, 'status_name'],
+                'status_id' => ['Operational status', $statuses, 'status_name'],
             ] as $key => [$label, $options, $name])
                 <label class="flex min-w-0 flex-col gap-2">
                     <span class="text-sm font-semibold">{{ $label }}</span>
@@ -55,15 +55,27 @@
                             </option>
                         @endforeach
 
-                        @if($key === 'status_id')
-                            <option value="archived"
-                                    @selected(($filters[$key] ?? '') === 'archived')>
-                                Archived
-                            </option>
-                        @endif
                     </select>
                 </label>
             @endforeach
+
+            {{-- Filter archived records separately from operational status. --}}
+            <label class="flex min-w-0 flex-col gap-2">
+                <span class="text-sm font-semibold">Record state</span>
+
+                <select name="archive" class="w-full">
+                    @foreach([
+                        'current' => 'Current records',
+                        'archived' => 'Archived records',
+                        'all' => 'All records',
+                    ] as $value => $label)
+                        <option value="{{ $value }}"
+                                @selected(($filters['archive'] ?? 'current') === $value)>
+                            {{ $label }}
+                        </option>
+                    @endforeach
+                </select>
+            </label>
         </div>
 
         <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3">

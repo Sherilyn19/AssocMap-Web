@@ -129,22 +129,7 @@
                 </fieldset>
             @endif
 
-            <label class="block">
-                <span>Training purpose *</span>
-                <select name="stage" required class="mt-2 w-full">
-                    <option value="">Choose purpose</option>
-                    @foreach($purposes as $key => $label)
-                        <option value="{{ $key }}" @selected($value('stage') === $key)>
-                            {{ $label }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('stage')
-                    <span class="block text-sm text-red-800">{{ $message }}</span>
-                @enderror
-            </label>
-
-            @if($datesEditable)
+@if($datesEditable)
                 <fieldset>
                     <legend class="font-semibold mb-3">Schedule</legend>
                     <div class="grid gap-4 sm:grid-cols-2">

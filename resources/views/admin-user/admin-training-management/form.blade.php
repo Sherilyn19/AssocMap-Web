@@ -20,7 +20,6 @@
                 @include('shared.partials.field', ['prefix'=>'training','name'=>'date_conducted','label'=>'From Date','type'=>'date','required'=>true])
                 @include('shared.partials.field', ['prefix'=>'training','name'=>'end_date','label'=>'To Date','type'=>'date','required'=>true])
             @endif
-            @include('shared.partials.field', ['prefix'=>'training','name'=>'stage','label'=>'Training Stage','type'=>'select','value'=>$training ? $training->stage : 'proposal','required'=>true,'options'=>\App\Models\Training::STAGES])
             @include('shared.partials.field', ['prefix'=>'training','name'=>'venue','label'=>'Venue','value'=>$training?->venue,'required'=>true,'maxLength'=>255])
             @include('shared.partials.field', ['prefix'=>'training','name'=>'conducted_by','label'=>'Conducted By','value'=>$training?->conducted_by,'required'=>true,'maxLength'=>255,'help'=>'Name of the facilitator or organizing office.'])
             @include('shared.partials.field', ['prefix'=>'training','name'=>'remarks','label'=>'Remarks (optional)','type'=>'textarea','value'=>$training?->remarks,'span'=>'md:col-span-2'])

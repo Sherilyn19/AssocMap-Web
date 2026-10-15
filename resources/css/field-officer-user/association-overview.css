@@ -1,0 +1,275 @@
+.fo-association-overview {
+    @apply grid gap-4;
+    color: #084873;
+    animation: fo-overview-enter 180ms ease-out;
+}
+
+.fo-overview-heading {
+    @apply flex flex-wrap items-center justify-between gap-2;
+}
+
+.fo-overview-heading :is(h3, h4),
+.fo-overview-chart h4 {
+    @apply m-0 font-bold;
+}
+
+.fo-overview-heading > span,
+.fo-overview-caption,
+.fo-overview-empty,
+.fo-overview-reference :is(span, small),
+.fo-overview-timeline :is(time, small) {
+    @apply text-xs;
+    color: #52677e;
+}
+
+/* Four compact totals; charts and reference information use two columns. */
+.fo-overview-totals {
+    @apply m-0 grid grid-cols-2 gap-2.5 md:grid-cols-4;
+}
+
+.fo-overview-reference,
+.fo-overview-charts {
+    @apply grid grid-cols-1 gap-3 min-[481px]:grid-cols-2;
+}
+
+.fo-overview-totals > div,
+.fo-overview-chart,
+.fo-overview-reference,
+.fo-overview-timeline {
+    @apply min-w-0 rounded-xl border bg-white p-3.5;
+    border-color: #d6e3e6;
+}
+
+.fo-overview-totals > div {
+    @apply border-t-[3px];
+    border-top-color: #176c73;
+}
+
+.fo-overview-totals dt {
+    @apply text-xs;
+    color: #52677e;
+}
+
+.fo-overview-totals dd {
+    @apply mb-0 ml-0 mr-0 mt-1.5 text-2xl font-bold;
+}
+
+.fo-overview-reference > div {
+    @apply grid gap-1;
+}
+
+/* Names remain normal links to the existing record pages. */
+.fo-association-record-link,
+.fo-overview-reference a,
+.fo-overview-timeline a {
+    @apply break-words underline underline-offset-4 transition-colors;
+    color: #176c73;
+}
+
+.fo-association-record-link:hover,
+.fo-overview-reference a:hover,
+.fo-overview-timeline a:hover {
+    color: #084873;
+}
+
+/* These filters also work in the related-record drawer. */
+.fo-overview-filters {
+    @apply flex flex-wrap items-end gap-3;
+}
+
+.fo-overview-filters label {
+    @apply grid gap-1 text-xs;
+}
+
+.fo-overview-filters select {
+    @apply min-h-10 min-w-32 rounded-lg border border-slate-300 bg-white px-2.5 py-2;
+    color: #084873;
+}
+
+.fo-overview-filters .fo-overview-check {
+    @apply flex min-h-10 items-center gap-2;
+}
+
+.fo-overview-check input {
+    @apply h-4 w-4;
+    accent-color: #176c73;
+}
+
+/* Anchor the information bubble without changing the card's height. */
+.fo-overview-help {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.fo-overview-help h4 {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+/* Reuse the shared information component's colors, icon and animation. */
+.fo-overview-help .am-info__content {
+    inset: calc(100% + 6px) 0 auto auto;
+    width: min(320px, 100%);
+    z-index: 40;
+}
+
+/* Keep an open bubble above adjacent cards and chart content. */
+.fo-overview-reference,
+.fo-overview-chart {
+    position: relative;
+}
+
+.fo-overview-reference:has(.am-info[open]),
+.fo-overview-chart:has(.am-info[open]) {
+    z-index: 5;
+}
+
+/* Python supplies each proportion; CSS only draws and animates it. */
+.fo-overview-bar-row {
+    @apply mt-3;
+}
+
+.fo-overview-bar-label {
+    @apply flex justify-between gap-2 text-xs;
+}
+
+.fo-overview-track {
+    @apply mt-1.5 h-2 overflow-hidden rounded-full;
+    background: #edf2f4;
+}
+
+.fo-overview-track > span {
+    @apply block h-full rounded-full;
+    width: var(--bar-width);
+    background: #176c73;
+    transform-origin: left;
+    animation: fo-overview-fill 450ms ease-out;
+}
+
+.fo-overview-bar-row small {
+    @apply mt-1 block text-xs;
+    color: #52677e;
+}
+
+/* A compact timeline replaces large descriptive blocks. */
+.fo-overview-timeline ol {
+    @apply mb-0 ml-0 mr-0 mt-3 list-none p-0;
+}
+
+.fo-overview-timeline li {
+    @apply grid grid-cols-1 gap-1 border-t border-slate-200 py-3;
+}
+
+.fo-overview-timeline li > div {
+    @apply border-l-2 pl-3;
+    border-color: #b7d9da;
+}
+
+.fo-overview-timeline :is(a, small) {
+    @apply mb-1 block;
+}
+
+.fo-overview-missing {
+    @apply rounded-lg border p-3 text-xs;
+    border-color: #d6e3e6;
+    color: #52677e;
+}
+
+.fo-overview-missing summary {
+    @apply cursor-pointer font-semibold;
+    color: #084873;
+}
+
+.fo-association-overview :is(a, button, select, input, summary):focus-visible,
+.fo-association-record-link:focus-visible {
+    outline: 2px solid #176c73;
+    outline-offset: 3px;
+}
+
+@media (min-width: 481px) {
+    .fo-overview-timeline li {
+        grid-template-columns: 92px minmax(0, 1fr);
+        gap: 12px;
+    }
+}
+
+@keyframes fo-overview-fill {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+}
+
+@keyframes fo-overview-enter {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fo-association-overview,
+    .fo-association-overview *,
+    .fo-association-record-link {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* Stretch a real link across each card while preserving keyboard access. */
+.fo-overview-card {
+    position: relative;
+    transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.fo-overview-card-link {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+}
+
+.fo-overview-card:hover,
+.fo-overview-card:focus-within {
+    background: #edf6f8;
+    box-shadow: 0 3px 10px rgb(23 108 115 / 10%);
+}
+
+/* Keep refresh feedback visible without blocking the modal or right drawer. */
+[data-record-load-notice] {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid #d6e3e6;
+    border-radius: 0.75rem;
+    background: #edf6f8;
+    color: #084873;
+}
+
+[data-record-load-notice] p {
+    margin: 0;
+}
+
+[aria-busy="true"] > [data-record-load-notice] p::before {
+    content: "";
+    display: inline-block;
+    width: 0.85rem;
+    height: 0.85rem;
+    margin-right: 0.5rem;
+    border: 2px solid #b7d9da;
+    border-top-color: #176c73;
+    border-radius: 50%;
+    vertical-align: -0.1rem;
+    animation: fo-record-loading 700ms linear infinite;
+}
+
+@keyframes fo-record-loading {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [aria-busy="true"] > [data-record-load-notice] p::before {
+        animation: none;
+    }
+}

@@ -22,6 +22,10 @@ final class Association extends Model
 {
     use HasFactory;
 
+    public const ASSISTANCE_STATUSES = [
+        "proposal" => "Proposal", "accepted" => "Accepted", "terminated" => "Terminated",
+    ];
+
     protected $fillable = [
         'name',
         'area_unit_id',
@@ -56,6 +60,11 @@ final class Association extends Model
     public function programComponent(): BelongsTo
     {
         return $this->belongsTo(ProgramComponent::class);
+    }
+
+    public function assistanceTerminator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assistance_terminated_by');
     }
 
     public function fieldOfficer(): BelongsTo

@@ -176,16 +176,30 @@
             </label>
 
             <label class="flex min-w-0 flex-col gap-2">
-                <span>Association archive state</span>
+                <span>Association record state</span>
                 <select name="archive">
                     <option value="current" @selected($archive === 'current')>
-                        Not archived
+                        Current records
                     </option>
                     <option value="archived" @selected($archive === 'archived')>
-                        Archived
+                        Archived records
                     </option>
                     <option value="all" @selected($archive === 'all')>
-                        {{ $memberAreaView ? 'All archive states' : 'All assigned associations' }}
+                        All records
+                    </option>
+                </select>
+            </label>
+
+            {{-- Use the same operational-status choices as My Associations. --}}
+            <label class="flex min-w-0 flex-col gap-2">
+                <span>Operational status</span>
+                <select name="status">
+                    <option value="">All statuses</option>
+                    <option value="Active" @selected(request('status') === 'Active')>
+                        Active
+                    </option>
+                    <option value="Inactive" @selected(request('status') === 'Inactive')>
+                        Inactive
                     </option>
                 </select>
             </label>
@@ -362,6 +376,7 @@
                                     'areaUnit' => $area['id'],
                                     'search' => $search,
                                     'archive' => $archive,
+                                    'status' => request('status', ''),
                                     'quality' => $quality,
                                 ]) }}"
                                    class="am-user-button am-user-button-secondary whitespace-nowrap"

@@ -29,7 +29,10 @@ final class AreaController extends Controller
         abort_unless($actor, 403);
 
         // Apply account ownership before loading or counting records.
-        $assigned = $access->associations($actor)
+        $assigned = $this->filteredCoverageQuery(
+            $access->associations($actor),
+            $filters
+        )
             ->with(['areaUnit', 'subUnit', 'status'])
             ->withCount([
                 'members as current_members_count' =>
@@ -48,8 +51,8 @@ final class AreaController extends Controller
         $archive = $filters['archive'];
         $quality = $filters['quality'];
 
-        // Filter only associations already authorized for this account.
-        $filtered = $this->filterCoverage($assigned, $filters);
+        // The database query above already applies the authorized filters.
+        $filtered = $assigned;
         $issues = $filtered->filter($hasIssue)->values();
 
         // Build modal records from the same authorized, filtered collection as the table.
@@ -168,8 +171,10 @@ final class AreaController extends Controller
             ->whereIn('id', (clone $scope)->select('area_unit_id'))
             ->findOrFail($areaUnit);
 
-        $assigned = (clone $scope)
-            ->where('area_unit_id', $area->id)
+        $query = $this->filteredCoverageQuery(
+            (clone $scope)->where('associations.area_unit_id', $area->id),
+            $filters
+        )
             ->with(['areaUnit', 'subUnit', 'status', 'programComponent'])
             ->withCount([
                 'members as current_members_count' =>
@@ -186,29 +191,32 @@ final class AreaController extends Controller
                         fn ($query) => $query->whereNull('archived_at')
                     ),
             ])
-            ->orderBy('name')
-            ->orderBy('id')
-            ->get();
+            ->orderBy('associations.name')
+            ->orderBy('associations.id');
 
-        // Reuse the register's filtering rather than maintaining a second rule.
-        $filtered = $this->filterCoverage($assigned, $filters);
+        // Count matching records, then retrieve only the requested page.
+        $total = (clone $query)->toBase()->getCountForPagination();
+        $perPage = 10;
 
         $page = min(
-            (int) ($filters['page'] ?? 1),
-            max(1, (int) ceil($filtered->count() / 10))
+            $filters['page'],
+            max(1, (int) ceil($total / $perPage))
         );
+
+        $records = $query->forPage($page, $perPage)->get();
 
         // Carry only validated filters into links; each view owns its page number.
         $coverageQuery = [
             'search' => trim($filters['search'] ?? ''),
             'archive' => $filters['archive'] ?? 'current',
+            'status' => $filters['status'],
             'quality' => $filters['quality'] ?? 'all',
         ];
 
         $associations = new LengthAwarePaginator(
-            $filtered->forPage($page, 10)->values(),
-            $filtered->count(),
-            10,
+            $records,
+            $total,
+            $perPage,
             $page,
             ['path' => $request->url(), 'query' => $coverageQuery]
         );
@@ -316,12 +324,69 @@ final class AreaController extends Controller
         ));
     }
 
+    /**
+     * Filter an already-authorized association query.
+     * This method never replaces the account's access restrictions.
+     */
+    private function filteredCoverageQuery(
+        \Illuminate\Database\Eloquent\Builder $query,
+        array $filters
+    ): \Illuminate\Database\Eloquent\Builder {
+        if ($filters['archive'] !== 'all') {
+            $query->where(
+                'associations.is_archived',
+                $filters['archive'] === 'archived'
+            );
+        }
+
+        if ($filters['status'] !== '') {
+            $query->whereHas('status', function ($status) use ($filters) {
+                $status->where('status_name', $filters['status']);
+            });
+        }
+
+        if ($filters['quality'] === 'incomplete') {
+            $query->where(function ($geography) {
+                $geography
+                    ->whereDoesntHave('areaUnit')
+                    ->orWhereDoesntHave('subUnit')
+                    ->orWhereHas('subUnit', function ($barangay) {
+                        $barangay->whereColumn(
+                            'sub_units.area_unit_id',
+                            '<>',
+                            'associations.area_unit_id'
+                        )->orWhereNull('sub_units.area_unit_id');
+                    });
+            });
+        }
+
+        if ($filters['search'] !== '') {
+            // POSITION treats % and _ literally, matching the previous PHP search.
+            $needle = $filters['search'];
+
+            $query->whereRaw(
+                "POSITION(
+                    LOWER(?) IN LOWER(CONCAT_WS(' ',
+                        associations.name,
+                        (SELECT name FROM area_units
+                        WHERE area_units.id = associations.area_unit_id),
+                        (SELECT name FROM sub_units
+                        WHERE sub_units.id = associations.sub_unit_id)
+                    ))
+                ) > 0",
+                [$needle]
+            );
+        }
+
+        return $query;
+    }
     private function coverageFilters(Request $request): array
     {
         // Validate once and normalize blank values to consistent defaults.
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:150'],
             'archive' => ['nullable', Rule::in(['current', 'archived', 'all'])],
+            'status' => ['nullable', Rule::in(['Active', 'Inactive'])],
             'quality' => ['nullable', Rule::in(['all', 'incomplete'])],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
@@ -329,6 +394,7 @@ final class AreaController extends Controller
         return [
             'search' => trim($validated['search'] ?? ''),
             'archive' => $validated['archive'] ?? 'current',
+            'status' => $validated['status'] ?? '',
             'quality' => $validated['quality'] ?? 'all',
             'page' => (int) ($validated['page'] ?? 1),
         ];
@@ -341,37 +407,6 @@ final class AreaController extends Controller
             || ! $association->subUnit
             || (int) $association->subUnit->area_unit_id
                 !== (int) $association->area_unit_id;
-    }
-
-    private function filterCoverage(
-        Collection $associations,
-        array $filters
-    ): Collection {
-        return $associations->filter(function (
-            Association $association
-        ) use ($filters): bool {
-            // Association archival is separate from its operational status.
-            if ($filters['archive'] !== 'all'
-                && (bool) $association->is_archived
-                    !== ($filters['archive'] === 'archived')) {
-                return false;
-            }
-
-            if ($filters['quality'] === 'incomplete'
-                && ! $this->hasGeographicIssue($association)) {
-                return false;
-            }
-
-            // Search identical fields on the register and coverage pages.
-            $text = implode(' ', [
-                $association->name,
-                $association->areaUnit?->name,
-                $association->subUnit?->name,
-            ]);
-
-            return $filters['search'] === ''
-                || mb_stripos($text, $filters['search']) !== false;
-        })->values();
     }
 
     private function paginateCoverage(
@@ -393,10 +428,11 @@ final class AreaController extends Controller
                 'path' => $request->url(),
                 // Preserve filters when moving between result pages.
                 'query' => [
-                    'search' => $filters['search'],
-                    'archive' => $filters['archive'],
-                    'quality' => $filters['quality'],
-                ],
+                'search' => $filters['search'],
+                'archive' => $filters['archive'],
+                'status' => $filters['status'],
+                'quality' => $filters['quality'],
+            ],
             ]
         );
     }

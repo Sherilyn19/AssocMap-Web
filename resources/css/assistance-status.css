@@ -1,0 +1,7 @@
+/* Layout and colors come from shared workspace styles. */
+.am-assistance-dialog { width: min(34rem, calc(100vw - 2rem)); max-height: 90dvh; padding: 1.5rem; border: 1px solid #cce1e6; border-radius: 1rem; color: #134b65; }
+.am-assistance-dialog::backdrop { background: rgb(15 23 42 / 45%); }
+.am-assistance-feedback { padding: 1rem; border: 1px solid #cce1e6; border-radius: .75rem; background: #edf6f8; }
+.am-assistance-feedback[data-tone="warning"] { border-color: #e8c97c; background: #fffbeb; color: #854d0e; }
+.am-assistance-mark { display: grid; place-items: center; width: 3rem; height: 3rem; margin-bottom: .75rem; border-radius: 50%; background: #e8f5ee; color: #216e41; }
+.am-assistance-dialog :focus-visible { outline: 2px solid #176c73; outline-offset: 3px; }

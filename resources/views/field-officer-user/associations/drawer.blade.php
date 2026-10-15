@@ -95,10 +95,31 @@
                     {{ $section === 'address' ? 'GIS locations' : strtolower($titles[$section]) }}
                 </h4>
                 <span class="fo-pill fo-pill-slate">
-                    {{ in_array($section, ['address', 'members'], true)
-                        ? 'Non-archived records' : 'Including archived records' }}
+                    {{ $publicOnly
+                    ? 'Publicly visible locations'
+                    : ($includeArchived ? 'Current and archived records' : 'Current records only') }}
                 </span>
             </div>
+
+            @if(!$publicOnly)
+
+                <form method="GET"
+                    action="{{ route('officer.associations.details', [
+                        'association' => $association->id,
+                        'section' => $section,
+                    ]) }}"
+                    class="fo-overview-filters"
+                    data-record-filter>
+                    <label class="fo-overview-check">
+                        <input type="checkbox" name="include_archived" value="1"
+                            @checked($includeArchived)>
+                        Include archived records
+                    </label>
+
+                    <button type="submit" class="fo-action">Apply</button>
+                </form>
+
+            @endif
 
             @forelse($records as $item)
                 @php
@@ -123,7 +144,8 @@
                         'address' => [
                             'Latitude' => $item->latitude,
                             'Longitude' => $item->longitude,
-                            'Publication' => $item->is_published ? 'Published' : 'Unpublished',
+                            // This describes the setting, not confirmed public-map eligibility.
+                            'Publishing setting' => $item->is_published ? 'Enabled' : 'Disabled',
                         ],
                         'members' => [
                             'Association role' => $item->role_in_assoc,
@@ -140,7 +162,6 @@
                             'Remarks' => $item->remarks,
                         ],
                         default => [
-                            'Stage' => \App\Models\Training::STAGES[$item->stage] ?? $item->stage,
                             'Type' => $item->training_type,
                             'Venue' => $item->venue,
                             'Start date' => $item->date_conducted?->format('M d, Y'),
@@ -153,13 +174,34 @@
 
                 <article class="fo-card fo-card-padded">
                     <p class="fo-record-id">{{ $prefix }}-{{ $item->id }}</p>
-                    <h4 class="fo-record-title">{{ $title }}</h4>
+                    @php
+                        $archived = $section === 'address'
+                            ? $item->archived_at !== null
+                            : (bool) $item->is_archived;
 
-                    @if(in_array($section, ['projects', 'trainings'], true))
-                        <span class="fo-pill {{ $item->is_archived ? 'fo-pill-amber' : 'fo-pill-slate' }}">
-                            {{ $item->is_archived ? 'Archived' : 'Not archived' }}
-                        </span>
-                    @endif
+                        // Archived locations use their existing read-only history.
+                        // Current locations open the authorized internal GIS workspace.
+                        $recordUrl = match ($section) {
+                            'members' => route('membership.members.show', $item->id),
+                            'projects' => route('officer.projects.show', $item->id),
+                            'trainings' => route('officer.trainings.show', $item->id),
+                            default => $archived || $association->is_archived
+                                ? route('gis.officer.history', $item->id)
+                                : route('gis.officer.index', ['location' => $item->id]),
+                        };
+                    @endphp
+
+                    <h4 class="fo-record-title">
+                        {{-- No drawer attributes: the user intentionally opens the full record. --}}
+                        <a href="{{ $recordUrl }}"
+                        class="fo-association-record-link">
+                            {{ $title }}
+                        </a>
+                    </h4>
+
+                    <span class="fo-pill {{ $archived ? 'fo-pill-amber' : 'fo-pill-slate' }}">
+                        {{ $archived ? 'Archived · read-only' : 'Current record' }}
+                    </span>
 
                     <dl class="fo-definition mt-4">
                         @foreach($fields as $label => $value)

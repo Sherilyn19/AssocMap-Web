@@ -142,7 +142,7 @@
                                 'projects' => ['retained_projects_count', 'Non-archived projects'],
                                 'gis' => [
                                     'mapped_locations_count',
-                                    $memberAreaView ? 'Published locations' : 'Saved locations',
+                                    $memberAreaView ? 'Publicly visible locations' : 'GIS records',
                                 ],
                             ] as $section => [$countField, $label])
                                 <td>

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Feature;
+namespace Tests\Feature\FieldOfficerUser;
 
 use App\Models\User;
 use App\Services\ReportsService;
@@ -46,6 +46,20 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
             'database/migrations/2026_10_06_000002_add_training_workflow_markers.php'
         ))->up();
         
+        // Match the current monitoring schema inside the rollback-only test schema.
+        (require base_path('database/migrations/2026_10_06_000003_update_monitoring_workflow.php'))->up();
+        (require base_path('database/migrations/2026_10_08_000001_add_production_progress_entries.php'))->up();
+        DB::unprepared(<<<'SQL'
+            ALTER TABLE projects ADD budget numeric(14,2);
+            ALTER TABLE project_materials ADD archived_at timestamp;
+            CREATE TABLE gis_locations (
+                id bigserial PRIMARY KEY, association_id bigint REFERENCES associations(id),
+                project_id bigint REFERENCES projects(id), location_name varchar,
+                latitude numeric, longitude numeric, is_published boolean DEFAULT false,
+                archived_at timestamp, created_at timestamp, updated_at timestamp
+            );
+        SQL);
+
         // The foreign association belongs to another actual Field Officer.
         DB::table('users')->insert(['id' => 4, 'name' => 'Other Officer', 'email' => 'other-officer@example.test', 'role_id' => 2, 'is_active' => true]);
         DB::table('associations')->where('id', 2)->update(['field_officer_id' => 4]);
@@ -56,7 +70,7 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
     {
         $this->get('/officer/dashboard')->assertOk()->assertViewHas('counts', fn ($counts) => $counts === [
             'My Associations' => 1, 'My Members' => 1, 'Monitoring Records' => 3, 'Training Records' => 1,
-        ])->assertSee('Assigned Association')->assertDontSee('Other Association')->assertSee('N/A')
+        ])->assertSee('Assigned Association')->assertDontSee('Other Association')->assertSee('Assigned project')->assertSee('N/A (zero target)')
             ->assertDontSee('Member Approvals')->assertDontSee('User Management')->assertDontSee('Audit Log');
         $this->get('/officer/associations?area_unit_id=1')->assertOk()->assertSee('Assigned Association')->assertDontSee('Other Association');
         $this->get('/officer/associations/1')->assertOk()->assertSee('Shared Municipality');
@@ -147,7 +161,12 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
         $this->get('/membership/applications/'.$application)->assertOk()->assertDontSee('name="review_passphrase"', false);
         $this->postJson('/membership/applications', [])->assertForbidden();
         foreach (['Approved', 'Rejected'] as $decision) {
-            $this->patchJson('/membership/applications/'.$application.'/review', ['decision' => $decision, 'reviewed_by_member_id' => 1])->assertForbidden();
+            // Assigned officers may review, but may not forge reviewer identity.
+            $this->patchJson('/membership/applications/'.$application.'/review', [
+                'decision' => $decision, 'decision_confirmed' => '1',
+                'rejection_reason' => 'Fixture rejection reason',
+                'reviewed_by_member_id' => 1,
+            ])->assertUnprocessable()->assertJsonValidationErrors('reviewed_by_member_id');
         }
         foreach ([['POST', '/admin/projects'], ['PUT', '/admin/projects/1'], ['PATCH', '/admin/projects/1/archive'], ['PUT', '/admin/members/1'], ['PATCH', '/admin/members/1/archive'], ['POST', '/admin/trainings'], ['PATCH', '/admin/trainings/1/archive'], ['PATCH', '/admin/associations/1/representative'], ['GET', '/admin/audit-logs']] as [$method, $path]) {
             $this->call($method, $path)->assertRedirect('/officer/dashboard');
@@ -247,15 +266,15 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
         $this->get('/officer/trainings/2?details=1')->assertNotFound();
         DB::table('training_participants')->where('member_id', 1)->update(['attendance_status_id' => null]);
         $this->get('/officer/trainings/1?details=1')->assertOk()->assertSee('0 of 1 attendance records finalized');
-        $this->putJson('/officer/trainings/1', ['venue' => 'Hall', 'conducted_by' => 'BFAR', 'date_conducted' => '2030-01-01'])
+        $this->putJson('/officer/trainings/1', ['stage' => 'accepted', 'date_conducted' => '2030-01-01', 'end_date' => '2030-01-02'])
             ->assertUnprocessable()->assertJsonValidationErrors('date_conducted');
     }
 
     public function test_training_fields_attendance_duplicates_and_relationships(): void
     {
-        $data = ['venue' => 'New venue', 'conducted_by' => 'BFAR facilitator', 'remarks' => 'Updated information'];
-        $this->put('/officer/trainings/1', $data)->assertRedirect('/officer/trainings/1')->assertSessionHasNoErrors();
-        foreach (['stage' => 'terminated', 'date_conducted' => '2026-01-01', 'end_date' => '2026-01-02', 'association_id' => 2, 'title' => 'Changed', 'training_cost' => 100] as $key => $value) {
+        $data = ['stage' => 'accepted', 'remarks' => 'Updated information'];
+        $this->put('/officer/trainings/1', $data)->assertRedirect('/officer/trainings')->assertSessionHasNoErrors();
+        foreach (['venue' => 'Changed hall', 'conducted_by' => 'Changed facilitator', 'association_id' => 2, 'title' => 'Changed', 'training_cost' => 100] as $key => $value) {
             $this->putJson('/officer/trainings/1', [...$data, $key => $value])->assertUnprocessable()->assertJsonValidationErrors($key);
         }
         $this->putJson('/officer/trainings/2', $data)->assertNotFound();
@@ -278,12 +297,12 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
         $this->get('/officer/trainings/1')->assertOk();
         DB::table('associations')->where('id', 1)->update(['field_officer_id' => 1]);
         $this->patchJson('/officer/projects/1/materials/1/delivery', ['delivery_date' => null])->assertNotFound();
-        $this->putJson('/officer/trainings/1', ['venue' => 'Hall', 'conducted_by' => 'BFAR'])->assertNotFound();
+        $this->putJson('/officer/trainings/1', ['stage' => 'accepted', 'remarks' => 'Scoped update'])->assertNotFound();
         $this->postJson('/officer/trainings/1/participants', ['member_id' => 1])->assertNotFound();
         $this->get('/officer/reports?year=2025')->assertOk()->assertSee('No records found for the selected criteria')->assertDontSee('Assigned project');
         DB::table('associations')->where('id', 1)->update(['field_officer_id' => 2, 'is_archived' => true]);
         $this->patchJson('/officer/projects/1/materials/1/delivery', ['delivery_date' => null])->assertForbidden();
-        $this->putJson('/officer/trainings/1', ['venue' => 'Hall', 'conducted_by' => 'BFAR'])->assertForbidden();
+        $this->putJson('/officer/trainings/1', ['stage' => 'accepted', 'remarks' => 'Scoped update'])->assertForbidden();
         DB::table('associations')->where('id', 1)->update(['is_archived' => false]);
         DB::table('projects')->where('id', 1)->update(['is_archived' => true]);
         DB::table('trainings')->where('id', 1)->update(['is_archived' => true]);
@@ -311,21 +330,21 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
 
     public function test_monitoring_derives_identity_rejects_duplicates_and_foreign_records(): void
     {
-        $data = ['project_id' => 1, 'quarter_id' => 2, 'year' => 2025, 'target_output' => 100, 'actual_output' => 80, 'association_id' => 2, 'created_by' => 1];
+        $data = ['project_id' => 1, 'quarter_id' => 2, 'year' => 2025, 'target_output' => 100, 'actual_output' => 80, 'output_unit_code' => 'kg', 'association_id' => 2, 'created_by' => 1];
         $this->post('/monitoring/production', $data)->assertSessionHasNoErrors();
         $record = DB::table('monitoring_production')->where('quarter_id', 2)->sole();
         $this->assertSame(1, (int) $record->association_id);
         $this->assertSame(2, (int) $record->created_by);
-        $this->put('/monitoring/production/'.$record->id, [...$data, 'actual_output' => 90])->assertSessionHasNoErrors();
+        $this->put('/monitoring/production/'.$record->id, [...$data, 'actual_output' => 90, 'correction_reason' => 'Corrected source quantity'])->assertSessionHasNoErrors();
         $this->postJson('/monitoring/production', $data)->assertUnprocessable();
         $this->postJson('/monitoring/production', [...$data, 'target_output' => -1])->assertUnprocessable();
         foreach (['production', 'income', 'materials'] as $type) {
             $this->get('/monitoring/'.$type.'/2/edit')->assertNotFound();
         }
         $this->postJson('/monitoring/income', ['project_id' => 2, 'year' => 2025, 'month' => 2, 'gross_income' => 10])->assertNotFound();
-        $this->postJson('/monitoring/materials', ['project_id' => 1, 'project_material_id' => 2, 'condition_status_id' => 7])->assertUnprocessable();
+        $this->postJson('/monitoring/materials', ['project_id' => 1, 'project_material_id' => 2, 'condition_status_id' => 7, 'observed_on' => '2025-01-10', 'submission_token' => (string) \Illuminate\Support\Str::uuid()])->assertUnprocessable();
         $this->post('/monitoring/income', ['project_id' => 1, 'year' => 2025, 'month' => 2, 'gross_income' => 10])->assertSessionHasNoErrors();
-        $this->put('/monitoring/materials/1', ['project_id' => 1, 'project_material_id' => 1, 'condition_status_id' => 8])->assertSessionHasNoErrors();
+        $this->put('/monitoring/materials/1', ['project_id' => 1, 'project_material_id' => 1, 'condition_status_id' => 8, 'observed_on' => '2025-01-10', 'correction_reason' => 'Corrected inspection condition'])->assertSessionHasNoErrors();
         DB::table('associations')->where('id', 1)->update(['field_officer_id' => 1]);
         $this->putJson('/monitoring/production/'.$record->id, $data)->assertNotFound();
     }
@@ -348,9 +367,10 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
     {
         DB::statement("ALTER TABLE audit_logs ADD CONSTRAINT reject_officer_changes CHECK (action_type <> 'UPDATE')");
         $this->patchJson('/officer/projects/1/materials/1/delivery', ['delivery_date' => '2025-01-10'])->assertStatus(503);
-        $this->putJson('/officer/trainings/1', ['venue' => 'Changed hall', 'conducted_by' => 'BFAR'])->assertStatus(503);
+        $this->putJson('/officer/trainings/1', ['stage' => 'accepted', 'remarks' => 'This must roll back'])->assertStatus(503);
         $this->assertNull(DB::table('project_materials')->where('id', 1)->value('delivery_date'));
-        $this->assertSame('Hall', DB::table('trainings')->where('id', 1)->value('venue'));
+        $this->assertNull(DB::table('trainings')->where('id', 1)->value('remarks'));
+        $this->assertSame(0, DB::table('audit_logs')->where('action_type', 'UPDATE')->count());
     }
 
     public function test_development_setup_preserves_name_and_assignments(): void
@@ -386,7 +406,16 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
             $this->get($url)->assertOk()->assertSee('Please correct the following:');
         }
         foreach (['projects', 'trainings'] as $module) {
-            $this->get('/officer/'.$module.'?association_id=1')->assertOk()->assertSee('Association context')->assertSee('Assigned Association')->assertSee('Show all assigned associations');
+            // Check the selected association and records, independent of heading wording.
+            $response = $this->get('/officer/'.$module.'?association_id=1')
+                ->assertOk()->assertSee('Assigned Association')->assertDontSee('Other Association');
+            if ($module === 'trainings') {
+                $response->assertViewHas('association', fn ($association) => (int) $association->id === 1)
+                    ->assertSee('Assigned workshop')->assertDontSee('Foreign workshop')->assertSee('Reset');
+            } else {
+                $response->assertSee('Association context')->assertSee('Assigned project')
+                    ->assertDontSee('Foreign project')->assertSee('Show all assigned associations');
+            }
             foreach ([2, 999999] as $id) {
                 $this->get('/officer/'.$module.'?association_id='.$id)->assertNotFound();
             }
@@ -406,7 +435,7 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
         DB::table('trainings')->where('id', 1)->update(['date_conducted' => now('Asia/Manila')->addDay()->toDateString()]);
         $this->post('/officer/trainings/1/participants', ['member_id' => 1])->assertSessionHasNoErrors();
         $participant = DB::table('training_participants')->sole()->id;
-        $this->get('/officer/trainings/1')->assertOk()->assertSee('Present and Absent attendance can only be recorded on or after the training date.')
+        $this->get('/officer/trainings/1/panel/attendance')->assertOk()->assertSee('Present and Absent attendance can only be recorded on or after the training date.')
             ->assertSee('value="5" disabled', false)->assertSee('value="6" disabled', false);
         $this->patchJson('/officer/trainings/1/participants/'.$participant, ['attendance_status_id' => 5])->assertUnprocessable();
         $this->assertSame(1, (int) DB::table('training_participants')->value('attendance_status_id'));
@@ -417,15 +446,16 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
         DB::table('project_materials')->insert(['project_id' => 1, 'item_name' => 'Second material', 'delivery_date' => '2025-02-01']);
         $this->from('/officer/projects/1')->patch('/officer/projects/1/materials/1/delivery', ['delivery_date' => 'invalid-date', '_material_id' => 1])->assertSessionHasErrors('delivery_date');
         $this->get('/officer/projects/1')->assertOk()->assertSee('value="invalid-date"', false)->assertSee('value="2025-02-01"', false);
-        $this->from('/officer/trainings/1')->put('/officer/trainings/1', ['venue' => 'Attempted venue', 'conducted_by' => '', 'remarks' => 'Keep these notes'])->assertSessionHasErrors('conducted_by');
-        $this->get('/officer/trainings/1')->assertOk()->assertSee('Attempted venue')->assertSee('Keep these notes');
+        $this->from('/officer/trainings/1')->put('/officer/trainings/1', ['stage' => 'invalid', 'remarks' => 'Keep these notes'])->assertSessionHasErrors('stage');
+        $this->get('/officer/trainings/1/panel/edit')->assertOk()->assertSee('Keep these notes');
+        $this->assertNull(DB::table('trainings')->where('id', 1)->value('remarks'));
     }
 
     public function test_foreign_operational_writes_and_administrative_lifecycle_are_denied(): void
     {
         $this->postJson('/officer/trainings/2/participants', ['member_id' => 2])->assertNotFound();
-        $this->postJson('/monitoring/production', ['project_id' => 2, 'quarter_id' => 2, 'year' => 2025, 'target_output' => 10, 'actual_output' => 5])->assertNotFound();
-        foreach (['production' => ['quarter_id' => 1, 'year' => 2025, 'target_output' => 10, 'actual_output' => 5], 'income' => ['month' => 1, 'year' => 2025, 'gross_income' => 10], 'materials' => ['project_material_id' => 2, 'condition_status_id' => 7]] as $type => $data) {
+        $this->postJson('/monitoring/production', ['project_id' => 2, 'quarter_id' => 2, 'year' => 2025, 'target_output' => 10, 'actual_output' => 5, 'output_unit_code' => 'kg'])->assertNotFound();
+        foreach (['production' => ['quarter_id' => 1, 'year' => 2025, 'target_output' => 10, 'actual_output' => 5, 'output_unit_code' => 'kg'], 'income' => ['month' => 1, 'year' => 2025, 'gross_income' => 10], 'materials' => ['project_material_id' => 2, 'condition_status_id' => 7, 'observed_on' => '2025-01-10']] as $type => $data) {
             $this->putJson('/monitoring/'.$type.'/2', ['project_id' => 2, ...$data])->assertNotFound();
         }
         foreach (['associations', 'projects', 'trainings'] as $module) {
@@ -435,4 +465,36 @@ final class FieldOfficerUserTest extends MembershipDatabaseTestCase
         }
         $this->assertFalse((bool) DB::table('associations')->where('id', 2)->value('is_archived'));
     }
+    public function test_assigned_officer_can_approve_own_submitted_draft(): void
+    {
+        $officer = User::with('role')->findOrFail(2);
+        $service = app(\App\Services\FieldOfficerMembershipService::class);
+        $draft = $service->create($officer, 1, [
+            'first_name' => 'Self Review', 'last_name' => 'Fixture',
+            'birthday' => '1991-02-03', 'sex_id' => 1,
+        ]);
+        $application = $service->submit($officer, $draft, 1);
+
+        $this->patchJson('/membership/applications/'.$application->id.'/review', [
+            'decision' => 'Approved', 'decision_confirmed' => '1',
+        ])->assertOk();
+
+        $application->refresh();
+        $this->assertSame(2, (int) $application->submitted_by_user_id);
+        $this->assertSame(2, (int) $application->reviewed_by_user_id);
+        $this->assertNull($application->reviewed_by_member_id);
+        $this->assertNotNull($application->reviewed_at);
+        $this->assertSame('Approved', $application->status->status_name);
+        $this->assertSame(1, DB::table('members')->where('application_id', $application->id)->count());
+        foreach (['SUBMIT', 'APPROVE'] as $action) {
+            $this->assertSame(1, DB::table('audit_logs')
+                ->where('module', 'Member Application')->where('record_id', $application->id)
+                ->where('user_id', 2)->where('action_type', $action)->count());
+        }
+        $this->patchJson('/membership/applications/'.$application->id.'/review', [
+            'decision' => 'Approved', 'decision_confirmed' => '1',
+        ])->assertStatus(409);
+        $this->assertSame(1, DB::table('members')->where('application_id', $application->id)->count());
+    }
+
 }

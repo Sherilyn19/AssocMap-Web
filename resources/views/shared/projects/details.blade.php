@@ -70,12 +70,9 @@
     @endif
 
     <div class="mt-5 space-y-5">
-    @foreach (\App\Models\Training::STAGES + ['unknown' => 'Other trainings'] as $stage => $stageLabel)
-        @php($stageTrainings = $trainings->filter(fn ($training) => $stage === 'unknown' ? ! array_key_exists($training->stage ?? '', \App\Models\Training::STAGES) : $training->stage === $stage))
-        @if($stage !== 'unknown' || $stageTrainings->isNotEmpty())
-        <section aria-label="{{ $stageLabel }} trainings"><div class="flex items-center gap-2"><h4 class="font-semibold text-slate-800">{{ $stageLabel }}</h4><span class="text-sm text-slate-500">({{ $stageTrainings->count() }})</span></div>
+        <section aria-label="Trainings">
         <div class="mt-3 space-y-3">
-        @forelse ($stageTrainings as $training)
+        @forelse ($trainings as $training)
             @php($trainingPercent = $training->registered_count > 0 ? (int) round($training->recorded_count / $training->registered_count * 100) : 0)
             <details class="am-training-card">
                 <summary class="am-training-card__summary">
@@ -105,8 +102,6 @@
             <p class="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-500">No training listed.</p>
         @endforelse
         </div></section>
-        @endif
-    @endforeach
     </div>
 </section>
 @if($readOnly ?? false)

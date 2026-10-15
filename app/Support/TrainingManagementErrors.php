@@ -18,6 +18,7 @@ final class TrainingManagementErrors
 
     public static function render(Throwable $error, Request $request): mixed
     {
+        if ($response = AssociationTerminationErrors::render($error, $request)) return $response;
         // Database messages may contain submitted names and SQL bindings. Log only diagnostics.
         Log::error('Training Management request failed', [
             'type' => get_class($error),

@@ -27,6 +27,7 @@ final class UserManagementErrors
 
     public static function render(Throwable $error, Request $request): mixed
     {
+        if ($response = AssociationTerminationErrors::render($error, $request)) return $response;
         // Missing or malformed account URLs are ordinary 404s, not database outages.
         // Do not reopen Edit for a record that cannot be found.
         if ($error instanceof ModelNotFoundException || $error instanceof NotFoundHttpException) {

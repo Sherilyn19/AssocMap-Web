@@ -22,10 +22,7 @@ final class TrainingManagementService
     public static function officerRules(bool $creating): array
     {
         $rules = [
-            'stage' => [
-                'required',
-                \Illuminate\Validation\Rule::in(array_keys(Training::STAGES)),
-            ],
+            'stage' => ['prohibited'],
             'remarks' => ['nullable', 'string', 'max:5000'],
             'is_archived' => ['prohibited'],
             'external_approval_recorded_at' => ['prohibited'],
@@ -92,7 +89,7 @@ final class TrainingManagementService
 
             $training->fill(\Illuminate\Support\Arr::only($data, [
                 'title', 'program_component_id', 'training_type', 'venue',
-                'date_conducted', 'end_date', 'stage', 'conducted_by', 'remarks',
+                'date_conducted', 'end_date', 'conducted_by', 'remarks',
             ]));
 
             // These values come from validated data and the authorized association.
@@ -155,11 +152,11 @@ final class TrainingManagementService
             }
 
             $before = \Illuminate\Support\Arr::only($training->getAttributes(), [
-                'stage', 'remarks', 'date_conducted', 'end_date',
+                'remarks', 'date_conducted', 'end_date',
             ]);
 
             $training->fill(\Illuminate\Support\Arr::only($data, [
-                'stage', 'remarks', 'date_conducted', 'end_date',
+                'remarks', 'date_conducted', 'end_date',
             ]));
 
             if (! $training->isDirty()) {
@@ -176,7 +173,7 @@ final class TrainingManagementService
                     'before' => $before,
                     'after' => \Illuminate\Support\Arr::only(
                         $training->getAttributes(),
-                        ['stage', 'remarks', 'date_conducted', 'end_date']
+                        ['remarks', 'date_conducted', 'end_date']
                     ),
                 ], JSON_THROW_ON_ERROR)
             );
@@ -230,23 +227,22 @@ final class TrainingManagementService
                 $this->invalid('association_id', 'The association cannot change while this training has participants. Remove the participants first.');
             }
             // Keep the historical schedule immutable, including for direct service callers.
-            $data = \Illuminate\Support\Arr::only($data, ['association_id', 'title', 'program_component_id', 'training_type', 'venue', 'date_conducted', 'end_date', 'stage', 'conducted_by', 'remarks']);
+            $data = \Illuminate\Support\Arr::only($data, ['association_id', 'title', 'program_component_id', 'training_type', 'venue', 'date_conducted', 'end_date', 'conducted_by', 'remarks']);
             if ($editing) {
                 unset($data['date_conducted'], $data['end_date']);
             }
             validator($data, [
-                'stage' => ['required', \Illuminate\Validation\Rule::in(array_keys(Training::STAGES))],
+                'stage' => ['prohibited'],
                 'date_conducted' => $editing ? ['exclude'] : ['required', 'date_format:Y-m-d'],
                 'end_date' => $editing ? ['exclude'] : ['required', 'date_format:Y-m-d', 'after_or_equal:date_conducted'],
             ])->validate();
-            $previousStage = $training?->stage;
             $training ??= new Training;
             $training->fill($data);
             if (! $editing) {
                 $training->is_archived = false;
             }
             $training->save();
-            $this->audit($actorId, $editing ? 'UPDATE' : 'CREATE', $training, $editing ? 'Updated training details; stage: '.($previousStage ?? 'Not recorded').' → '.$training->stage.'.' : 'Created training; stage: '.$training->stage.'.');
+            $this->audit($actorId, $editing ? 'UPDATE' : 'CREATE', $training, $editing ? 'Updated training details.' : 'Created training.');
 
             return $training;
         }, 3);

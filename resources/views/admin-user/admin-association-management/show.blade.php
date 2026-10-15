@@ -25,6 +25,7 @@
 
 <x-dashboard-layout :title="$association->name" topbar-title="Association Management">
 <div data-association-page data-records-url="{{ route('admin.associations.index') }}">
+    @include('shared.associations.assistance-status')
 
     @php
         $isActiveStatus = $association->status?->status_name === 'Active';

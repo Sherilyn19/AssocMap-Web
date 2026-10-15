@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         (form.querySelector('[aria-invalid="true"]') || box)?.focus();
     }
-    page.querySelectorAll('form[method="POST"]').forEach(form => {
+    page.querySelectorAll('form[method="POST"]:not([data-assistance-form])').forEach(form => {
         form.addEventListener('submit', async event => {
             event.preventDefault();
             if (pendingForm || !form.reportValidity()) return;

@@ -33,6 +33,7 @@
                 </span>
             </div>
         </header>
+        @include('shared.associations.assistance-status')
 
         <section class="fo-card">
             <header class="fo-section-heading">
@@ -94,18 +95,8 @@
             </dl>
         </section>
 
-        {{-- Open related records beside the association without leaving the modal. --}}
-        <nav class="flex flex-wrap gap-3" aria-label="Related association records">
-            <a href="{{ $drawerUrl('projects') }}" data-record-association
-            class="fo-primary am-button-green">
-                View projects
-            </a>
-
-            <a href="{{ $drawerUrl('trainings') }}" data-record-association
-            class="fo-action">
-                View training records
-            </a>
-        </nav>
+        {{-- The overview is loaded only after the controller checks FO assignment. --}}
+        @include('field-officer-user.associations.overview')
     </section>
 </div>
 </x-dashboard-layout>

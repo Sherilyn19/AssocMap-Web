@@ -2,6 +2,7 @@
 <div data-member-workspace class="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
     @include('association-member-user.partials.header', ['heading' => 'Association Dashboard', 'description' => 'Welcome, '.session('auth_user.name').'. Keep track of your association’s members and livelihood activities.'])
     @if ($association)
+        @include('shared.associations.assistance-status')
     <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Association summary">
         @foreach ($counts as $label => $count)
             <a class="am-user-summary" href="{{ [route('member.members'), route('member.applications', ['status' => 'Pending']), route('member.projects'), route('member.trainings')][$loop->index] }}">

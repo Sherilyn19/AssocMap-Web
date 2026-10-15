@@ -90,7 +90,10 @@
                             </span>
                             <span class="fo-pill {{ $location->is_published
                                 ? 'fo-pill-green' : 'fo-pill-amber' }}">
-                                {{ $location->is_published ? 'Published' : 'Unpublished' }}
+                                {{-- The publishing setting alone does not confirm public visibility. --}}
+                                {{ $memberAreaView
+                                    ? 'Publicly visible'
+                                    : ($location->is_published ? 'Publishing enabled' : 'Publishing disabled') }}
                             </span>
                         </div>
                     @empty
@@ -105,7 +108,7 @@
                        class="fo-action"
                        href="{{ route($areaRoutes.'.details', $parameters + ['section' => 'gis']) }}">
                         View all {{ $association->mapped_locations_count }}
-                        {{ $memberAreaView ? 'published GIS locations' : 'GIS locations' }} →
+                        {{ $memberAreaView ? 'publicly visible locations' : 'GIS records' }} →
                     </a>
                 </section>
 
@@ -198,7 +201,9 @@
 
                                 <span class="fo-pill {{ $record->is_published
                                     ? 'fo-pill-green' : 'fo-pill-amber' }}">
-                                    {{ $record->is_published ? 'Published' : 'Unpublished' }}
+                                    {{ $memberAreaView
+                                    ? 'Publicly visible'
+                                    : ($record->is_published ? 'Publishing enabled' : 'Publishing disabled') }}
                                 </span>
                             @endif
                         </article>

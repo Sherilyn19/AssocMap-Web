@@ -30,6 +30,7 @@ final class FieldOfficerUserAccess
         $current = User::with('role')->sharedLock()->findOrFail($actor->id);
         $association = $this->associations($current)->lockForUpdate()->findOrFail($id);
         abort_if($association->is_archived, 403, 'Archived associations cannot be changed.');
+        abort_if($association->assistance_status === 'terminated', 403, 'Assistance terminated. Association records are read-only.');
 
         return $association;
     }

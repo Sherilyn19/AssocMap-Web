@@ -524,3 +524,12 @@ Route::patch('/admin/gis/{location}/archive', [GisController::class, 'archive'])
     ->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.archive');
 Route::get('/admin/gis/archived',[\App\Http\Controllers\GisHistoryController::class, 'archived'])->middleware('assocmap.auth:System Administrator')->name('gis.archived');
 Route::get('/admin/gis/{location}/history',[\App\Http\Controllers\GisHistoryController::class, 'show'])->whereNumber('location')->middleware('assocmap.auth:System Administrator')->name('gis.history');
+
+Route::get('/associations/{association}/assistance-eligibility', [
+    \App\Http\Controllers\AssociationAssistanceController::class, 'eligibility',
+])->middleware('assocmap.auth')->whereNumber('association')->name('associations.assistance.eligibility');
+
+// One handler enforces current role and association assignment for both workspaces.
+Route::patch('/associations/{association}/assistance-status', [
+    \App\Http\Controllers\AssociationAssistanceController::class, 'update',
+])->middleware('assocmap.auth')->whereNumber('association')->name('associations.assistance.update');

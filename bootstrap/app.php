@@ -33,7 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Start the Association clock before database-backed session loading.
         $middleware->prepend(TrackAssociationRequest::class);
         // Preserve intentional passphrase spaces, as with an ordinary password.
-        $middleware->trimStrings(except: ['review_passphrase', 'review_passphrase_confirmation']);
+        $middleware->trimStrings(except: ['review_passphrase', 'review_passphrase_confirmation', 'assistance_confirmation']);
         /*
          * Register AssocMapAuth as a named middleware alias.
          * This allows routes to reference it as 'assocmap.auth'
@@ -70,6 +70,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
         $exceptions->render(function (Throwable $error, Request $request) {
+            if ($response = \App\Support\AssociationTerminationErrors::render($error, $request)) return $response;
             if ($request->is('member/*') && $error instanceof \Illuminate\Validation\ValidationException && $request->isMethod('GET') && !$request->expectsJson()) {
                 return redirect($request->url())->withErrors($error->errors())
                     ->with('error', 'Choose valid filters and try again.');

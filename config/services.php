@@ -36,4 +36,9 @@ return [
         ],
     ],
 
+    // Use a configured executable rather than a command supplied by a request.
+    'analytics' => [
+        'python' => env('ANALYTICS_PYTHON', 'python'),
+    ],
+
 ];

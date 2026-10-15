@@ -19,6 +19,7 @@ final class MonitoringErrors
 
     public static function render(Throwable $error, Request $request): mixed
     {
+        if ($response = AssociationTerminationErrors::render($error, $request)) return $response;
         Log::error('Monitoring request failed', [
             'type' => get_class($error),
             'route' => $request->route()?->getName(),

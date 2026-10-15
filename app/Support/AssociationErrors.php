@@ -23,6 +23,7 @@ final class AssociationErrors
 
     public static function render(Throwable $error, Request $request): mixed
     {
+        if ($response = AssociationTerminationErrors::render($error, $request)) return $response;
         // Preserve framework validation/authorization semantics, including normal 422 JSON.
         if ($error instanceof ValidationException || $error instanceof AuthorizationException) {
             return null;

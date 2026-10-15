@@ -21,9 +21,20 @@ final class AssociationController extends Controller
             'search' => ['nullable', 'string', 'max:255'],
             'area_unit_id' => ['nullable', 'integer', 'min:1'],
             'program_component_id' => ['nullable', 'integer', 'min:1'],
-            'status_id' => ['nullable', Rule::in(['archived', ...Status::whereIn('status_name', ['Active', 'Inactive'])->pluck('id')->all()])],
+            // Keep record archival separate from operational status.
+            'archive' => ['nullable', Rule::in(['current', 'archived', 'all'])],
+            'status_id' => [
+                'nullable',
+                Rule::in(
+                    Status::whereIn('status_name', ['Active', 'Inactive'])
+                        ->pluck('id')->all()
+                ),
+            ],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
+
+        // An unfiltered visit shows current records, including active and inactive ones.
+        $filters['archive'] = $filters['archive'] ?? 'current';
         $scope = $access->associations($resolver->resolve($request));
         $query = (clone $scope)->with(['areaUnit', 'programComponent', 'status'])
             ->withCount(['members' => fn ($q) => $q->where('is_archived', false)]);
@@ -38,11 +49,13 @@ final class AssociationController extends Controller
                 $query->where($field, $filters[$field]);
             }
         }
-        // Archive is separate from operational status and takes precedence in the list.
-        if (($filters['status_id'] ?? null) === 'archived') {
-            $query->where('is_archived', true);
-        } elseif ($filters['status_id'] ?? null) {
-            $query->where('is_archived', false)->where('status_id', $filters['status_id']);
+        // Archive state and operational status are independent filters.
+        if ($filters['archive'] !== 'all') {
+            $query->where('is_archived', $filters['archive'] === 'archived');
+        }
+
+        if ($filters['status_id'] ?? null) {
+            $query->where('status_id', $filters['status_id']);
         }
 
         return view('field-officer-user.associations.index', [
@@ -54,13 +67,45 @@ final class AssociationController extends Controller
         ]);
     }
 
-    public function show(Request $request, int $association, SessionUserResolver $resolver, FieldOfficerUserAccess $access)
-    {
-        return view('field-officer-user.associations.show', [
-            'association' => $access->associations($resolver->resolve($request))
-                ->with(['areaUnit', 'subUnit', 'programComponent', 'fieldOfficer', 'status'])
-                ->withCount(['members' => fn ($q) => $q->where('is_archived', false)])->findOrFail($association),
+    public function show(
+        Request $request,
+        int $association,
+        SessionUserResolver $resolver,
+        FieldOfficerUserAccess $access
+    ) {
+        $filters = $request->validate([
+            'year' => [
+                'nullable',
+                'regex:/^(all|[1-9][0-9]{3})$/',
+            ],
+            'include_archived' => ['nullable', 'boolean'],
         ]);
+
+        $association = $access->associations($resolver->resolve($request))
+            ->with([
+                'areaUnit', 'subUnit', 'programComponent',
+                'fieldOfficer', 'status', 'representative',
+            ])
+            ->withCount([
+                'members' => fn ($query) => $query->where('is_archived', false),
+            ])
+            ->findOrFail($association);
+
+        $selectedYear = $filters['year']
+            ?? (string) now('Asia/Manila')->year;
+
+        $overview = app(
+            \App\Services\FieldOfficerUser\AssociationOverviewService::class
+        )->build(
+            $association,
+            $selectedYear === 'all' ? null : (int) $selectedYear,
+            $request->boolean('include_archived')
+        );
+
+        return response()->view(
+            'field-officer-user.associations.show',
+            compact('association', 'overview')
+        )->header('Cache-Control', 'private, no-store');
     }
 
     public function details(
@@ -72,44 +117,83 @@ final class AssociationController extends Controller
     ) {
         $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
+            'include_archived' => ['nullable', 'boolean'],
+            'public_only' => ['nullable', 'boolean'],
         ]);
 
         abort_unless(
-            in_array($section, ['address', 'officer', 'members', 'projects', 'trainings'], true),
+            in_array(
+                $section,
+                ['address', 'officer', 'members', 'projects', 'trainings'],
+                true
+            ),
             404
         );
 
-        // Recheck assignment on every request, including drawer pagination.
+        // Recheck assignment before every drawer request and pagination request.
         $association = $access->associations($resolver->resolve($request))
             ->with(['areaUnit', 'subUnit', 'fieldOfficer'])
             ->findOrFail($association);
 
-        // Load only the records needed by the selected drawer section.
-        $records = match ($section) {
-            'address' => $association->gisLocations()
-                ->whereNull('archived_at')
-                ->orderBy('location_name')->orderBy('id')
-                ->paginate(8),
+        // Public visibility is meaningful only for the GIS section.
+        // Archived locations cannot appear in this scope.
+        $publicOnly = $section === 'address'
+            && $request->boolean('public_only');
 
-            'members' => $association->members()
-                ->where('is_archived', false)
-                ->orderBy('last_name')->orderBy('first_name')->orderBy('id')
-                ->paginate(8),
+        $includeArchived = !$publicOnly
+            && $request->boolean('include_archived');
 
-            'projects' => $association->projects()
-                ->with('status')
-                ->orderBy('title')->orderBy('id')
-                ->paginate(8),
-
-            'trainings' => $association->trainings()
-                ->orderByDesc('date_conducted')->orderByDesc('id')
-                ->paginate(8),
-
+        $query = match ($section) {
+            'address' => $association->gisLocations(),
+            'members' => $association->members(),
+            'projects' => $association->projects()->with('status'),
+            'trainings' => $association->trainings(),
             default => null,
         };
 
-        return view('field-officer-user.associations.drawer', compact(
-            'association', 'section', 'records'
-        ));
+        $records = null;
+
+        // The association was already authorized above.
+        // Reuse the public eligibility rules instead of checking the flag alone.
+        if ($publicOnly) {
+            $query->publiclyVisible();
+        }
+
+        if ($query !== null) {
+            if (!$includeArchived) {
+                $section === 'address'
+                    ? $query->whereNull('archived_at')
+                    : $query->where('is_archived', false);
+            }
+
+            // Keep current records before archives when both are requested.
+            if ($section === 'address') {
+                $query->orderByRaw('(archived_at IS NOT NULL) ASC')
+                    ->orderBy('location_name');
+            } else {
+                $query->orderBy('is_archived');
+
+                match ($section) {
+                    'members' => $query
+                        ->orderBy('last_name')->orderBy('first_name'),
+                    'projects' => $query->orderBy('title'),
+                    default => $query->orderByDesc('date_conducted'),
+                };
+            }
+
+            $records = $query->orderBy('id')
+                ->paginate(8)->withQueryString();
+        }
+
+        return response()->view(
+            'field-officer-user.associations.drawer',
+            compact(
+                'association',
+                'section',
+                'records',
+                'includeArchived',
+                'publicOnly'
+            )
+        )->header('Cache-Control', 'private, no-store');
     }
 }

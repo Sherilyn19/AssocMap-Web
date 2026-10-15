@@ -24,7 +24,7 @@ final class SaveTrainingRequest extends FormRequest
             'venue' => ['required', 'string', 'max:255'],
             'date_conducted' => $this->route('training') ? ['exclude'] : ['required', 'date_format:Y-m-d'],
             'end_date' => $this->route('training') ? ['exclude'] : ['required', 'date_format:Y-m-d', 'after_or_equal:date_conducted'],
-            'stage' => ['required', \Illuminate\Validation\Rule::in(array_keys(\App\Models\Training::STAGES))],
+            'stage' => ['prohibited'],
             'conducted_by' => ['required', 'string', 'max:255'],
             'remarks' => ['nullable', 'string', 'max:5000'],
         ];

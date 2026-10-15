@@ -2,6 +2,7 @@
 <div data-member-workspace class="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
     @include('association-member-user.partials.header', ['heading' => 'Association Profile', 'description' => 'Your association’s registration, location and designated contacts. This information is read-only.'])
     @if ($association)
+        @include('shared.associations.assistance-status')
     <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="flex flex-wrap items-center justify-between gap-3"><h2 class="text-lg font-semibold">Association profile</h2>@include('shared.partials.badge', ['label' => $association->is_archived ? 'Archived' : $association->status?->status_name])</div>
         <dl class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
