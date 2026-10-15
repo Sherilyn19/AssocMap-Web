@@ -1,3 +1,5 @@
+import { trackDetailRequest } from '../shared/detail-request';
+
 // Load the styles used by Field Officer area pages.
 import '../../css/field-officer-areas.css';
 
@@ -73,7 +75,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         target.setAttribute('aria-busy', 'true');
         target.textContent = 'Loading records…';
-        const timeout = setTimeout(() => controller.abort(), 15000);
+        const timing = trackDetailRequest(controller, () => {
+            if (requests.get(target) === controller && dialog.open) {
+                target.textContent = 'Loading is taking longer than usual. You can still close this window.';
+            }
+        });
 
         try {
             const response = await fetch(url, {
@@ -102,7 +108,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const message = document.createElement('p');
             message.className = 'fo-warning';
             message.setAttribute('role', 'alert');
-            message.textContent = 'Records could not load. Retry or open the full page.';
+            message.textContent = timing.timedOut
+                ? 'Loading exceeded 30 seconds. Retry when the connection is stable.'
+                : 'Records could not load. Retry or open the full page.';
 
             const retry = document.createElement('button');
             retry.type = 'button';
@@ -120,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             target.replaceChildren(message, retry, fallback);
         } finally {
-            clearTimeout(timeout);
+            timing.dispose();
             if (requests.get(target) === controller) {
                 requests.delete(target);
                 target.removeAttribute('aria-busy');

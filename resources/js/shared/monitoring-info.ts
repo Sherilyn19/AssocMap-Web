@@ -55,6 +55,12 @@ document.addEventListener('pointerout', event => {
 
 document.addEventListener('click', event => {
     const target = event.target;
+    // Hover already opened the bubble; a mouse click must not immediately close it.
+    const summary = target instanceof Element ? target.closest('summary') : null;
+    if (event.detail > 0 && summary?.parentElement === hovered && hovered?.open) {
+        event.preventDefault();
+        clearCloseTimer();
+    }
     if (!(target instanceof Node)) return;
 
     document.querySelectorAll<HTMLDetailsElement>(

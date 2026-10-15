@@ -1,3 +1,5 @@
+import { trackDetailRequest } from './detail-request';
+
 /** Load authorized detail fragments on demand; ordinary links work without JavaScript. */
 type DetailKind = 'project' | 'training';
 
@@ -26,7 +28,11 @@ function bindDetailDialog(kind: DetailKind): void {
         if (useSharedLoader) document.dispatchEvent(new CustomEvent('management:loading', {
             detail: { label: 'Loading project details…', managed: true },
         }));
-        const timeout = setTimeout(() => current.abort(), 30000);
+        const timing = trackDetailRequest(current, () => {
+            if (request === current && dialog.open) {
+                content.textContent = 'Loading is taking longer than usual. You can still close this window.';
+            }
+        });
         dialog.scrollTop = 0;
         document.body.classList.add('am-project-modal-open');
         try {
@@ -43,14 +49,16 @@ function bindDetailDialog(kind: DetailKind): void {
             content.innerHTML = html;
         } catch (error: unknown) {
             if (request !== current || !dialog.open) return;
-            content.textContent = `The ${kind} details could not load. `;
+            content.textContent = timing.timedOut
+                ? 'Loading exceeded 30 seconds. Please try again. '
+                : `The ${kind} details could not load. `;
             const fallback = document.createElement('a');
             fallback.href = link.href;
             fallback.className = 'underline';
             fallback.textContent = `Open the full ${kind} page`;
             content.append(fallback);
         } finally {
-            clearTimeout(timeout);
+            timing.dispose();
             if (request === current) {
                 content.removeAttribute('aria-busy');
                 if (useSharedLoader) document.dispatchEvent(new Event('management:loaded'));

@@ -1,3 +1,5 @@
+import { trackDetailRequest } from '../shared/detail-request';
+
 /** Area interactions; shared confirmation/menu/toast behavior lives in admin-management-actions.js. */
 document.addEventListener("DOMContentLoaded", () => {
     const page = document.querySelector("[data-area-management-page]");
@@ -132,7 +134,11 @@ function initDetails() {
         activeRequest?.abort();
         const controller = new AbortController();
         activeRequest = controller;
-        const timeout = setTimeout(() => controller.abort(), 15000);
+        const timing = trackDetailRequest(controller, () => {
+            if (activeRequest === controller && modal.open) {
+                body.textContent = 'Loading is taking longer than usual. You can still close this window.';
+            }
+        });
         title.textContent = "Area Details";
         subtitle.textContent = "";
         body.textContent = "Loading details…";
@@ -191,7 +197,7 @@ function initDetails() {
             }
         } catch (error) {
             if (activeRequest !== controller || !modal.open) return;
-            body.textContent = controller.signal.aborted ? "Loading took too long. Please try again." :
+            body.textContent = timing.timedOut ? "Loading exceeded 30 seconds. Retry when the connection is stable." :
                 (error instanceof SyntaxError ? "Your session may have expired. Refresh the page." : error.message);
             const retry = document.createElement("button");
             retry.type = "button"; retry.textContent = "Retry";
@@ -199,7 +205,7 @@ function initDetails() {
             retry.addEventListener("click", () => load(url));
             body.append(retry);
         } finally {
-            clearTimeout(timeout);
+            timing.dispose();
             if (activeRequest === controller) body.removeAttribute("aria-busy");
         }
     }
