@@ -349,6 +349,29 @@ async function initialize(root) {
         applyFilters();
         editor.attachMap();
 
+        // Association links can select only records already returned by
+        // the authorized FO endpoint. The URL grants no extra access.
+        const requestedLocation = new URL(window.location.href)
+            .searchParams.get('location');
+
+        if (requestedLocation && /^[1-9]\d*$/.test(requestedLocation)) {
+            const locationId = Number(requestedLocation);
+            const record = records.find(item => item.id === locationId);
+
+            if (record) {
+                showDetails(locationId, true);
+
+                root.querySelector('.gis-workspace')?.scrollIntoView({
+                    block: 'start',
+                    behavior: reduced() ? 'auto' : 'smooth',
+                });
+            } else {
+                setStatus(
+                    'This location is unavailable in your current GIS records.'
+                );
+            }
+        }
+
         const reset = root.querySelector('[data-gis-reset]');
         reset.disabled = editor.active;
         reset.addEventListener('click', () => map.fit());
