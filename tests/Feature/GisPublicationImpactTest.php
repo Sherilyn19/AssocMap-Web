@@ -42,8 +42,23 @@ final class GisPublicationImpactTest extends GisDatabaseTestCase
                 ADD COLUMN status_id bigint,
                 ADD COLUMN remarks text,
                 ADD COLUMN budget numeric(14,2),
+                ADD COLUMN proposal_accepted_on date,
+                ADD COLUMN budget_accepted boolean DEFAULT false,
                 ADD COLUMN created_at timestamp,
                 ADD COLUMN updated_at timestamp;
+
+            -- The shared project service checks activity dates before changing implementation.
+            CREATE TABLE project_activities (
+                id bigserial PRIMARY KEY,
+                project_id bigint NOT NULL REFERENCES projects(id),
+                title varchar NOT NULL,
+                starts_on date NOT NULL,
+                ends_on date NOT NULL,
+                state varchar NOT NULL DEFAULT 'Planned',
+                notes text,
+                created_at timestamp,
+                updated_at timestamp
+            );
 
             INSERT INTO statuses (status_name) VALUES ('Ongoing');
 
