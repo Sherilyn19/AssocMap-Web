@@ -20,6 +20,7 @@ final class ProjectMaterial extends Model
 
     protected $fillable = [
         'project_id',
+        'activity_id',
         'item_name',
         'quantity',
         'unit',

@@ -272,3 +272,16 @@
     overflow-wrap: normal;
     word-break: normal;
 }
+/* Compact activity cards use the existing drawer and respect motion preferences. */
+.fo-project-editor .fo-action { font-size: .875rem; }
+.fo-project-editor-body { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: no-preference) {
+    .fo-activity-card { animation: fo-project-appear 220ms ease-out both; }
+    .fo-activity-card:nth-child(2) { animation-delay: 35ms; }
+    .fo-activity-card:nth-child(3) { animation-delay: 70ms; }
+    .am-project-details progress { transition: opacity 180ms ease; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .fo-project-editor-body { scroll-behavior: auto; }
+    .fo-activity-card { transition: none; }
+}

@@ -29,6 +29,8 @@ final class ProjectBudgetTest extends MembershipDatabaseTestCase
                 implementation_date date,
                 terminated_on date,
                 budget numeric(14,2),
+                proposal_accepted_on date,
+                budget_accepted boolean DEFAULT false,
                 status_id bigint REFERENCES statuses(id),
                 remarks text,
                 is_archived boolean DEFAULT false,
@@ -36,9 +38,29 @@ final class ProjectBudgetTest extends MembershipDatabaseTestCase
                 updated_at timestamp
             );
 
+            CREATE TABLE project_activities (id bigserial PRIMARY KEY, project_id bigint REFERENCES projects(id), title varchar NOT NULL, starts_on date NOT NULL, ends_on date NOT NULL, state varchar NOT NULL, notes text, created_at timestamp, updated_at timestamp);
             INSERT INTO program_components (name) VALUES ('Aquaculture');
             INSERT INTO statuses (status_name) VALUES ('Planned');
         SQL);
+    }
+
+    public function test_activity_dates_scope_and_audit(): void
+    {
+        $this->withSession($this->sessionFor(2, 'Field Officer'));
+        $status = DB::table('statuses')->where('status_name', 'Planned')->value('id');
+        $projectId = DB::table('projects')->insertGetId(['association_id' => 1, 'title' => 'Activity test', 'implementation_date' => '2025-01-01', 'status_id' => $status]);
+        $data = ['title' => 'Distribute materials', 'starts_on' => '2025-01-02', 'ends_on' => '2025-01-03', 'state' => 'Planned'];
+        $url = '/officer/projects/'.$projectId.'/activities';
+        $this->postJson($url, [...$data, 'starts_on' => '2024-12-31'])->assertUnprocessable();
+        $this->postJson($url, [...$data, 'ends_on' => '2025-01-01'])->assertUnprocessable();
+        $this->postJson($url, [...$data, 'responsible_id' => 1])->assertUnprocessable();
+        $this->postJson($url, $data)->assertOk();
+        $activityId = DB::table('project_activities')->value('id');
+        $this->assertSame(1, DB::table('audit_logs')->where('module', 'Project Activities')->count());
+        $other = DB::table('projects')->insertGetId(['association_id' => 2, 'title' => 'Other project', 'implementation_date' => '2025-01-01', 'status_id' => $status]);
+        $this->putJson('/officer/projects/'.$other.'/activities/'.$activityId, $data)->assertNotFound();
+        DB::table('projects')->where('id', $projectId)->update(['is_archived' => true]);
+        $this->putJson($url.'/'.$activityId, $data)->assertForbidden();
     }
 
     public function test_officer_budget_validation_persistence_and_scope(): void

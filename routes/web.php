@@ -101,6 +101,10 @@ Route::middleware('assocmap.auth:Field Officer')->prefix('officer')->name('offic
     Route::controller(
         \App\Http\Controllers\FieldOfficerUser\ProjectManageController::class
     )->group(function (): void {
+        Route::get('/projects/{project}/activities/create', [\App\Http\Controllers\FieldOfficerUser\ProjectActivityController::class, 'handle'])->whereNumber('project')->name('projects.activities.create');
+        Route::post('/projects/{project}/activities', [\App\Http\Controllers\FieldOfficerUser\ProjectActivityController::class, 'handle'])->whereNumber('project')->name('projects.activities.store');
+        Route::get('/projects/{project}/activities/{activity}/edit', [\App\Http\Controllers\FieldOfficerUser\ProjectActivityController::class, 'handle'])->whereNumber(['project', 'activity'])->name('projects.activities.edit');
+        Route::put('/projects/{project}/activities/{activity}', [\App\Http\Controllers\FieldOfficerUser\ProjectActivityController::class, 'handle'])->whereNumber(['project', 'activity'])->name('projects.activities.update');
         Route::get('/projects/create', 'form')
             ->defaults('kind', 'project')
             ->name('projects.create');

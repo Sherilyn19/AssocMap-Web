@@ -8,7 +8,8 @@
     {{-- Only the FO view offers these controls; backend scope is checked again. --}}
     @if(session('auth_user.role_name') === 'Field Officer'
         && !$project->is_archived
-        && !$project->association->is_archived)
+        && !$project->association->is_archived
+        && $project->association->assistance_status !== 'terminated')
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('officer.projects.edit', $project) }}"
             data-project-manage
@@ -41,20 +42,23 @@
     <dl class="mt-4 grid gap-5 sm:grid-cols-2">
         {{-- Distinguish an unrecorded budget from a recorded zero amount. --}}
         <div>
-            <dt class="text-sm text-slate-500">Project budget</dt>
+            <dt class="flex items-center gap-2 text-sm text-slate-500">Project budget @if($project->budget_accepted)<span class="rounded-full bg-teal-50 px-2 py-0.5 text-xs text-teal-800">Accepted budget</span>@endif <x-info>The recorded project allocation does not establish actual spending. Linking materials to activities adds no activity budget.</x-info></dt>
             <dd class="mt-1 font-medium">
                 {{ $project->budget === null
                     ? 'Not recorded'
                     : 'PHP '.number_format((float) $project->budget, 2) }}
             </dd>
         </div>
-    @foreach (['Association' => $project->association->name, 'Commodity' => $project->commodity_type, 'Program component' => $project->programComponent?->name, 'Project proposal acceptance date' => null] as $label => $value)
+    @foreach (['Association' => $project->association->name, 'Commodity' => $project->commodity_type, 'Program component' => $project->programComponent?->name, 'Project proposal acceptance date' => $project->proposal_accepted_on?->format('M d, Y')] as $label => $value)
         <div><dt class="text-sm text-slate-500">{{ $label }}</dt><dd class="mt-1 font-medium">{{ $value ?: 'Not recorded' }}</dd></div>
     @endforeach
     <div class="sm:col-span-2"><dt class="text-sm text-slate-500">Project remarks</dt><dd class="mt-1 whitespace-pre-line">{{ $project->remarks ?: 'No remarks recorded.' }}</dd></div>
     </dl>
-    <p class="mt-4 text-xs leading-5 text-slate-500">Project records do not currently store a proposal decision or acceptance date. Training categories do not confirm project approval.</p>
+
 </section>
+@if(isset($activities, $actor) && session('auth_user.role_name') === 'Field Officer')
+    @include('field-officer-user.projects.activities')
+@endif
 <section class="rounded-xl border border-slate-200 bg-white p-5">
     <div class="flex flex-wrap items-start justify-between gap-3"><div><h3 class="text-lg font-semibold">Association trainings</h3><p class="mt-1 text-sm text-slate-600">{{ $activeTrainings->count() }} active training records · {{ $trainings->where('is_archived', true)->count() }} archived</p></div><span class="rounded-lg bg-emerald-50 px-3 py-2 font-semibold text-emerald-800">{{ $registered ? $percent.'%' : 'No attendance yet' }}</span></div>
     <label class="mt-4 block text-sm font-medium" for="project-training-progress">Attendance recorded</label>

@@ -196,7 +196,7 @@ final class ProjectManagementService
     public function createProject(array $data, int $actorId): Project
     {
         return DB::transaction(function () use ($data, $actorId): Project {
-            $this->validateProjectReferences($data);
+            $this->validateProjectReferences($data, isset($project) ? (int) $project->id : null);
 
             $project = Project::create([
                 'association_id' => (int) $data['association_id'],
@@ -208,6 +208,8 @@ final class ProjectManagementService
                 ...(array_key_exists('budget', $data)
                     ? ['budget' => $data['budget']]
                     : []),
+                ...(array_key_exists('proposal_accepted_on', $data) ? ['proposal_accepted_on' => $data['proposal_accepted_on']] : []),
+                ...(array_key_exists('budget_accepted', $data) ? ['budget_accepted' => $data['budget_accepted']] : []),
                 'terminated_on' => $data['terminated_on'] ?? null,
                 'status_id' => (int) $data['status_id'],
                 'remarks' => $data['remarks'] ?? null,
@@ -243,7 +245,7 @@ final class ProjectManagementService
             );
 
             $this->ensureProjectIsWritable($project);
-            $this->validateProjectReferences($data);
+            $this->validateProjectReferences($data, isset($project) ? (int) $project->id : null);
 
             if (
                 (int) $data['association_id'] !== (int) $project->association_id
@@ -271,6 +273,8 @@ final class ProjectManagementService
                     ? ['budget' => $data['budget']]
                     : []),
 
+                ...(array_key_exists('proposal_accepted_on', $data) ? ['proposal_accepted_on' => $data['proposal_accepted_on']] : []),
+                ...(array_key_exists('budget_accepted', $data) ? ['budget_accepted' => $data['budget_accepted']] : []),
                 'terminated_on' => $data['terminated_on'] ?? null,
                 'status_id' => (int) $data['status_id'],
                 'remarks' => $data['remarks'] ?? null,
@@ -335,9 +339,11 @@ final class ProjectManagementService
     {
         return DB::transaction(function () use ($project, $data, $actorId): ProjectMaterial {
             $this->ensureProjectIsWritable($project);
+            validator($data, ['activity_id' => ['sometimes', 'nullable', 'integer', \Illuminate\Validation\Rule::exists('project_activities', 'id')->where('project_id', $project->id)]])->validate();
             $status = $this->validateMaterialStatus((int) $data['status_id']);
 
             $material = $project->materials()->create([
+                ...(array_key_exists('activity_id', $data) ? ['activity_id' => $data['activity_id']] : []),
                 'item_name' => trim((string) $data['item_name']),
                 'quantity' => $data['quantity'],
                 'unit' => trim((string) $data['unit']),
@@ -383,9 +389,11 @@ final class ProjectManagementService
                 abort(404);
             }
 
+            validator($data, ['activity_id' => ['sometimes', 'nullable', 'integer', \Illuminate\Validation\Rule::exists('project_activities', 'id')->where('project_id', $project->id)]])->validate();
             $status = $this->validateMaterialStatus((int) $data['status_id']);
 
             $material->update([
+                ...(array_key_exists('activity_id', $data) ? ['activity_id' => $data['activity_id']] : []),
                 'item_name' => trim((string) $data['item_name']),
                 'quantity' => $data['quantity'],
                 'unit' => trim((string) $data['unit']),
@@ -407,7 +415,7 @@ final class ProjectManagementService
 
     // Request validation checks input shape and existence; the service also checks
     // business eligibility because it can be called outside an HTTP form submission.
-    private function validateProjectReferences(array $data): void
+    private function validateProjectReferences(array $data, ?int $projectId = null): void
     {
         // Validate money at the shared write boundary, including direct service calls.
         // The maximum matches the existing numeric(14,2) budget column.
@@ -422,12 +430,25 @@ final class ProjectManagementService
         ])->validate();
         $association = Association::query()
             ->whereKey((int) $data['association_id'])
+            ->lockForUpdate()
             ->where('is_archived', false)
             ->first();
 
         if (! $association) {
             throw new \InvalidArgumentException('The selected association is not available for Project Management.');
         }
+
+        if ($projectId && DB::table('project_activities')->where('project_id', $projectId)->where('starts_on', '<', $data['implementation_date'])->exists()) {
+            throw new \InvalidArgumentException('Implementation date cannot follow an existing activity start date.');
+        }
+        $ongoing = Status::whereKey((int) $data['status_id'])->where('status_name', 'Ongoing')->exists();
+        if ($ongoing && Project::where('association_id', $association->id)->where('is_archived', false)->when($projectId, fn ($query) => $query->where('id', '<>', $projectId))->whereHas('status', fn ($query) => $query->where('status_name', 'Ongoing'))->exists()) {
+            throw new \InvalidArgumentException('This association already has an ongoing project. Complete it before starting another.');
+        }
+        validator($data, [
+            'proposal_accepted_on' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'before_or_equal:implementation_date', 'before_or_equal:today'],
+            'budget_accepted' => ['sometimes', 'boolean'],
+        ])->validate();
 
         $programComponentExists = ProgramComponent::query()
             ->whereKey((int) $data['program_component_id'])

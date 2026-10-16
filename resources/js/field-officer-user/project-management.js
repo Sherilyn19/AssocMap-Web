@@ -31,6 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let busy = false;
     let dirty = false;
     let opener = null;
+    let parentDialog = null;
+    let projectUrl = null;
 
     function loading(label) {
         document.dispatchEvent(new CustomEvent('management:loading', {
@@ -75,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.addEventListener('close', () => {
         dirty = false;
         body.replaceChildren();
+        if (parentDialog && !parentDialog.open) parentDialog.showModal();
         if (opener?.isConnected) opener.focus();
     });
 
@@ -97,8 +100,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (busy) return;
 
         opener = link;
+        parentDialog = link.closest('dialog');
+        const activityLink = link.href.match(/\/projects\/(\d+)\//);
+        projectUrl = null;
+        if (activityLink) projectUrl = link.href.slice(0, link.href.indexOf(`/projects/${activityLink[1]}/`)) + `/projects/${activityLink[1]}`;
+        if (parentDialog?.open) parentDialog.close();
         heading.textContent = link.dataset.editorTitle || 'Manage project';
-        editor.classList.toggle('is-create', link.hasAttribute('data-editor-create'));
+        editor.classList.remove('is-create');
         body.replaceChildren();
         dirty = false;
         editor.showModal();
@@ -112,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(link.href, {
                 credentials: 'same-origin',
-                headers: { Accept: 'text/html' },
+                headers: { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' },
                 signal: controller.signal,
             });
 
@@ -199,8 +207,29 @@ document.addEventListener('DOMContentLoaded', () => {
             saved = true;
             dirty = false;
 
-            // Stay on the current project workspace, retaining its URL filters.
-            location.reload();
+            if (projectUrl && (parentDialog || document.querySelector('.am-project-details'))) {
+                try {
+                    const url = new URL(projectUrl);
+                    url.searchParams.set('details', '1');
+                    const refresh = await fetch(url, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' }, signal: AbortSignal.timeout(30000) });
+                    if (!refresh.ok || refresh.redirected) throw new Error('refresh');
+                    const html = await refresh.text();
+                    const target = parentDialog?.querySelector('[data-project-content]') || document.querySelector('.am-project-details');
+                    if (!target) throw new Error('refresh');
+                    if (parentDialog) target.innerHTML = html;
+                    else target.outerHTML = html;
+                    busy = false;
+                    editor.close();
+                } catch {
+                    busy = false;
+                    feedback('Saved successfully. Close this drawer and reopen project details to refresh them.');
+                }
+                loaded();
+                buttons.forEach((button, index) => { button.disabled = originalStates[index]; });
+            } else {
+                // Project creation and archival change the register and its pagination.
+                location.reload();
+            }
         } catch (error) {
             feedback(error.message);
         } finally {

@@ -69,9 +69,11 @@ final class ProjectController extends Controller
     {
         $actor = $resolver->resolve($request);
         $project = $access->scope(Project::with(['association', 'status', 'programComponent', 'materials.status']), $actor)->findOrFail($project);
+        $project->load('association.fieldOfficer');
+        $activities = \Illuminate\Support\Facades\DB::table('project_activities')->where('project_id', $project->id)->orderBy('starts_on')->orderBy('id')->get();
         $trainings = app(\App\Services\ProjectTrainingDetails::class)->forProject($project);
 
-        return view($request->boolean('details') ? 'shared.projects.details' : 'field-officer-user.projects.show', compact('project', 'trainings'));
+        return view($request->boolean('details') ? 'shared.projects.details' : 'field-officer-user.projects.show', compact('project', 'trainings', 'activities', 'actor'));
     }
 
     public function delivery(UpdateDeliveryRequest $request, int $project, int $material, SessionUserResolver $resolver, ProjectManagementService $service)

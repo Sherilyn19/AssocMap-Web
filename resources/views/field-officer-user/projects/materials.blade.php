@@ -45,6 +45,7 @@
                     <th scope="col">Material / ID</th>
                     <th scope="col">Quantity</th>
                     <th scope="col">Unit cost (PHP)</th>
+                    <th scope="col">Linked activity</th>
                     <th scope="col">Recorded status</th>
                     <th scope="col">Delivery date</th>
                 </tr>
@@ -72,7 +73,8 @@
                         // Archived materials remain visible, but all write controls are removed.
                         $canRecordDelivery = !$project->is_archived
                             && !$project->association->is_archived
-                            && $material->archived_at === null;
+                            && $material->archived_at === null
+                            && $project->association->assistance_status !== 'terminated';
                     @endphp
 
                     {{-- Identify each material row so the dropdown can filter it. --}}
@@ -102,6 +104,7 @@
                                 : 'Not recorded' }}
                         </td>
 
+                        <td class="text-sm">{{ isset($activities) ? ($activities->firstWhere('id', $material->activity_id)?->title ?? 'Not linked') : 'Not linked' }}</td>
                         <td>
                             @include('shared.partials.badge', [
                                 'label' => $material->status?->status_name
@@ -164,14 +167,14 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="text-center text-slate-500">
+                        <td colspan="6" class="text-center text-slate-500">
                             No materials recorded.
                         </td>
                     </tr>
                 @endforelse
 
                     <tr data-material-filter-empty hidden>
-                    <td colspan="5" class="text-center text-slate-500">
+                    <td colspan="6" class="text-center text-slate-500">
                         No materials match this record filter.
                     </td>
                 </tr>

@@ -22,6 +22,8 @@ final class Project extends Model
         'program_component_id',
         'implementation_date',
         'budget',
+        'proposal_accepted_on',
+        'budget_accepted',
         'terminated_on',
         'status_id',
         'remarks',
@@ -37,6 +39,8 @@ final class Project extends Model
             'is_archived' => 'boolean',
             // Preserve two decimal places when reading the recorded budget.
             'budget' => 'decimal:2',
+            'proposal_accepted_on' => 'date',
+            'budget_accepted' => 'boolean',
         ];
     }
 

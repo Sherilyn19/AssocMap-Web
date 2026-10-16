@@ -72,9 +72,10 @@ final class ProjectManageController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
+        $activities = $project ? DB::table('project_activities')->where('project_id', $project->id)->orderBy('starts_on')->get(['id', 'title']) : collect();
         return view(
             'field-officer-user.projects.manage',
-            compact('kind', 'project', 'material', 'options')
+            compact('kind', 'project', 'material', 'options', 'activities')
         );
     }
 
@@ -139,6 +140,8 @@ final class ProjectManageController extends Controller
                         'implementation_date' => ['required', 'date_format:Y-m-d'],
                         // Retain this optional input; the shared service validates its amount.
                         'budget' => ['sometimes'],
+                        'proposal_accepted_on' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:implementation_date', 'before_or_equal:today'],
+                        'budget_accepted' => ['sometimes', 'boolean'],
                         'terminated_on' => [
                             'nullable',
                             'date_format:Y-m-d',
@@ -207,6 +210,7 @@ final class ProjectManageController extends Controller
                 abort_unless($kind === 'material', 404);
 
                 $data = $request->validate([
+                    'activity_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('project_activities', 'id')->where('project_id', $project->id)],
                     'item_name' => ['required', 'string', 'max:255'],
                     'quantity' => ['required', 'numeric', 'gt:0'],
                     'unit' => ['required', 'string', 'max:100'],
