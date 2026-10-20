@@ -14,34 +14,120 @@ final class MemberWorkspaceController extends Controller
 {
     public function __construct(private MemberWorkspaceAccess $access, private SessionUserResolver $resolver) {}
 
-    private function association(Request $request): ?\App\Models\Association
-    {
-        return $this->access->association($this->resolver->resolve($request));
+    private function association(
+        Request $request,
+        bool $loadProfileRelations = false
+    ): ?\App\Models\Association {
+        // Every page still checks the current account and its assigned association.
+        // Load profile relationships only on pages that display those details.
+        return $this->access->association(
+            $this->resolver->resolve($request),
+            loadProfileRelations: $loadProfileRelations
+        );
     }
 
     public function dashboard(Request $request)
     {
-        $association = $this->association($request);
-        $applications = $this->access->scope(MemberApplication::with('status'), $association);
-        $projects = $this->access->scope(Project::with('status')->where('is_archived', false), $association);
-        $trainings = $this->access->scope(Training::query()->where('is_archived', false), $association);
+        // Load the association without profile relationships unused by this dashboard.
+        // Reuse the actor already checked by authentication middleware this request.
+        $association = $this->access->association(
+            $this->resolver->resolve($request),
+            loadProfileRelations: false
+        );
+
+        $applications = $this->access->scope(
+            MemberApplication::with('status'),
+            $association
+        );
+
+        $projects = $this->access->scope(
+            Project::with('status')->where('is_archived', false),
+            $association
+        );
+
+        $trainings = $this->access->scope(
+            Training::query()->where('is_archived', false),
+            $association
+        );
+
+        $counts = [];
+
+        if ($association !== null) {
+            // Keep each count independent to avoid multiplying totals through joins.
+            // The database returns all four totals in one request.
+            $memberCount = $this->access->scope(
+                Member::query(),
+                $association
+            )->where('is_archived', false);
+
+            $pendingCount = (clone $applications)->whereHas(
+                'status',
+                fn ($query) => $query->where('status_name', 'Pending')
+            );
+
+            $totals = \Illuminate\Support\Facades\DB::query()
+                ->selectSub(
+                    $memberCount->reorder()->selectRaw('COUNT(*)')->toBase(),
+                    'members'
+                )
+                ->selectSub(
+                    $pendingCount->reorder()->selectRaw('COUNT(*)')->toBase(),
+                    'pending'
+                )
+                ->selectSub(
+                    (clone $projects)->reorder()->selectRaw('COUNT(*)')->toBase(),
+                    'projects'
+                )
+                ->selectSub(
+                    (clone $trainings)->reorder()->selectRaw('COUNT(*)')->toBase(),
+                    'trainings'
+                )
+                ->first();
+
+            $counts = [
+                'Members' => (int) $totals->members,
+                'Pending applications' => (int) $totals->pending,
+                'Current projects' => (int) $totals->projects,
+                'Trainings' => (int) $totals->trainings,
+            ];
+        }
+
+        // Preserve the existing recent-record limits, ordering, and status loading.
         return view('association-member-user.dashboard', [
             'association' => $association,
-            'counts' => $association ? [
-                'Members' => $this->access->scope(Member::query(), $association)->where('is_archived', false)->count(),
-                'Pending applications' => (clone $applications)->whereHas('status', fn ($q) => $q->where('status_name', 'Pending'))->count(),
-                'Current projects' => (clone $projects)->count(), 'Trainings' => (clone $trainings)->count(),
-            ] : [],
-            'applications' => $applications->orderByDesc('created_at')->orderByDesc('id')->limit(4)->get(),
-            'projects' => $projects->orderByDesc('updated_at')->orderByDesc('id')->limit(4)->get(),
-            'trainings' => $trainings->orderByDesc('date_conducted')->orderByDesc('id')->limit(4)->get(),
-            'production' => $this->access->production($association)->orderByDesc('m.year')->orderByDesc('m.id')->limit(4)->get(),
+            'counts' => $counts,
+            'applications' => $applications
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->limit(4)
+                ->get(),
+            'projects' => $projects
+                ->orderByDesc('updated_at')
+                ->orderByDesc('id')
+                ->limit(4)
+                ->get(),
+            'trainings' => $trainings
+                ->orderByDesc('date_conducted')
+                ->orderByDesc('id')
+                ->limit(4)
+                ->get(),
+            'production' => $this->access->production($association)
+                ->orderByDesc('m.year')
+                ->orderByDesc('m.id')
+                ->limit(4)
+                ->get(),
         ]);
     }
 
     public function information(Request $request)
     {
-        return view('association-member-user.information', ['association' => $this->association($request)]);
+        // The profile displays geography, component, officer, representative, and status.
+        return view('association-member-user.information', [
+            'association' => $this->association(
+                $request,
+                loadProfileRelations: true
+            ),
+        ]);
     }
 
     public function members(Request $request)
@@ -85,10 +171,27 @@ final class MemberWorkspaceController extends Controller
     public function project(Request $request, int $project)
     {
         $association = $this->association($request);
-        $project = $this->access->scope(Project::with(['association', 'status', 'programComponent', 'materials.status']), $association)->findOrFail($project);
-        $trainings = app(\App\Services\ProjectTrainingDetails::class)->forProject($project);
-        return view($request->boolean('details') ? 'shared.projects.details' : 'association-member-user.project',
-            compact('association', 'project', 'trainings') + ['readOnly' => true]);
+
+        $project = $this->access->scope(
+            Project::with(['status', 'programComponent', 'materials.status']),
+            $association
+        )->findOrFail($project);
+
+        // The ownership filter above restricts this project to the loaded association.
+        // Reuse that model instead of querying the same association again.
+        $project->setRelation('association', $association);
+
+        $trainings = app(
+            \App\Services\ProjectTrainingDetails::class
+        )->forProject($project);
+
+        return view(
+            $request->boolean('details')
+                ? 'shared.projects.details'
+                : 'association-member-user.project',
+            compact('association', 'project', 'trainings')
+                + ['readOnly' => true]
+        );
     }
 
     public function trainings(Request $request)
@@ -105,10 +208,26 @@ final class MemberWorkspaceController extends Controller
     public function training(Request $request, int $training)
     {
         $association = $this->association($request);
-        $training = $this->access->scope(Training::with(['association', 'programComponent']), $association)->findOrFail($training);
-        return view($request->boolean('details') ? 'shared.trainings.details' : 'association-member-user.training',
-            compact('association', 'training') + ['readOnly' => true]
-            + app(\App\Services\TrainingWorkspaceDetails::class)->forTraining($training));
+
+        $training = $this->access->scope(
+            Training::with('programComponent'),
+            $association
+        )->findOrFail($training);
+
+        // Ownership has already been checked against this association.
+        // Preserve the relationship used by the detail template without another query.
+        $training->setRelation('association', $association);
+
+        return view(
+            $request->boolean('details')
+                ? 'shared.trainings.details'
+                : 'association-member-user.training',
+            compact('association', 'training')
+                + ['readOnly' => true]
+                + app(
+                    \App\Services\TrainingWorkspaceDetails::class
+                )->forTraining($training)
+        );
     }
 
     public function production(Request $request)

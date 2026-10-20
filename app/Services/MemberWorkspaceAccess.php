@@ -12,10 +12,33 @@ use Illuminate\Support\Facades\DB;
 /** Reads use the current account's association, never a request-provided owner. */
 final class MemberWorkspaceAccess
 {
-    public function association(User $actor): ?Association
-    {
-        abort_unless($actor->is_active && $actor->role?->role_name === 'Association Member', 403);
-        return Association::with(['areaUnit', 'subUnit', 'programComponent', 'fieldOfficer', 'representative', 'status'])->find($actor->association_id ?? 0);
+    public function association(
+        User $actor,
+        bool $loadProfileRelations = true
+    ): ?Association {
+        // Check the current account on every request and use its assigned association.
+        abort_unless(
+            $actor->is_active
+            && $actor->role?->role_name === 'Association Member',
+            403
+        );
+
+        $query = Association::query();
+
+        // Profile pages need these details. The dashboard does not display them.
+        // Keep the existing behavior for every caller unless it explicitly opts out.
+        if ($loadProfileRelations) {
+            $query->with([
+                'areaUnit',
+                'subUnit',
+                'programComponent',
+                'fieldOfficer',
+                'representative',
+                'status',
+            ]);
+        }
+
+        return $query->find($actor->association_id ?? 0);
     }
 
     public function scope(Builder $query, ?Association $association): Builder

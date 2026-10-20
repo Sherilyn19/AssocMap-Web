@@ -19,11 +19,28 @@ final class NotificationController extends Controller
 
         abort_unless($actor?->is_active, 403);
 
-        $notifications = $actor->notifications()
-            ->latest()
+        // Count all unread notifications belonging to this user,
+        // including notifications outside the latest 20.
+        $unreadCountQuery = $actor->unreadNotifications()
+            ->reorder()
+            ->selectRaw('COUNT(*)')
+            ->toBase();
+
+        // Retrieve the latest notifications and unread count together.
+        // Both relationships retain their ownership filters.
+        $records = $actor->notifications()
+            ->select('notifications.*')
+            ->selectSub($unreadCountQuery, 'unread_total')
             ->limit(20)
-            ->get()
-            ->map(static function (DatabaseNotification $notification): array {
+            ->get();
+
+        // A user with no notifications also has no unread notifications.
+        $unreadCount = (int) (
+            $records->first()?->getAttribute('unread_total') ?? 0
+        );
+
+        $notifications = $records->map(
+            static function (DatabaseNotification $notification): array {
                 return [
                     'id' => $notification->id,
                     'title' => $notification->data['title'] ?? 'Notification',
@@ -32,11 +49,12 @@ final class NotificationController extends Controller
                     'read' => $notification->read_at !== null,
                     'created_at' => $notification->created_at?->toIso8601String(),
                 ];
-            });
+            }
+        );
 
         return response()->json([
             'notifications' => $notifications,
-            'unread_count' => $actor->unreadNotifications()->count(),
+            'unread_count' => $unreadCount,
         ]);
     }
 

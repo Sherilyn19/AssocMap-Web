@@ -194,14 +194,22 @@ final class MembershipController extends Controller
 
         Gate::forUser($actor)->authorize('view', $application);
 
-        $application->load([
-            'association.representative',
+        // Association Members receive the public profile fields only.
+        // Keep reviewer relationships because reviewer_name uses both current and legacy records.
+        $relations = [
+            'association',
             'status',
-            'sex',
             'reviewer',
             'officerReviewer',
             'member',
-        ]);
+        ];
+
+        if ($actor->role?->role_name !== 'Association Member') {
+            $relations[] = 'sex';
+        }
+
+        // Authorization may already have loaded the association during this request.
+        $application->loadMissing($relations);
 
         $canReview = Gate::forUser($actor)->allows('review', $application);
 
@@ -231,7 +239,13 @@ final class MembershipController extends Controller
                 ? 'field-officer-user.members.record'
                 : 'shared.membership.member',
             [
-                'member' => $member->load(['association', 'sex']),
+                // Staff see private profile fields; Association Members do not.
+                // Reuse any association already loaded by this request's policy check.
+                'member' => $member->loadMissing(
+                    $actor->role?->role_name === 'Association Member'
+                        ? ['association']
+                        : ['association', 'sex']
+                ),
                 'showPrivateProfile' =>
                     $actor->role?->role_name !== 'Association Member',
             ]

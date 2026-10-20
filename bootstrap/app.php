@@ -32,6 +32,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Start the Association clock before database-backed session loading.
         $middleware->prepend(TrackAssociationRequest::class);
+        // Temporary local notification timing, before session handling.
+        $middleware->prepend(
+            \App\Http\Middleware\MeasureNotificationRequest::class
+        );
         // Preserve intentional passphrase spaces, as with an ordinary password.
         $middleware->trimStrings(except: ['review_passphrase', 'review_passphrase_confirmation', 'assistance_confirmation']);
         /*

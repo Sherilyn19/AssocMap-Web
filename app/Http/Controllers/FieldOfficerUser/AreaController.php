@@ -250,25 +250,26 @@ final class AreaController extends Controller
         $actor = $resolver->resolve($request);
         abort_unless($actor, 403);
 
-        // Recheck ownership for every drawer request, including copied URLs.
-        $association = $access->associations($actor)
-            ->where('area_unit_id', $areaUnit)
-            ->with(['areaUnit', 'subUnit', 'programComponent', 'status'])
-            ->withCount([
-                'members as current_members_count' =>
-                    fn ($query) => $query->where('is_archived', false),
+        // Recheck ownership and the requested area before loading drawer content.
+        $associationQuery = $access->associations($actor)
+            ->where('area_unit_id', $areaUnit);
 
-                'projects as retained_projects_count' =>
-                    fn ($query) => $query->where('is_archived', false),
+        if ($section === 'association') {
+            // Only the overview displays geography, component, status, and the GIS total.
+            $associationQuery
+                ->with(['areaUnit', 'subUnit', 'programComponent', 'status'])
+                ->withCount([
+                    'gisLocations as mapped_locations_count' =>
+                        fn ($query) => $query->when(
+                            $actor->role?->role_name === 'Association Member',
+                            fn ($query) => $query->publiclyVisible(),
+                            fn ($query) => $query->whereNull('archived_at')
+                        ),
+                ]);
+        }
 
-                'gisLocations as mapped_locations_count' =>
-                    fn ($query) => $query->when(
-                        $actor->role?->role_name === 'Association Member',
-                        fn ($query) => $query->publiclyVisible(),
-                        fn ($query) => $query->whereNull('archived_at')
-                    ),
-            ])
-            ->findOrFail($association);
+        // Other tabs display their paginated child records and do not use profile relations.
+        $association = $associationQuery->findOrFail($association);
 
         // Load only the requested child records and preserve their pagination.
         $records = match ($section) {

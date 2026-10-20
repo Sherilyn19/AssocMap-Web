@@ -80,12 +80,44 @@ final class ReportsService
             'records' => (int) ($monthly->get($month)?->records ?? 0),
         ]);
 
+        // Return independent totals in one database request.
+        // Reuse the existing authorized queries and their archive/year filters.
+        // Separate scalar subqueries avoid multiplying totals through joins.
+        $totals = DB::query()
+            ->selectSub(
+                (clone $members)->reorder()->selectRaw('COUNT(*)'),
+                'members'
+            )
+            ->selectSub(
+                (clone $projects)->reorder()->selectRaw('COUNT(*)'),
+                'projects'
+            )
+            ->selectSub(
+                (clone $trainings)->reorder()->selectRaw('COUNT(*)'),
+                'trainings'
+            )
+            ->selectSub(
+                (clone $income)->reorder()
+                    ->selectRaw('COALESCE(SUM(m.gross_income), 0)'),
+                'income_total'
+            )
+            ->selectSub(
+                (clone $income)->reorder()->selectRaw('COUNT(*)'),
+                'income_records'
+            )
+            ->first();
+            
         $data = [
             'rows' => $rows,
-            'counts' => ['associations' => $rows->count(), 'members' => $members->count(),
-                'projects' => $projects->count(), 'trainings' => $trainings->count()],
-            'incomeTotal' => (clone $income)->sum('m.gross_income'),
-            'incomeRecords' => (clone $income)->count(),
+            'counts' => [
+            'associations' => $rows->count(),
+            'members' => (int) $totals->members,
+            'projects' => (int) $totals->projects,
+            'trainings' => (int) $totals->trainings,
+        ],
+        // Preserve PostgreSQL's decimal result without converting money to a float.
+        'incomeTotal' => $totals->income_total,
+        'incomeRecords' => (int) $totals->income_records,
             'months' => $months,
             'projectStatuses' => (clone $projects)->leftJoin('statuses as s', 's.id', '=', 'projects.status_id')
                 ->select('s.status_name')->selectRaw('COUNT(*) as total')->groupBy('s.status_name')->orderBy('s.status_name')->get(),

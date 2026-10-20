@@ -50,7 +50,11 @@ class AssocMapAuth
         // Use the session to identify the user and the database to check current permissions.
         // Role changes and account deactivation take effect without waiting for logout.
         try {
-            $loadActor = fn () => User::with('role')->find($request->session()->get('auth_user.id'));
+            // Reload the current user and role together on every protected request.
+            // The existing account, password, and permission checks run below.
+            $loadActor = fn () => app(
+                \App\Services\AuthenticatedUserLookup::class
+            )->find($request->session()->get('auth_user.id'));
             // Authentication queries happen before the controller's own database scope.
             $actor = app(AssociationRequestContext::class)->active
                 ? app(AssociationDatabase::class)->run($loadActor, stage: 'authentication')

@@ -123,7 +123,9 @@ final class MemberDraftController extends Controller
 
         Gate::forUser($actor)->authorize('view', $draft);
 
-        $draft->load(['association.representative', 'creator']);
+        // The form displays the association, but not its representative or draft creator.
+        // Reuse the association if the authorization policy already loaded it.
+        $draft->loadMissing('association');
 
         return view('shared.membership.drafts.form', [
             'draft' => $draft,
